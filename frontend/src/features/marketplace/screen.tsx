@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ClipboardList, LayoutGrid, ShoppingBasket, Sparkles } from "lucide-react";
+import { ClipboardList, LayoutGrid, ShoppingBasket } from "lucide-react";
 import { WorkspaceNav } from "../../shared/workspace-nav";
 import { useLocation, useNavigate } from "react-router-dom";
 import { MarketCopilot } from "../copilot/copilot";
@@ -429,7 +429,7 @@ export function Marketplace() {
         ))}
       </WorkspaceNav>
       <div className="catalog-workspace">
-      {tab !== "market" && <button type="button" onClick={() => setCopilot(true)}><Sparkles size={16} aria-hidden="true" /> ผู้ช่วยจัดซื้อ</button>}
+      {tab !== "market" && <button type="button" onClick={() => setCopilot(true)}>ผู้ช่วยจัดซื้อ</button>}
       {copilotOpen && <MarketCopilot postcode={postcode} arrival={arrival} preference={preference}
         deliveryFields={fields} onClose={() => setCopilot(false)} onApply={applyCopilot}
         onBrowse={(query) => { setQ(query); setCatalogOpen(true); setCopilot(false, ""); }} />}
@@ -445,7 +445,7 @@ export function Marketplace() {
               {fields}
             </>} />}
 
-          <button type="button" onClick={() => setCopilot(true)}><Sparkles size={16} aria-hidden="true" /> ผู้ช่วยจัดซื้อ</button>
+          <button type="button" onClick={() => setCopilot(true)}>ผู้ช่วยจัดซื้อ</button>
           <details className="trial-catalog" open={catalogOpen} onToggle={event => setCatalogOpen(event.currentTarget.open)}>
             <summary>เปรียบเทียบล็อตอื่นจากสวน</summary>
           <section className="market-hero" data-enter>
@@ -490,7 +490,7 @@ export function Marketplace() {
                 >
                   เงื่อนไขการซื้อ
                 </button>}
-                <span className="condition-summary">
+                {!guided && !filtersOpen && <span className="condition-summary">
                   {[
                     kg && kg + " กก.",
                     postcode,
@@ -501,7 +501,7 @@ export function Marketplace() {
                   ]
                     .filter(Boolean)
                     .join(" · ") || "ยังไม่ระบุจำนวนและปลายทาง"}
-                </span>
+                </span>}
                 <label>
                   เรียงตาม{" "}
                   <select
@@ -514,9 +514,9 @@ export function Marketplace() {
                   </select>
                 </label>
               </div>
-              <section
+              {!guided && <section
                 id="market-conditions"
-                hidden={guided || !filtersOpen}
+                hidden={!filtersOpen}
                 className="market-filters"
                 aria-label="เงื่อนไขการเลือกผลผลิต"
               >
@@ -543,9 +543,9 @@ export function Marketplace() {
                     />
                   </label>
                 </div>
-                {!guided && fields}
-              </section>
-              {catalogError && <p role="alert">{catalogError}</p>}
+                {fields}
+              </section>}
+              {!guided && catalogError && <p role="alert">{catalogError}</p>}
               {!lots.length && !catalogError && loadedQuery !== queryString && (
                 <p role="status">กำลังค้นหาล็อตผลผลิต</p>
               )}

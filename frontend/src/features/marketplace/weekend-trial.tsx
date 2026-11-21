@@ -57,13 +57,14 @@ export function WeekendTrial({ lots, budget, postcode, arrival, kg, loading, err
     .sort((a, b) => Number(Boolean(a.lot.is_sample)) - Number(Boolean(b.lot.is_sample)) ||
       Number(Boolean(b.trend)) - Number(Boolean(a.trend)) || a.lot.total - b.lot.total || a.lot.earliest.localeCompare(b.lot.earliest));
   const best = choices[0];
+  const displayedTrends = publication?.trends.slice(0, 3) ?? [];
+  const shownTrend = displayedTrends.find(t => t.slug === best?.trend?.slug);
   const dateLabel = (value: string) => new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(value));
   return <section className="weekend-trial">
     <div className="trial-title"><h1>เมนูทดลองสุดสัปดาห์</h1>
       {shopId && <MarketAssistantPanel shopId={shopId} locale="th" page="today"
         focused={focus.slug ? { type: 'trend', id: focus.slug } : undefined} openRequest={focus.sequence} />}
     </div>
-    <p>เลือกผลไม้และสวนที่ส่งถึงร้านทัน ภายในงบรวมค่าส่ง</p>
     <section className="buyer-trends" aria-labelledby="buyer-trends-title">
       <div className="trial-title"><h2 id="buyer-trends-title">เทรนด์วันนี้สำหรับร้าน</h2>
         {job.data?.demo_enabled && <button onClick={refresh} disabled={running} type="button">{running ? 'กำลังค้นหาเทรนด์…' : 'ค้นหาเทรนด์ใหม่'}</button>}
@@ -73,7 +74,7 @@ export function WeekendTrial({ lots, budget, postcode, arrival, kg, loading, err
       {publication?.run && <small>{publication.run.source === 'live' ? 'จากการค้นเว็บ' : 'ข้อมูลตัวอย่าง'} · {dateLabel(publication.run.trend_date)}</small>}
       {(shops.failed || today.failed) ? <p role="alert">โหลดเทรนด์ไม่สำเร็จ <button onClick={() => { shops.reload(); today.reload(); }}>ลองอีกครั้ง</button></p>
         : !publication?.trends.length && <p role="status">{shops.loading || today.loading ? 'กำลังโหลดเทรนด์…' : 'ยังไม่มีเทรนด์ที่เผยแพร่'}</p>}
-      <div className="buyer-trend-list">{publication?.trends.slice(0, 3).map(t => <article key={t.slug}>
+      <div className="buyer-trend-list">{displayedTrends.map(t => <article key={t.slug}>
         <h3>{t.name}</h3>
         <p>{t.menu_idea || t.why_rising}</p>
         {t.sources.filter(s => /^https?:\/\//.test(s.url)).slice(0, 1).map(s =>
@@ -87,9 +88,10 @@ export function WeekendTrial({ lots, budget, postcode, arrival, kg, loading, err
       : error ? <p role="alert">{error}</p> : loading ? <p role="status">กำลังเช็กราคาและรอบส่งของสวน…</p>
       : !best ? <p role="status">ยังไม่มีล็อตที่อยู่ในงบและส่งทัน ลองเปลี่ยนวันรับ จำนวน หรืองบทดลอง</p>
       : <article className="trial-pick">
-        <div><p>เมนูที่แนะนำให้ลอง</p><h2>{best.trend?.name || 'สมูทตี' + best.lot.name}</h2>
-        <p>{best.trend?.why_rising || 'ไอเดียเครื่องดื่มสำหรับทดลองขายจากผลไม้ที่จองได้ในงบ'}</p>
-        {best.trend?.sources.filter(s => /^https?:\/\//.test(s.url)).slice(0, 1).map(s => <a href={s.url} key={s.url} target="_blank" rel="noreferrer">ดูที่มาของเทรนด์</a>)}</div>
+        <div><h2>{best.trend?.name || 'สมูทตี' + best.lot.name}</h2>
+        {best.trend?.why_rising && (!shownTrend || best.trend.why_rising !== (shownTrend.menu_idea || shownTrend.why_rising)) &&
+          <p>{best.trend.why_rising}</p>}
+        {!shownTrend && best.trend?.sources.filter(s => /^https?:\/\//.test(s.url)).slice(0, 1).map(s => <a href={s.url} key={s.url} target="_blank" rel="noreferrer">ดูที่มาของเทรนด์</a>)}</div>
         <div>{best.lot.cover_url?.startsWith('/api/farmer/marketplace/photos/') &&
           <img className="farm-lot-cover" src={best.lot.cover_url} alt={best.lot.name} />}
         <strong>{best.lot.name} · {best.lot.farm}</strong>{best.lot.is_sample && <small>ล็อตตัวอย่าง</small>}
