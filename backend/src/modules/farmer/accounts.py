@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 
 from . import router as farm
 
-router = APIRouter(dependencies=[Depends(farm.require_local_demo)])
+router = APIRouter(dependencies=[Depends(farm.require_studio_host)])
 
 
 class Credentials(BaseModel):
@@ -34,7 +34,7 @@ def sign_in(body: Credentials, request: Request, response: Response):
     if not name:
         raise HTTPException(422, "กรุณาระบุชื่อบัญชี")
     with closing(farm.connect()) as db, db:
-        db.execute("BEGIN IMMEDIATE")
+        farm.lock_writer(db)
         account = db.execute("SELECT farm_id,salt,digest FROM farmer_account WHERE login=?", (name,)).fetchone()
         if body.create_account:
             if account:

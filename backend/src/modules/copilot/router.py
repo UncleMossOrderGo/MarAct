@@ -72,6 +72,7 @@ class ChatReply(BaseModel):
     unfulfilled: list[str] = Field(default_factory=list)
     previous: Requested | None = None
     delivery_confirmed: bool
+    guest_mode: bool = False
 
 
 FRUIT_ALIASES = {
@@ -265,6 +266,7 @@ def prepare(cur, intent: Intent, body: ChatInput, reply: ChatReply, business: st
 @router.post("/copilot/chat")
 def market_chat(body: ChatInput, req: Request) -> ChatReply:
     reply = ChatReply(message=UNKNOWN, delivery_confirmed=bool(body.postcode and body.arrival))
+    reply.guest_mode = os.getenv("MARACT_PUBLIC_DEMO") == "1" and not req.cookies.get("market_session")
     if UNSUPPORTED.search(body.message):
         return reply
     normalized = body.message.translate(THAI_DIGITS)

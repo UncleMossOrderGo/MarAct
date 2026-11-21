@@ -33,6 +33,7 @@ type Reply = {
   unfulfilled: string[];
   previous: Criteria | null;
   delivery_confirmed: boolean;
+  guest_mode?: boolean;
 };
 
 export function MarketCopilot({ open, onOpen, business, initialText, postcode, arrival, preference, deliveryFields, onClose, onApply, onBrowse }: {
@@ -147,6 +148,7 @@ export function MarketCopilot({ open, onOpen, business, initialText, postcode, a
           <p className="market-copilot__question">{question}</p>
           <div className="copilot-answer"><p>{reply.message}</p>
           <small>{reply.source === 'openai' ? 'ตีความคำขอด้วย OpenAI · ตรวจจากข้อมูลตลาด' : 'ค้นจากข้อมูลตลาดโดยตรง'}</small>
+          {reply.guest_mode && <p><Link to="/market#buyer">เข้าสู่บัญชีผู้ซื้อ</Link> เพื่อให้ OpenAI ช่วยตีความคำถามตามโควตาของร้าน</p>}
           {reply.tool_calls.length > 0 && <details>
             <summary>เครื่องมือที่เรียก</summary>
             <ul>{reply.tool_calls.map((tool, index) => <li key={index}>{tool.name} · {tool.status}</li>)}</ul>

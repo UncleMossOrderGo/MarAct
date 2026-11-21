@@ -17,6 +17,7 @@ from urllib.request import Request as HTTPRequest
 from urllib.request import urlopen
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from psycopg import Error as PostgresError
 from pydantic import BaseModel, Field
 
 from . import router as farm
@@ -45,17 +46,17 @@ def link_status():
 def pair_code():
     code = secrets.token_urlsafe(12)
     with closing(farm.connect()) as db, db:
-        db.execute("BEGIN IMMEDIATE")
+        farm.lock_writer(db)
         if db.execute("SELECT 1 FROM line_owner WHERE farm_id=?", (farm.farm_id.get(),)).fetchone():
             raise HTTPException(409, "สวนนี้เชื่อม LINE แล้ว")
-        db.execute("INSERT OR REPLACE INTO pairing VALUES (?,?,?)", (farm.farm_id.get(), farm.digest(code), int(time.time()) + 600))
+        db.execute("INSERT INTO pairing VALUES (?,?,?) ON CONFLICT(farm_id) DO UPDATE SET code=excluded.code, expires=excluded.expires", (farm.farm_id.get(), farm.digest(code), int(time.time()) + 600))
     return {"message": "เชื่อมสวน " + code, "expiresIn": 600}
 
 
-@public.post("/line/open", dependencies=[Depends(farm.require_local_demo)])
+@public.post("/line/open", dependencies=[Depends(farm.require_studio_host)])
 def open_linked_farm(body: PairCode, request: Request, response: Response):
     with closing(farm.connect()) as db, db:
-        db.execute("BEGIN IMMEDIATE")
+        farm.lock_writer(db)
         row = db.execute("SELECT farm_id FROM browser_pair WHERE code=? AND expires>?", (farm.digest(body.code.strip()), time.time())).fetchone()
         if not row:
             raise HTTPException(422, "รหัสไม่ถูกต้องหรือหมดอายุ พิมพ์ เชื่อมเว็บ ใน LINE เพื่อรับรหัสใหม่")
@@ -103,7 +104,7 @@ def saved(db, event_id, reply):
 def account(uid, text, event_id):
     """Change a binding and record its reply in one transaction."""
     with closing(farm.connect()) as db, db:
-        db.execute("BEGIN IMMEDIATE")
+        farm.lock_writer(db)
         bound = db.execute("SELECT farm_id FROM line_owner WHERE uid=?", (uid,)).fetchone()
         if text.startswith("เชื่อมสวน "):
             if bound:
@@ -121,7 +122,7 @@ def account(uid, text, event_id):
             return saved(db, event_id, message(HELP))
         elif text == "เชื่อมเว็บ":
             code = secrets.token_urlsafe(12)
-            db.execute("INSERT OR REPLACE INTO browser_pair VALUES (?,?,?)", (bound[0], farm.digest(code), int(time.time()) + 600))
+            db.execute("INSERT INTO browser_pair VALUES (?,?,?) ON CONFLICT(farm_id) DO UPDATE SET code=excluded.code, expires=excluded.expires", (bound[0], farm.digest(code), int(time.time()) + 600))
             return saved(db, event_id, message("เปิด จัดการสวน → เปิดสวนที่สร้างใน LINE แล้วกรอกรหัสนี้ภายใน 10 นาที เก็บรหัสนี้ไว้ใช้เอง\n" + code))
         else:
             return bound[0]
@@ -199,13 +200,13 @@ def handle(event):
 
 
 def process_one():
-    if not (farm.ROOT / "farm.sqlite").is_file():
+    if not farm.postgres() and not (farm.ROOT / "farm.sqlite").is_file():
         return False
     now = time.time()
     with closing(farm.connect()) as db, db:
         if not db.execute("SELECT 1 FROM line_inbox WHERE status='pending' LIMIT 1").fetchone():
             return False
-        db.execute("BEGIN IMMEDIATE")
+        farm.lock_writer(db)
         row = db.execute("SELECT id,payload,response,lease,attempts FROM line_inbox WHERE status='pending' ORDER BY received,rowid LIMIT 1").fetchone()
         if not row or row[3] > now:
             return False
@@ -217,7 +218,7 @@ def process_one():
         with closing(farm.connect()) as db, db:
             saved(db, key, reply)
         send_reply(event["replyToken"], reply)
-    except (OSError, sqlite3.Error, RuntimeError, ValueError, KeyError, TypeError) as exc:
+    except (OSError, sqlite3.Error, PostgresError, RuntimeError, ValueError, KeyError, TypeError) as exc:
         # An expired/consumed reply token cannot be retried. Never log tokens or messages.
         terminal = isinstance(exc, HTTPError) and exc.code in (400, 401, 403, 404)
         logger.warning("LINE event processing failed (%s)", type(exc).__name__)
@@ -238,7 +239,7 @@ async def worker(wakeup):
         try:
             while await asyncio.to_thread(process_one):
                 pass
-        except (OSError, sqlite3.Error) as exc:
+        except (OSError, sqlite3.Error, PostgresError) as exc:
             logger.error("LINE queue unavailable (%s)", type(exc).__name__)
         try:
             await asyncio.wait_for(wakeup.wait(), timeout=3)
@@ -274,7 +275,7 @@ async def webhook(request: Request):
                     raise TypeError
                 if not all(isinstance(value, str) for value in (event["source"]["userId"], event["replyToken"], event["webhookEventId"])):
                     raise TypeError
-                db.execute("INSERT OR IGNORE INTO line_inbox(id,payload,received) VALUES (?,?,?)",
+                db.execute("INSERT INTO line_inbox(id,payload,received) VALUES (?,?,?) ON CONFLICT(id) DO NOTHING",
                            (event["webhookEventId"], json.dumps(event), time.time()))
     except (ValueError, TypeError, KeyError, AttributeError):
         raise HTTPException(400, "Invalid LINE events") from None

@@ -1,4 +1,5 @@
 import asyncio
+import json
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager, suppress
 from pathlib import Path
@@ -9,6 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from psycopg import Error
 from psycopg_pool import ConnectionPool, PoolTimeout
 
+from backend.db.manage import migrate
 from backend.src.legacy.records.router import router as idea_a
 from backend.src.legacy.workspace.router import router as idea_b
 from backend.src.modules.copilot.router import router as copilot
@@ -16,13 +18,23 @@ from backend.src.modules.farmer.accounts import router as farmer_accounts
 from backend.src.modules.farmer.line import public as farmer_line
 from backend.src.modules.farmer.line import worker as line_worker
 from backend.src.modules.farmer.listings import router as farm_listings
+from backend.src.modules.farmer.router import initial
 from backend.src.modules.farmer.router import router as farmer
+from backend.src.modules.farmer.storage import pg_connect, postgres
 from backend.src.modules.marketplace.router import router as marketplace
 from backend.src.shared.db import database_url
 
 
+def prepare_farmer_storage() -> None:
+    migrate()
+    with pg_connect() as db:
+        db.execute("INSERT INTO farm(id, state) VALUES (1, ?) ON CONFLICT(id) DO NOTHING", (json.dumps(initial()),))
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    if postgres():
+        await asyncio.to_thread(prepare_farmer_storage)
     with ConnectionPool(database_url(), min_size=1, max_size=5, open=False) as pool:
         app.state.pool = pool
         app.state.line_wakeup = asyncio.Event()

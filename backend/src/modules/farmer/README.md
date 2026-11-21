@@ -39,3 +39,5 @@ npm.cmd --prefix frontend run test:web -- farmer-
 ชุดทดสอบจำลอง LLM และ LINE ทั้งการส่งข้อความตอบกลับและการดาวน์โหลดรูป พร้อมฐาน SQLite แยกจากข้อมูลสวนจริง Playwright เปิดเซิร์ฟเวอร์ทดสอบบน loopback ตรวจการลงขายจากเว็บ และเปิดประกาศในเบราว์เซอร์ผู้ซื้ออีกบัญชี
 
 หน้าเว็บอยู่ใน `frontend/src/features/farmer/` ส่วน backend อยู่ใน `backend/src/modules/farmer/` ไฟล์ `router.py` ดูแลสวนและร่าง, `seller_agent.py` เรียกโมเดล, `line.py` รับเหตุการณ์ LINE และผูกบัญชี, `listings.py` ให้ผู้ซื้ออ่านประกาศและรูปที่เผยแพร่แล้ว
+
+บน Render ตั้ง `FARMER_STORAGE=postgres` เพื่อเก็บข้อมูลสวน รูป และคิว LINE ใน PostgreSQL ที่กำหนดด้วย `DATABASE_URL` เมื่อเริ่ม FastAPI ระบบจะรัน migration และเตรียมสวนเดโม โหมด SQLite ในเครื่องยังใช้ไฟล์เดิมได้

@@ -6,13 +6,14 @@ import json
 import os
 import secrets
 import sqlite3
+import time
 from contextlib import closing
 from contextvars import ContextVar
 from pathlib import Path
 from urllib.parse import urlsplit
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.responses import FileResponse
 from openai import OpenAIError
 from PIL import Image, ImageOps, UnidentifiedImageError
@@ -20,6 +21,7 @@ from pydantic import BaseModel, Field
 
 from .domain import REVIEW, Fields, Profile, draft_summary, questions
 from .seller_agent import interpret
+from .storage import lock_writer, pg_connect, postgres
 
 BACKEND = Path(__file__).resolve().parents[3]
 DEFAULT_DATA = BACKEND / ".local" / "farmer"
@@ -30,12 +32,16 @@ ROOT = Path(os.getenv("FARMER_DATA_DIR") or os.getenv("IDEA_D_DATA_DIR") or (
 ))
 
 
-def require_local_demo(request: Request) -> None:
-    """Owner sessions are provisioned on the local demo host."""
-    local_hosts = {"127.0.0.1", "::1", "localhost", "testserver"}
+def require_studio_host(request: Request) -> None:
+    host = request.url.hostname
     origin = request.headers.get("origin")
-    if request.url.hostname not in local_hosts or (origin and urlsplit(origin).hostname not in local_hosts):
-        raise HTTPException(403, "Farmer Studio is currently a local demo")
+    local_hosts = {"127.0.0.1", "::1", "localhost", "testserver"}
+    if host in local_hosts and (not origin or urlsplit(origin).hostname in local_hosts):
+        return
+    public_host = os.getenv("RENDER_EXTERNAL_HOSTNAME")
+    if postgres() and public_host and host == public_host and (not origin or origin == f"https://{public_host}"):
+        return
+    raise HTTPException(403, "Farmer Studio is unavailable on this host")
 
 
 farm_id: ContextVar[int] = ContextVar("farm_id", default=1)
@@ -50,7 +56,7 @@ SESSION_SECONDS = 60 * 60 * 24 * 30
 async def owner_session(request: Request):
     cookie = request.cookies.get("maract_farm_owner", "")
     with closing(connect()) as db:
-        owner = db.execute("SELECT farm_id FROM owner WHERE session=? AND expires>unixepoch()", (digest(cookie),)).fetchone()
+        owner = db.execute("SELECT farm_id FROM owner WHERE session=? AND expires>?", (digest(cookie), int(time.time()))).fetchone()
     if not owner:
         raise HTTPException(401, "กรุณาเข้าสู่ระบบสวน")
     marker = farm_id.set(owner[0])
@@ -62,23 +68,23 @@ async def owner_session(request: Request):
 
 def start_session(db, identity, request, response):
     token = secrets.token_urlsafe(32)
-    db.execute("DELETE FROM owner WHERE session=? OR expires<=unixepoch()", (digest(request.cookies.get("maract_farm_owner", "")),))
-    db.execute("INSERT INTO owner(session,farm_id,expires) VALUES (?,?,unixepoch()+?)", (digest(token), identity, SESSION_SECONDS))
+    db.execute("DELETE FROM owner WHERE session=? OR expires<=?", (digest(request.cookies.get("maract_farm_owner", "")), int(time.time())))
+    db.execute("INSERT INTO owner(session,farm_id,expires) VALUES (?,?,?)", (digest(token), identity, int(time.time()) + SESSION_SECONDS))
     response.set_cookie("maract_farm_owner", token, httponly=True, samesite="strict",
-                        secure=request.url.scheme == "https", max_age=SESSION_SECONDS, path=COOKIE_PATH)
+                        secure=request.url.scheme == "https" or request.url.hostname == os.getenv("RENDER_EXTERNAL_HOSTNAME"), max_age=SESSION_SECONDS, path=COOKIE_PATH)
 
 
 def new_farm(db, name):
     state = initial()
     state.update(profile={"name": name, "area": "", "location": "", "about": ""}, listings=[])
-    return db.execute("INSERT INTO farm(state) VALUES (?)", (json.dumps(state),)).lastrowid
+    return db.execute("INSERT INTO farm(state) VALUES (?) RETURNING id", (json.dumps(state),)).fetchone()[0]
 
 
 def digest(value: str) -> str:
     return hashlib.sha256(value.encode()).hexdigest()
 
 
-router = APIRouter(dependencies=[Depends(require_local_demo), Depends(owner_session)])
+router = APIRouter(dependencies=[Depends(require_studio_host), Depends(owner_session)])
 
 
 def blank():
@@ -100,6 +106,8 @@ def initial():
 
 
 def connect():
+    if postgres():
+        return pg_connect()
     ROOT.mkdir(parents=True, exist_ok=True)
     db = sqlite3.connect(ROOT / "farm.sqlite", timeout=10)
     if db.execute("PRAGMA user_version").fetchone()[0] >= 2:
@@ -134,15 +142,21 @@ def view(state):
     return {**state, "farmId": farm_id.get(), "missing": questions(fields)}
 
 
-def update(revision, change, *, chat_reply=False):
+def update(revision, change, *, chat_reply=False, images=None):
     with closing(connect()) as db, db:
-        db.execute("BEGIN IMMEDIATE")
+        lock_writer(db)
         if line_user.get() and not db.execute("SELECT 1 FROM line_owner WHERE uid=? AND farm_id=?", (line_user.get(),farm_id.get())).fetchone():
             raise HTTPException(403, "การเชื่อมบัญชีเปลี่ยนแล้ว กรุณาเชื่อมสวนอีกครั้ง")
         state = read(db)
         if state["revision"] != revision:
             raise HTTPException(409, "ข้อมูลเปลี่ยนในอีกหน้าต่าง กรุณาโหลดข้อมูลล่าสุด")
         change(state)
+        if images:
+            for key, data in images:
+                if postgres():
+                    db.execute("INSERT INTO photo(id, data) VALUES (?, ?)", (key, data))
+                else:
+                    (ROOT / (key + ".jpg")).write_bytes(data)
         state["revision"] += 1
         db.execute("UPDATE farm SET state=? WHERE id=?", (json.dumps(state), farm_id.get()))
         if line_event.get():
@@ -261,6 +275,7 @@ def chat(body: Message):
 
 @router.post("/draft/photos")
 def photos(body: Photos):
+    images = []
     def save(s):
         d = s["draft"]
         if len(d["photos"])+len(body.images)>6:
@@ -282,9 +297,9 @@ def photos(body: Photos):
                 raise HTTPException(422,"ใช้รูป JPG, PNG หรือ WebP ขนาดไม่เกิน 4 MB และ 20 ล้านพิกเซล")
         for data in converted:
             key = uuid4().hex
-            (ROOT / (key+".jpg")).write_bytes(data)
+            images.append((key, data))
             d["photos"].append(key)
-    return update(body.revision, save)
+    return update(body.revision, save, images=images)
 
 
 @router.get("/photos/{key}")
@@ -299,6 +314,12 @@ def photo(key: str):
 def image_file(key: str):
     if len(key)!=32 or any(c not in "0123456789abcdef" for c in key):
         raise HTTPException(404)
+    if postgres():
+        with closing(connect()) as db:
+            row = db.execute("SELECT data FROM photo WHERE id=?", (key,)).fetchone()
+        if not row:
+            raise HTTPException(404)
+        return Response(content=bytes(row[0]), media_type="image/jpeg", headers={"Cache-Control":"private, no-store"})
     path = ROOT / (key+".jpg")
     if not path.exists():
         raise HTTPException(404)

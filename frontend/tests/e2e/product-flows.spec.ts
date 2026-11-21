@@ -3,6 +3,7 @@ import { expect, test } from '@playwright/test';
 test('trend selection reaches both catalog search and an editable buyer brief', async ({ page }) => {
   await page.goto('/market');
   await page.getByRole('link', {name:'ดูเทรนด์', exact:true}).click();
+  await expect(page.getByRole('navigation').getByRole('link', {name:'ผู้ช่วยจัดซื้อ'})).toHaveCount(0);
   await page.getByRole('button', {name:'สับปะรด'}).click();
   await expect(page.getByRole('table')).toBeVisible();
   await page.getByRole('link', {name:'ค้นหาสับปะรดในตลาด'}).click();

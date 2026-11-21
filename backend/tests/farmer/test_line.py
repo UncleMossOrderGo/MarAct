@@ -9,15 +9,19 @@ from threading import Event
 from unittest.mock import MagicMock
 from uuid import uuid4
 
+import psycopg
 import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
 
+from backend.db.manage import DB
 from backend.src.app.main import app
 from backend.src.modules.farmer import line
 from backend.src.modules.farmer import router as farm
 from backend.src.modules.farmer.domain import Fields
 from backend.src.modules.farmer.seller_agent import Interpretation
+from backend.src.modules.farmer.storage import FarmConnection
+from backend.src.shared.db import database_url
 
 API = "/api/ideas/idea-d"
 
@@ -39,8 +43,28 @@ def event(text=None, *, image=False, postback=None, uid="line-farmer", key=None)
     return result
 
 
+@pytest.fixture(params=["sqlite", "postgres"])
+def store(request, monkeypatch):
+    monkeypatch.setenv("FARMER_STORAGE", request.param)
+    if request.param == "sqlite":
+        yield
+        return
+    monkeypatch.setattr("backend.src.app.main.prepare_farmer_storage", lambda: None)
+    url = database_url()
+    schema = "test_farmer_" + uuid4().hex
+    ddl = (DB / "migrations/2026112107_farmer_storage.sql").read_text().replace("maract_farmer", schema)
+    with psycopg.connect(url) as db:
+        db.execute(ddl, prepare=False)
+    monkeypatch.setattr(farm, "pg_connect", lambda: FarmConnection.connect(url, options="-csearch_path=" + schema))
+    try:
+        yield
+    finally:
+        with psycopg.connect(url) as db:
+            db.execute("DROP SCHEMA " + schema + " CASCADE")
+
+
 @pytest.fixture
-def local(tmp_path, monkeypatch):
+def local(store, tmp_path, monkeypatch):
     monkeypatch.setattr(farm, "ROOT", tmp_path)
     monkeypatch.setenv("LINE_CHANNEL_SECRET", "test-secret")
     def offline(*args):
@@ -212,3 +236,16 @@ def test_line_retries_the_exact_conversational_answer(local, monkeypatch):
     assert signed(owner, [event("สรุปร่าง")]).is_success
     assert line.process_one()
     assert "ผลไม้ที่จะขาย" in notify.call_args.args[1]["text"]
+
+def test_hosted_farm_requires_owner_and_same_origin(store, monkeypatch):
+    host = "orchard.example"
+    monkeypatch.setenv("RENDER_EXTERNAL_HOSTNAME", host)
+    client = TestClient(app, base_url="https://" + host)
+    if not farm.postgres():
+        assert client.get(API + "/workspace").status_code == 403
+        return
+    assert client.get(API + "/workspace").status_code == 401
+    body = {"name": "orchard", "password": "test-password", "register": True}
+    assert client.post(API + "/session", json=body, headers={"origin": "https://other.example"}).status_code == 403
+    assert client.post(API + "/session", json=body, headers={"origin": "https://" + host}).is_success
+    assert client.get(API + "/workspace").json()["profile"]["name"] == "orchard"
