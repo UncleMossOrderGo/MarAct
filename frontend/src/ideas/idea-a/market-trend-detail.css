@@ -1,0 +1,133 @@
+.market-trend-detail {
+  display: grid;
+  gap: 16px;
+  padding: 0;
+  border: 0;
+}
+
+.market-trend-detail h1,
+.market-trend-detail h2,
+.market-trend-detail p { margin: 0; }
+
+.market-trend-detail h1 {
+  font-size: clamp(24px, 4vw, 32px);
+  letter-spacing: -.025em;
+}
+
+.market-trend-detail > button { justify-self: start; }
+
+.market-trend-detail-hero {
+  display: block;
+  width: 100%;
+  max-height: 340px;
+  aspect-ratio: 2.5;
+  object-fit: cover;
+  border-radius: var(--market-radius, 12px);
+  background: var(--market-green-soft, #eaf5e5);
+}
+
+.market-trend-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--market-border, #e5e7eb);
+  border-radius: var(--market-button-radius, 10px);
+  background: #f3f8ef;
+}
+
+.market-trend-tabs button {
+  flex: 1 1 0;
+  padding: 8px 4px;
+  border: 0;
+  color: var(--market-ink, #171717);
+  background: transparent;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.market-trend-tabs [aria-selected='true'] {
+  background: var(--market-green, #237a32);
+  color: #fff;
+}
+
+.market-trend-evidence { display: grid; gap: 16px; margin-block: 0 16px; }
+.market-trend-evidence dt { font-weight: 650; }
+.market-trend-evidence dd { margin: 0; }
+.market-trend-panel > .market-daily-primary { margin-block-start: 16px; }
+
+.market-trend-ingredient-list { margin: 0; padding: 0; }
+
+.market-trend-ingredient-list > li {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 12px;
+  border-color: var(--market-border, #e5e7eb);
+}
+
+.market-trend-ingredient-photo {
+  width: 64px;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 8px;
+  background: var(--market-green-soft, #eaf5e5);
+}
+
+.market-trend-ingredient-copy { display: grid; gap: 8px; min-width: 0; }
+.market-trend-ingredient-copy h2 { font-size: 16px; }
+
+.market-trend-sellers {
+  display: grid;
+  gap: 4px;
+  max-width: 400px;
+  font-size: 14px;
+}
+
+.market-trend-sellers select {
+  max-width: 100%;
+  min-width: 0;
+  border-color: var(--market-border, #e5e7eb);
+}
+
+.market-trend-price,
+.market-trend-ingredient-controls,
+.market-trend-ingredient-controls label,
+.market-trend-stepper {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.market-trend-price span,
+.market-trend-skipped { color: var(--market-muted, #6b7280); }
+
+.market-trend-stepper { gap: 4px; }
+
+.market-trend-stepper :is(button, input) {
+  display: grid;
+  min-height: 40px;
+  place-items: center;
+  padding: 4px;
+  border: 1px solid var(--market-border, #e5e7eb);
+  background: #fff;
+  color: inherit;
+  text-align: center;
+}
+
+.market-trend-stepper button { min-width: 40px; cursor: pointer; }
+.market-trend-stepper input { width: 72px; }
+.market-trend-stepper input[aria-invalid='true'] { border-color: #8e2716; }
+
+.market-trend-add {
+  margin-top: 16px;
+  padding-block: 8px;
+  background: #fff;
+}
+
+@media (max-width: 660px) {
+  .market-trend-detail-hero { aspect-ratio: 2; }
+  .market-trend-add { position: sticky; bottom: var(--market-mobile-nav-height, 80px); }
+  .market-trend-add button,
+  .market-trend-panel > .market-daily-primary { width: 100%; }
+}
