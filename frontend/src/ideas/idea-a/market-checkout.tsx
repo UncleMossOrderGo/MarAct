@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react';
 
 import { HttpError } from '../../shared/http';
-import { marketplaceFruitImage } from './marketplace-fruit-images';
+import { marketplaceMascot } from './market-brand';
+import { marketplaceListingImage } from './marketplace-fruit-images';
 import './market-checkout.css';
 
 type OrderLine = {
@@ -205,7 +206,7 @@ function OrderDetails({ order }: { order: SavedMarketOrder }) {
       </div>
       <ul className="market-order-items">
         {order.items.map((item) => {
-          const image = marketplaceFruitImage({ id: item.fruit_id, name_en: item.fruit_name });
+          const image = marketplaceListingImage({ id: item.fruit_id, name_en: item.fruit_name }, item.listing_id);
           return (
             <li key={item.listing_id}>
               {image && <img src={image} alt="" width={56} height={56} />}
@@ -228,13 +229,19 @@ function OrderDetails({ order }: { order: SavedMarketOrder }) {
 }
 
 export function MarketOrderConfirmation({
-  order, onViewOrders,
-}: { order: SavedMarketOrder; onViewOrders: () => void }) {
+  order, onViewOrders, onKeepShopping,
+}: { order: SavedMarketOrder; onViewOrders: () => void; onKeepShopping?: () => void }) {
   return (
     <section className="market-checkout" aria-label="Order confirmation">
-      <h1>Order saved</h1>
+      <div className="market-order-confirmation-title">
+        {onKeepShopping && <img src={marketplaceMascot} alt="" width={104} height={104} />}
+        <h1>Order saved</h1>
+      </div>
       <article className="market-order-panel"><OrderDetails order={order} /></article>
       <button className="market-checkout-action" type="button" onClick={onViewOrders}>View orders</button>
+      {onKeepShopping && (
+        <button className="market-checkout-back" type="button" onClick={onKeepShopping}>Keep shopping</button>
+      )}
     </section>
   );
 }

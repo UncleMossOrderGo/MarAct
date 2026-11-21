@@ -11,6 +11,14 @@
   letter-spacing: -.025em;
 }
 
+.market-order-confirmation-title:has(img) {
+  text-align: center;
+}
+
+.market-order-confirmation-title img {
+  object-fit: contain;
+}
+
 .market-checkout h1,
 .market-checkout h2,
 .market-checkout p {
@@ -45,7 +53,7 @@
 
 .market-checkout .market-checkout-action {
   width: 100%;
-  border-radius: var(--market-radius, 8px);
+  border-radius: var(--market-button-radius, 10px);
   background: var(--market-green, #1c732d);
   color: #fff;
   font-weight: 600;

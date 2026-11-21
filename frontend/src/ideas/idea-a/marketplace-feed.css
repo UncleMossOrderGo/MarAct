@@ -29,7 +29,7 @@
   list-style: none;
 }
 
-@container (min-width: 380px) {
+@container (min-width: 280px) {
   .market-feed-grid,
   .market-trend-cards--strip {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -55,7 +55,6 @@
 
 .market-feed-grid > li {
   position: relative;
-  box-shadow: 0 2px 5px rgb(20 35 23 / 6%);
 }
 
 .market-feed-grid > li:focus-within {
@@ -65,7 +64,7 @@
 
 .market-fruit-media {
   position: relative;
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 1;
   background: var(--market-green-soft, #e5f5e2);
 }
 

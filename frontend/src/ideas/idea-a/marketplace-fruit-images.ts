@@ -7,6 +7,9 @@ const fruitPhotos = [
   { name: /grape/i, url: new URL('./marketplace-photos/grapes.webp', import.meta.url).href },
 ];
 
-export function marketplaceFruitImage(fruit: { id: string; name_en: string }): string | undefined {
+export function marketplaceListingImage(fruit: { id: string; name_en: string }, listingId?: string): string | undefined {
+  if (listingId === 'mango-market') {
+    return new URL('./marketplace-photos/mango-market.webp', import.meta.url).href;
+  }
   return fruitPhotos.find(({ name }) => name.test(fruit.id) || name.test(fruit.name_en))?.url;
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { marketplaceFruitImage } from './marketplace-fruit-images';
+import { marketplaceListingImage } from './marketplace-fruit-images';
 import './marketplace-feed.css';
 
 export type MarketplaceFruit = {
@@ -13,6 +13,7 @@ type FeedListing = {
   id: string;
   seller: { id: string; name: string };
   price_per_kg_thb: string;
+  stock_kg?: number;
 };
 
 export type MarketplaceFeedData = {
@@ -96,8 +97,8 @@ function FeedGrid({
   return (
     <ol className="market-feed-grid" aria-label="Ranked fruit recommendations">
       {matches.map(({ item: { fruit, listings, seller_count, suggested_kg, trend_name, explanation }, rank }) => {
-        const photo = marketplaceFruitImage(fruit);
         const recommended = listings[0];
+        const photo = marketplaceListingImage(fruit, recommended?.id);
         const sellers = seller_count ?? new Set(listings.map((listing) => listing.seller.id)).size;
         const update = updates[fruit.id];
 
@@ -112,9 +113,14 @@ function FeedGrid({
               {fruit.name_th && <p lang="th" className="market-feed-muted">{fruit.name_th}</p>}
               {trend_name && <p className="market-trend-tag">{trend_name}</p>}
               {recommended && (
-                <p className="market-fruit-offer">
-                  <strong>฿{recommended.price_per_kg_thb} / kg</strong> from {recommended.seller.name}
-                </p>
+                <>
+                  <p className="market-fruit-offer">
+                    <strong>฿{recommended.price_per_kg_thb} / kg</strong> from {recommended.seller.name}
+                  </p>
+                  {recommended.stock_kg !== undefined && (
+                    <p className="market-feed-muted">{recommended.stock_kg} kg in stock</p>
+                  )}
+                </>
               )}
               <p className="market-feed-muted">{sellers} {sellers === 1 ? 'seller' : 'sellers'}</p>
               <p className="market-fruit-suggestion">

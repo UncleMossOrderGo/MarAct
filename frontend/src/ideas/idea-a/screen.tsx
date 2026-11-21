@@ -8,13 +8,12 @@ import { MarketProduct } from './market-product';
 import { MarketShell, type MarketDestination } from './market-shell';
 import { marketplaceApi, openMarketplaceExplanations, type FeedItem } from './marketplace-api';
 import { MarketplaceFeed } from './marketplace-feed';
-import { marketplaceFruitImage } from './marketplace-fruit-images';
 import { useMarketplaceResource } from './marketplace-resource';
 import { MarketplaceSessionGate } from './marketplace-sign-in';
 import { MarketplaceTrends } from './marketplace-trends';
 
 type View = { type: 'navigation' } | { type: 'product'; item: FeedItem } |
-  { type: 'checkout' } | { type: 'order'; order: SavedMarketOrder };
+  { type: 'checkout' } | { type: 'order'; order: SavedMarketOrder; justPlaced: boolean };
 const activeShopStorage = 'maract.idea-a.shop';
 const loadShops = (_: string, signal: AbortSignal) => marketplaceApi.shops(signal);
 const loadTrends = (_: string, signal: AbortSignal) => marketplaceApi.trends(signal);
@@ -66,9 +65,9 @@ function Marketplace({ signOut, signingOut }: { signOut: () => void; signingOut:
     if (result.status === 'error') throw new Error('Could not refresh trends.');
   }
 
-  function showOrder(order: SavedMarketOrder) {
+  function showOrder(order: SavedMarketOrder, justPlaced = false) {
     setDestination('orders');
-    setView({ type: 'order', order });
+    setView({ type: 'order', order, justPlaced });
   }
 
   function orderPlaced(order: SavedMarketOrder) {
@@ -76,7 +75,7 @@ function Marketplace({ signOut, signingOut }: { signOut: () => void; signingOut:
     feed.reload();
     if (activeShop.current !== order.shop_id) return;
     orders.reload();
-    showOrder(order);
+    showOrder(order, true);
   }
 
   if (shops.loading) return <p role="status">Loading shops…</p>;
@@ -109,7 +108,6 @@ function Marketplace({ signOut, signingOut }: { signOut: () => void; signingOut:
             listings={view.item.listings}
             suggestedKg={view.item.suggested_kg}
             trendName={view.item.trend_name}
-            imageUrl={marketplaceFruitImage(view.item.fruit)}
             onAdd={(line) => {
               const existing = cart.items.find(({ listing_id }) => listing_id === line.listing_id);
               if (!existing || existing.qty_kg < Math.min(500, line.stock_kg)) attempts.invalidate(shop.id);
@@ -129,7 +127,11 @@ function Marketplace({ signOut, signingOut }: { signOut: () => void; signingOut:
           />
         )}
         {view.type === 'order' && (
-          <MarketOrderConfirmation order={view.order} onViewOrders={() => navigate('orders')} />
+          <MarketOrderConfirmation
+            order={view.order}
+            onViewOrders={() => navigate('orders')}
+            onKeepShopping={view.justPlaced ? () => navigate('marketplace') : undefined}
+          />
         )}
         {view.type === 'navigation' && destination === 'marketplace' && (
           <MarketplaceFeed

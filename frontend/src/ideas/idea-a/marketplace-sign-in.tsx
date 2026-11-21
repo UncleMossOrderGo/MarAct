@@ -1,6 +1,8 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { HttpError } from '../../shared/http';
 import { marketplaceSession, sessionEnded } from './marketplace-session';
+import { MarketBrand } from './market-brand';
+import './market-design.css';
 import './marketplace-sign-in.css';
 
 type SessionState = 'loading' | 'signed-out' | 'signed-in' | 'unavailable';
@@ -30,7 +32,7 @@ function SignIn({ onSignedIn }: { onSignedIn: () => void }) {
 
   return <section className="market-sign-in" aria-labelledby="market-sign-in-heading">
     <div className="market-sign-in__panel">
-      <p className="market-sign-in__brand">MarAct</p>
+      <MarketBrand />
       <h1 id="market-sign-in-heading">Sign in to the marketplace</h1>
       <form onSubmit={submit} aria-busy={pending}>
         <label>Email

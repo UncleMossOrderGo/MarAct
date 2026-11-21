@@ -1,4 +1,7 @@
 import { useState, type ReactNode } from 'react';
+import { ArrowUpRight, House, Package, Search, ShoppingCart, UserRound } from 'lucide-react';
+import { MarketBrand, marketplaceMascot } from './market-brand';
+import './market-design.css';
 import './market-shell.css';
 
 export type MarketShop = {
@@ -9,10 +12,10 @@ export type MarketShop = {
 };
 
 const navigation = [
-  ['marketplace', 'Marketplace'],
-  ['trends', 'Trends'],
-  ['orders', 'Orders'],
-  ['profile', 'Shop Profile'],
+  ['marketplace', 'Marketplace', House],
+  ['trends', 'Trends', ArrowUpRight],
+  ['orders', 'Orders', Package],
+  ['profile', 'Shop Profile', UserRound],
 ] as const;
 
 export type MarketDestination = typeof navigation[number][0];
@@ -41,6 +44,7 @@ function ShopPicker({ shops, onSelect }: {
 
   return (
     <section className="market-welcome">
+      <img className="market-welcome-mascot" src={marketplaceMascot} alt="" width={120} height={120} />
       <h1>Fruit marketplace</h1>
       <form onSubmit={(event) => {
         event.preventDefault();
@@ -83,10 +87,11 @@ export function MarketShell({
       {shop ? (
         <div className="market-layout">
           <nav aria-label="Marketplace navigation" className="market-navigation">
-            <p className="market-brand">MarAct Market</p>
-            {navigation.map(([id, label]) => (
+            <MarketBrand />
+            {navigation.map(([id, label, Icon]) => (
               <button key={id} type="button" aria-current={destination === id ? 'page' : undefined}
                 onClick={() => onNavigate(id)}>
+                <Icon size={20} aria-hidden="true" />
                 {label}
               </button>
             ))}
@@ -100,12 +105,18 @@ export function MarketShell({
                 </select>
               </label>
               {fruitSearch && (
-                <input className="market-search" type="search" aria-label="Search fruit"
-                  placeholder="Search fruit" value={fruitSearch.value}
-                  onChange={(event) => fruitSearch.onChange(event.currentTarget.value)} />
+                <div className="market-search">
+                  <Search size={20} aria-hidden="true" />
+                  <input type="search" aria-label="Search fruit"
+                    placeholder="Search fruit" value={fruitSearch.value}
+                    onChange={(event) => fruitSearch.onChange(event.currentTarget.value)} />
+                </div>
               )}
               <div className="market-toolbar-actions">
-                <button type="button" onClick={onOpenCart}>Cart ({cartCount})</button>
+                <button type="button" className="market-cart-control" onClick={onOpenCart}>
+                  <ShoppingCart size={20} aria-hidden="true" />
+                  Cart ({cartCount})
+                </button>
                 {signOut}
               </div>
             </div>

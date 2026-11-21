@@ -3,6 +3,8 @@ import { expect, test } from '@playwright/test';
 test('compares two offers and passes the chosen seller and quantity to the cart', async ({ page }) => {
   await page.goto('/tests/fixtures/market-product.html');
   await expect(page.getByRole('heading', { name: 'Mango' })).toBeVisible();
+  const photo = page.getByRole('img', { name: 'Mango' });
+  await expect(photo).toHaveAttribute('src', /mango\.webp$/);
   await expect(page.getByRole('radio')).toHaveCount(2);
   const quantity = page.getByRole('spinbutton', { name: 'Quantity (kg)' });
   await expect(quantity).toHaveValue('1');
@@ -11,6 +13,7 @@ test('compares two offers and passes the chosen seller and quantity to the cart'
   await quantity.fill('501');
   await expect(add).toBeDisabled();
   await page.getByRole('radio', { name: /Sunrise Fruits/ }).check();
+  await expect(photo).toHaveAttribute('src', /mango-market\.webp$/);
   await expect(quantity).toHaveAttribute('max', '3');
   await page.getByRole('button', { name: 'Increase quantity' }).click();
   await page.getByRole('button', { name: 'Increase quantity' }).click();
@@ -20,13 +23,14 @@ test('compares two offers and passes the chosen seller and quantity to the cart'
   await quantity.fill('3');
   await add.click();
   const handoff = page.getByLabel('Cart handoff');
-  await expect(handoff).toHaveText(JSON.stringify({
-    listing_id: 'sunrise', qty_kg: 3, fruit_name: 'Mango', seller_name: 'Sunrise Fruits',
-    price_per_kg_thb: '52.00', stock_kg: 3,
-  }));
+  await expect(handoff).toContainText('"listing_id":"mango-market"');
+  expect(JSON.parse(await handoff.innerText())).toMatchObject({
+    listing_id: 'mango-market', qty_kg: 3, fruit_name: 'Mango', seller_name: 'Sunrise Fruits',
+    price_per_kg_thb: '52.00', stock_kg: 3, image_url: expect.stringContaining('mango-market.webp'),
+  });
   await page.getByRole('button', { name: 'Back to marketplace' }).click();
   await expect(page.getByRole('heading', { name: 'Marketplace' })).toBeVisible();
-  await expect(handoff).toContainText('"listing_id":"sunrise"');
+  await expect(handoff).toContainText('"listing_id":"mango-market"');
 });
 
 test('shows disabled seller choices when stock is unavailable', async ({ page }) => {

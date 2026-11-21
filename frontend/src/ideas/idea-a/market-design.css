@@ -1,0 +1,49 @@
+@import '@fontsource-variable/inter';
+
+:root {
+  --market-ink: #171717;
+  --market-muted: #6b7280;
+  --market-border: #e5e7eb;
+  --market-green: #237a32;
+  --market-green-soft: #eaf5e5;
+  --market-paper: #fff;
+  --market-radius: 12px;
+  --market-button-radius: 10px;
+  --market-font: 'Inter Variable', system-ui, sans-serif;
+}
+
+.market-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--market-green);
+  font-weight: 700;
+}
+
+.market-brand img {
+  object-fit: contain;
+}
+
+body:has(.market-app-header) {
+  color: var(--market-ink);
+  background: var(--market-paper);
+  font-family: var(--market-font);
+}
+
+header.market-app-header {
+  padding: 8px max(16px, calc((100% - 1168px) / 2));
+  border-color: var(--market-border);
+}
+
+.market-app-header select {
+  border-color: var(--market-border);
+  border-radius: var(--market-button-radius);
+}
+
+@media (max-width: 660px) {
+  .market-app-header + main {
+    margin-block: 8px 0;
+    padding-inline: 8px;
+  }
+}

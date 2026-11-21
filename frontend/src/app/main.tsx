@@ -1,5 +1,6 @@
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom';
+import { MarketBrand } from '../ideas/idea-a/market-brand';
 import { defaultIdeaId, demoIdeas, ideaPath, ideas } from '../ideas/registry';
 import './styles.css';
 
@@ -8,11 +9,12 @@ function IdeaPage() {
   const navigate = useNavigate();
   const idea = ideas.find(({ id, status }) => id === ideaId && status !== 'retired');
   const selected = idea?.status === 'demo' ? idea.id : '';
+  const marketplace = idea?.id === 'idea-a';
 
   return (
     <>
-      <header>
-        <strong>MarAct</strong>
+      <header className={marketplace ? 'market-app-header' : undefined}>
+        {marketplace ? <MarketBrand /> : <strong>MarAct</strong>}
         <label>
           Idea
           <select value={selected} onChange={(event) => navigate(ideaPath(event.target.value))}>

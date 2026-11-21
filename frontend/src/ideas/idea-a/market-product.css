@@ -28,7 +28,7 @@
   display: block;
   width: 100%;
   max-height: 420px;
-  aspect-ratio: 4 / 5;
+  aspect-ratio: 1;
   border-radius: var(--market-radius, 10px);
   object-fit: cover;
 }
@@ -125,6 +125,14 @@
 .market-product-add {
   width: 100%;
   background: var(--market-green, #21613b);
+}
+
+.market-product :is(.market-product-add, .market-product-back) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: var(--market-button-radius, 10px);
 }
 
 .market-product-status:empty {

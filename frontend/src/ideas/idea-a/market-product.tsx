@@ -1,4 +1,6 @@
 import { useId, useState } from 'react';
+import { ArrowLeft, ShoppingCart } from 'lucide-react';
+import { marketplaceListingImage } from './marketplace-fruit-images';
 import './market-product.css';
 
 export type MarketProductFruit = {
@@ -31,7 +33,6 @@ type MarketProductProps = {
   listings: readonly MarketProductListing[];
   suggestedKg: number;
   trendName?: string | null;
-  imageUrl?: string;
   onAdd: (item: MarketProductCartItem) => void;
   onBack: () => void;
 };
@@ -68,21 +69,28 @@ function AddOffer({ listing, suggestedKg, onAdd }: {
           onClick={() => setQuantity(String(valid ? amount + 1 : 1))}>+</button>
       </div>
       <p id={`${id}-limit`}>Enter a whole number from 1 to {max} kg.</p>
-      <button className="market-product-add" disabled={!valid}>Add to cart</button>
+      <button className="market-product-add" disabled={!valid}>
+        <ShoppingCart size={20} aria-hidden="true" />
+        Add to cart
+      </button>
     </form>
   );
 }
 
-function ProductDetail({ fruit, listings, suggestedKg, trendName, imageUrl, onAdd, onBack }: MarketProductProps) {
+function ProductDetail({ fruit, listings, suggestedKg, trendName, onAdd, onBack }: MarketProductProps) {
   const [sellerId, setSellerId] = useState('');
   const [added, setAdded] = useState('');
   const offers = listings.slice(0, 2);
   const available = offers.filter((offer) => limitFor(offer) > 0);
   const seller = available.find(({ id }) => id === sellerId) ?? available[0];
+  const imageUrl = marketplaceListingImage(fruit, seller?.id ?? offers[0]?.id);
 
   return (
     <section aria-label="Product detail" className="market-product">
-      <button className="market-product-back" type="button" onClick={onBack}>Back to marketplace</button>
+      <button className="market-product-back" type="button" onClick={onBack}>
+        <ArrowLeft size={20} aria-hidden="true" />
+        Back to marketplace
+      </button>
       <div className="market-product-layout">
         {imageUrl && <img className="market-product-image" src={imageUrl} alt={fruit.name_en} />}
         <div>

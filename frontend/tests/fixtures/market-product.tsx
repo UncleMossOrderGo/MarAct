@@ -9,7 +9,7 @@ const firstOffer = {
   price_per_kg_thb: '45.00', stock_kg: 600, active: true,
 };
 const secondOffer = {
-  id: 'sunrise', seller: { id: 'seller-b', name: 'Sunrise Fruits' },
+  id: 'mango-market', seller: { id: 'seller-b', name: 'Sunrise Fruits' },
   price_per_kg_thb: '52.00', stock_kg: 3, active: true,
 };
 const unavailable = new URLSearchParams(location.search).has('unavailable');
