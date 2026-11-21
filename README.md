@@ -1,53 +1,53 @@
+﻿<p align="center"><img src="frontend/src/shared/brand/maract-mascot.webp" alt="โลโก้ MarAct เกษตรกรถือมะม่วง" width="128"></p>
+
 # MarAct
 
-Python backend dependencies live in `pyproject.toml` and `uv.lock`. The React frontend, its TypeScript config, and its npm dependencies live under `frontend/`.
+ตลาดผลไม้สำหรับร้านค้าและเกษตรกร ร้านค้าค้นหาผลผลิตจากหลายสวน เทียบราคาตามจำนวนที่ต้องการ และคุยกับผู้ช่วยจัดซื้อได้ ส่วนเกษตรกรจัดการโปรไฟล์สวนและลงประกาศผลผลิตผ่านเว็บหรือ LINE
 
-A single fruit marketplace backed by React, Vite, FastAPI, and PostgreSQL. The marketplace owns the catalog, quotes, cart, and checkout. Its shopping assistant reads the same lots and quote rules.
+**[เปิดตลาดผลไม้](https://maract-market.onrender.com/market)** · [ดูเทรนด์ผลไม้](https://maract-market.onrender.com/trends) · [เข้าสู่สวนของฉัน](https://maract-market.onrender.com/farmer)
 
-## Local setup
+## ลองใช้ในสองนาที
 
-Install Node.js 24, npm, Python 3.12–3.14, uv, Make, and Docker with the Compose plugin. Start Docker, then run:
+1. **เลือกผลผลิต** ลองค้น “มะม่วง” ระบุจำนวน รหัสไปรษณีย์ และวันรับ เพื่อเทียบล็อตที่ส่งได้กับยอดรวมค่าขนส่ง
+2. **ถามผู้ช่วยจัดซื้อ** เปิดแชตแล้วถาม “หามะม่วง 20 กก.” จากนั้นลองถามต่อว่า “ถ้าเพิ่มเป็น 40 กก. ล่ะ” หรือเปลี่ยนเรื่องเป็น “ผลไม้อะไรกำลังเป็นเทรนด์” กางรายการเครื่องมือใต้คำตอบเพื่อดูว่าแชตค้นอะไร
+3. **ตรวจตะกร้า** เมื่อเลือกล็อตจากแชต ระบบจะตรวจราคากับตลาดอีกครั้ง ผู้ซื้อเป็นคนกดยืนยันคำสั่งซื้อที่หน้า checkout
+
+ถ้าเป็นเจ้าของสวน ให้เลือก **สวนของฉัน** เพื่อสร้างบัญชี แก้ข้อมูลสวน และเตรียมประกาศ เมื่อตรวจร่างและยืนยันลงขายแล้ว ผู้ซื้อจะเห็นประกาศในหน้าตลาดและที่ `/farms` บัญชีแบบรหัสผ่านใช้ได้ทั้งซื้อและจัดการสวน ส่วนรหัสจาก LINE ใช้เปิดสวนที่ผูกไว้ [วิธีเชื่อม LINE](backend/src/modules/farmer/README.md)
+
+### ข้อมูลในเดโมมาจากไหน
+
+ราคา สต็อก และจำนวนซื้อขั้นต่ำมาจากแค็ตตาล็อกใน PostgreSQL ซึ่งเติมล็อตตัวอย่างสำหรับทดลองกรองสินค้าไว้ได้ ตัวเลขเทรนด์เป็นสัญญาณตัวอย่าง และแชตจะแสดงแหล่งข่าวเพิ่มเติมเมื่อค้นพบหลักฐาน ในโหมดเดโมสาธารณะ ผู้เยี่ยมชมค้นด้วยกฎของตลาดได้ทันที ส่วนผู้ซื้อที่เข้าสู่ระบบใช้ OpenAI ตีความคำถามได้ตามโควตา
+
+## รันบนเครื่อง
+
+เตรียม Node.js 24 พร้อม npm, Python 3.12–3.14, uv, Make และ Docker ที่มี Compose จากนั้นเปิด Docker แล้วรันจากโฟลเดอร์หลักของ repo
 
 ```sh
 make init
 make dev
 ```
 
-Open [MarAct on port 5173](http://127.0.0.1:5173). The first visit opens `/market`. Select **ผู้ช่วยจัดซื้อ** to open the shopping assistant. The API listens on port 3000 and Vite proxies `/api` requests. Adjust `.env` if local ports conflict. Keep `DB_PORT` and the port in `DATABASE_URL` in sync.
+เปิด [หน้าตลาดในเครื่อง](http://127.0.0.1:5173/market) คำสั่ง `make init` จะสร้าง `.env` หากยังไม่มี ติดตั้ง dependencies เปิด PostgreSQL และโหลดข้อมูลตัวอย่าง ส่วน `make dev` เปิด Vite ที่พอร์ต 5173 และ FastAPI ที่พอร์ต 3000 โดย Vite ส่งคำขอ `/api` ไปยัง backend หากเปลี่ยนพอร์ตฐานข้อมูล ให้แก้ทั้ง `DB_PORT` และ `DATABASE_URL` ใน `.env`
 
-| Command | Behavior |
+| เมื่อต้องการ | คำสั่ง |
 | --- | --- |
-| `make init` | Create `.env` if needed, install locked Python and Node dependencies, start PostgreSQL, apply migrations, and seed all demos. Safe to rerun. |
-| `make dev` | Start PostgreSQL and both development apps. |
-| `make migrate` | Apply pending migrations to `DATABASE_URL`. |
-| `make seed DOMAIN=workspace` | Insert that idea’s fixtures once. |
-| `make test-api` | Run the Python API tests with PostgreSQL. |
-| `make check` | Run lint, type checks, all idea suites, and the cross-idea browser smoke tests. |
-| `make build` | Compile-check Python and build the frontend. Run `make start` to serve them together. |
-| `make doctor` | Print runtime and Docker versions and check Docker connectivity. |
+| ตรวจเครื่องมือและการเชื่อมต่อ Docker | `make doctor` |
+| อัปเดตโครงสร้างฐานข้อมูล | `make migrate` |
+| เติมล็อตตัวอย่างในตลาด | `make seed DOMAIN=marketplace` |
+| ทดสอบ backend | `make test-api` |
+| ตรวจ lint, type และรันชุดทดสอบรวมถึง Playwright | `make check` |
+| สร้างและเปิดแอปรวม frontend กับ backend | `make build` แล้ว `make start` |
 
-Before the first browser test, run `cd frontend && npx playwright install chromium` from the repo root. The API and smoke tests use `DATABASE_URL`, so initialize the database first. Browser tests use port 5174 and API port 3001 by default. Keep these ports free, and set a distinct `DB_PORT` and `DATABASE_URL` when running database environments in parallel.
+ก่อนรัน Playwright ครั้งแรก ให้รัน `npx playwright install chromium` ในโฟลเดอร์ `frontend` ชุดทดสอบใช้ PostgreSQL และต้องการพอร์ต 5174 กับ 3001 ว่าง
 
-## Buyer and grower journeys
+## จุดเริ่มต้นสำหรับทีมพัฒนา
 
-- `/market` searches orderable marketplace lots and public grower listings. Orderable lots use the existing PostgreSQL quote and checkout rules. Grower announcements display their published price, stock and service area. Prices and freight are never copied into checkout by matching a farm name.
-- `/trends` compares fruit signals, shows the observation period and sources, and carries the selected fruit into market search or an editable Copilot question.
-- `/login` signs a grower in with a password or a one-time code from LINE. `/farmer` opens the local Farmer Studio. Web and LINE share the same private draft. Confirmation publishes to `/farms` and the public grower section on `/market`. Farmer data uses the existing SQLite workspace and photo directory; keep that directory on persistent storage. See [Farmer and LINE setup](backend/src/modules/farmer/README.md).
+| ส่วนงาน | Frontend (React + Vite) | Backend (FastAPI) |
+| --- | --- | --- |
+| ตลาด ตะกร้า และคำสั่งซื้อ | [Marketplace](frontend/src/features/marketplace/) | [กฎราคาและใบเสนอราคา](backend/src/modules/marketplace/catalog.py) · [API ตลาด](backend/src/modules/marketplace/router.py) |
+| แชตจัดซื้อและเทรนด์ | [Copilot](frontend/src/features/copilot/) | [การตีความคำถาม โควตา และเครื่องมือ](backend/src/modules/copilot/router.py) |
+| โปรไฟล์สวน ประกาศ และ LINE | [Farmer Studio](frontend/src/features/farmer/) | [โมดูลสวน](backend/src/modules/farmer/) |
 
-## Marketplace handoff
+แชตเรียก `POST /api/ideas/idea-c/copilot/chat` โดยส่งคำถาม บริบทสนทนา และเงื่อนไขการซื้อ คำตอบประกอบด้วยข้อความ แหล่งที่มา เครื่องมือที่เรียก และล็อตหรือเทรนด์ที่พบ ลิงก์เดิม `/ideas/idea-c` และ `/ideas/idea-b` ยังเปิดหน้าตลาดและแชตตามลำดับ
 
-| Area | Where to work |
-| --- | --- |
-| Marketplace and shared cart | [`frontend/src/features/marketplace/`](frontend/src/features/marketplace/) |
-| Lot ranking and quote rules | [`backend/src/modules/marketplace/catalog.py`](backend/src/modules/marketplace/catalog.py) |
-| Partner lots, buyer sessions and confirmed orders | [`backend/src/modules/marketplace/router.py`](backend/src/modules/marketplace/router.py) |
-| Chat intent, quotas, proposals and trend matching | [`backend/src/modules/copilot/router.py`](backend/src/modules/copilot/router.py) |
-
-`/ideas/idea-c` redirects to `/market` and preserves query parameters and the cart or orders hash. `/ideas/idea-b` opens Copilot in the marketplace. `/ideas/idea-b/chat`, `/ideas/idea-b/workspace`, and `/ideas/idea-a` remain accessible. Marketplace APIs retain `/api/ideas/idea-c` so existing consumers and buyer sessions continue to work.
-
-`POST /api/ideas/idea-c/copilot/chat` takes a Thai or English `message`, optional `postcode`, `arrival`, `preference`, and `previous` search criteria. It returns `message`, `source`, `lots`, `groups`, `trends`, `tool_calls`, `unfulfilled`, `previous`, and `delivery_confirmed`. Quantities are quoted in whole sales units. The cart budget is a product subtotal. A destination and date are needed to calculate totals with freight. Applying a proposal re-quotes the affected farm carts. The buyer confirms checkout separately.
-
-The agent uses live catalog data from the configured PostgreSQL database. Demo installations can load sample lots with `make seed DOMAIN=marketplace`. Trend metrics remain sample data. When available, MCP web sources appear as additional cited context. In public-demo mode, guests can use catalog answers and signed-in buyers can use external tools within the configured quotas.
-
-
-The chat UI lives in `frontend/src/features/copilot/`. API tests live in `backend/tests/` and browser journeys in `frontend/tests/e2e/`. CI runs backend, frontend, and browser checks for every change. See [the product structure](docs/adr/0003-product-structure.md) and [deployment instructions](infra/README.md).
+อ่านต่อได้ที่ [โครงสร้างโปรเจกต์](docs/adr/0003-product-structure.md) · [เทสต์ API](backend/tests/) · [เทสต์เส้นทางผู้ใช้](frontend/tests/e2e/) · [คู่มือ deploy บน GCP](infra/README.md)
