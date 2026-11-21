@@ -49,3 +49,16 @@ def postgres_engine() -> Iterator[Engine]:
                 connection.exec_driver_sql(f"DROP SCHEMA {schema} CASCADE")
     finally:
         admin.dispose()
+
+
+@pytest.fixture
+def marketplace_engine(postgres_engine: Engine) -> Engine:
+    """Upgrade an isolated v1 fixture for marketplace repository tests."""
+    from backend.db.alembic.versions import idea_a_0002
+
+    with (
+        postgres_engine.begin() as connection,
+        Operations.context(MigrationContext.configure(connection)),
+    ):
+        idea_a_0002.upgrade()
+    return postgres_engine
