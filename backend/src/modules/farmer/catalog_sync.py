@@ -5,6 +5,7 @@ import json
 import logging
 import math
 import os
+import re
 from contextlib import closing
 from datetime import date, timedelta
 from decimal import Decimal
@@ -85,11 +86,19 @@ def sync_catalog(cur):
             previous = cur.fetchone()
             if not valid and not previous:
                 continue
+            photos = item.get("photos") or []
+            index = item.get("cover", 0)
+            photo = photos[index] if 0 <= index < len(photos) else ""
+            cover_url = (
+                f"/api/farmer/marketplace/photos/{photo}"
+                if re.fullmatch(r"[0-9a-f]{32}", photo) else None
+            )
             signature = hashlib.sha256(
                 json.dumps(
                     [
                         state["profile"]["name"],
                         fields,
+                        cover_url,
                         item["available"],
                         policy.model_dump() if policy else None,
                     ],
@@ -116,12 +125,12 @@ def sync_catalog(cur):
                 remaining = max(0, units - cur.fetchone()["units"])
                 cur.execute(
                     """INSERT INTO idea_c_lots
-                    (id,farm,name,uses,unit,kg,price,minimum,stock,starts,ends,transit,postcodes,freight)
-                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                    (id,farm,name,uses,unit,kg,price,minimum,stock,starts,ends,transit,postcodes,freight,cover_url)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                     ON CONFLICT (id) DO UPDATE SET farm=excluded.farm, name=excluded.name,
                     price=excluded.price, stock=excluded.stock, starts=excluded.starts,
                     ends=excluded.ends, transit=excluded.transit, postcodes=excluded.postcodes,
-                    freight=excluded.freight, minimum=excluded.minimum""",
+                    freight=excluded.freight, minimum=excluded.minimum, cover_url=excluded.cover_url""",
                     (
                         key,
                         f"{state['profile']['name']} · #{farm_id}",
@@ -137,6 +146,7 @@ def sync_catalog(cur):
                         policy.transit,
                         policy.postcodes,
                         policy.freight,
+                        cover_url,
                     ),
                 )
             cur.execute(

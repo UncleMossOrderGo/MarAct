@@ -1,9 +1,10 @@
 import { randomUUID } from 'node:crypto';
+import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
 
 test('a grower publishes a fresh lot and accepts the buyer’s reservation', async ({ page: grower, browser, baseURL }) => {
   const suffix = randomUUID().slice(0, 8);
-  const fruit = 'เสาวรส-' + suffix;
+  const fruit = 'สับปะรด-' + suffix;
   const shop = 'คาเฟ่-' + suffix;
   const date = (offset: number) => new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Asia/Bangkok', year: 'numeric', month: '2-digit', day: '2-digit',
@@ -20,6 +21,9 @@ test('a grower publishes a fresh lot and accepts the buyer’s reservation', asy
   await grower.getByLabel('เริ่มส่งได้วันที่').fill(date(0));
   await grower.getByLabel('พื้นที่จัดส่ง', { exact: true }).fill('กรุงเทพฯ');
   await grower.getByRole('button', { name: 'บันทึกร่างจากแบบฟอร์ม' }).click();
+  const photo = fileURLToPath(new URL('../../src/features/shop/marketplace-photos/pineapple.webp', import.meta.url));
+  await grower.getByLabel('เลือกรูปจากเครื่อง').setInputFiles(photo);
+  await expect(grower.getByRole('img', { name: 'รูปปกที่จะเผยแพร่' })).toBeVisible();
   await grower.getByRole('button', { name: 'ยืนยันลงขาย' }).click();
   await expect(grower.getByRole('heading', { name: fruit })).toBeVisible();
 
@@ -30,6 +34,9 @@ test('a grower publishes a fresh lot and accepts the buyer’s reservation', asy
     await buyer.goto('/market?' + query);
     const lot = buyer.getByRole('article').filter({ has: buyer.getByRole('heading', { name: fruit, exact: true }) });
     await expect(lot).toContainText('310 บาท');
+    const cover = lot.locator('img[src^="/api/farmer/marketplace/photos/"]');
+    await expect(cover).toBeVisible();
+    await expect.poll(() => cover.evaluate(img => (img as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
     await lot.getByRole('button', { name: 'เพิ่มลงตะกร้า' }).click();
     await buyer.getByRole('button', { name: 'ตะกร้า (1)' }).click();
     await buyer.getByRole('button', { name: 'ระบุข้อมูลเพื่อจอง' }).click();

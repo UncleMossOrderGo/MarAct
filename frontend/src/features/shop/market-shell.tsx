@@ -143,6 +143,11 @@ export function MarketShell({
               )}
               <div className="market-toolbar-actions">
                 {toolbarActions}
+                {daily && <a href="/market/login" className="market-role-link"
+                  aria-label={locale === 'th' ? 'บัญชีและบทบาท' : 'Account and roles'}
+                  title={locale === 'th' ? 'บัญชีและบทบาท' : 'Account and roles'}>
+                  <UserRound size={20} aria-hidden="true" />
+                </a>}
                 {!hideCart && <button type="button" className="market-cart-control" onClick={onOpenCart}>
                   <ShoppingCart size={20} aria-hidden="true" />
                   {copy.cart} ({cartCount})

@@ -243,7 +243,19 @@ export function Marketplace() {
     return () => {
       current = false;
     };
-  }, [queryString, revision]);
+  }, [queryString, revision, tab]);
+  useEffect(() => {
+    if (tab !== "market") return;
+    const reread = () => {
+      if (!document.hidden) refresh(value => value + 1);
+    };
+    window.addEventListener("focus", reread);
+    const timer = window.setInterval(reread, 30_000);
+    return () => {
+      window.removeEventListener("focus", reread);
+      window.clearInterval(timer);
+    };
+  }, [tab]);
   async function loadOrders() {
     const data = await api<{ buyer: string; orders: Order[] }>("orders");
     setBuyer(data.buyer);

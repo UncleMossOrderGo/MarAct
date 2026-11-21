@@ -335,3 +335,6 @@ main:has(> .market-shell--daily) {
 @media (max-width: 660px) {
   .market-shell--daily .market-navigation { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 }
+
+.market-role-link { display:inline-grid; place-items:center; min-width:42px; min-height:42px; border:1px solid var(--market-border, #dbe4da); border-radius:12px; background:white; color:inherit; }
+.market-role-link:hover { background:var(--market-green-soft); }
