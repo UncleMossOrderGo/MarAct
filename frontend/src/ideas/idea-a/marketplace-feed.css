@@ -1,0 +1,174 @@
+.market-feed,
+.market-trends {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--market-ink, #1b2932);
+  container-type: inline-size;
+}
+
+.market-feed h2,
+.market-trends h2 {
+  margin: 0 0 12px;
+  font-size: clamp(1.2rem, 3vw, 1.6rem);
+  line-height: 1.25;
+}
+
+.market-feed-grid,
+.market-trend-cards {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  margin: 16px 0;
+  padding: 0;
+  list-style: none;
+}
+
+@container (min-width: 380px) {
+  .market-feed-grid,
+  .market-trend-cards--strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@container (min-width: 600px) {
+  .market-feed-grid,
+  .market-trend-cards--strip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.market-feed-grid > li,
+.market-trend-cards > li {
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--market-border, #d6dfdb);
+  border-radius: var(--market-radius, 8px);
+  background: #fff;
+}
+
+.market-fruit-media {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  background: var(--market-green-soft, #e5f5e2);
+}
+
+.market-fruit-media img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.market-fruit-rank,
+.market-trend-tag {
+  width: fit-content;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: var(--market-green-soft, #e5f5e2);
+  color: var(--market-ink, #1b2932);
+  font-size: .8rem;
+  font-weight: 600;
+}
+
+.market-fruit-rank {
+  position: absolute;
+  inset: 8px auto auto 8px;
+  background: #fff;
+}
+
+.market-fruit-content,
+.market-trend-cards > li {
+  padding: 12px;
+}
+
+.market-fruit-content h3,
+.market-trend-cards h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.market-fruit-content h3 button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: start;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.market-fruit-content h3 button:hover {
+  text-decoration: underline;
+}
+
+.market-fruit-content p,
+.market-trend-cards p,
+.market-trend-meta p {
+  margin: 4px 0 0;
+}
+
+.market-fruit-offer,
+.market-fruit-suggestion,
+.market-fruit-explanation,
+.market-trend-cards p,
+.market-trend-sources,
+.market-trend-meta p {
+  font-size: .875rem;
+}
+
+.market-fruit-suggestion {
+  font-weight: 600;
+}
+
+.market-feed-muted {
+  color: var(--market-muted, #596660);
+  font-size: .85rem;
+}
+
+.market-trend-header,
+.market-trend-meta,
+.market-trend-sources {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.market-trend-header {
+  justify-content: space-between;
+}
+
+.market-trend-header h2 {
+  margin: 0;
+}
+
+.market-trend-meta,
+.market-trend-sources {
+  margin-top: 8px;
+}
+
+.market-trends button {
+  border: 1px solid var(--market-border, #d6dfdb);
+  border-radius: var(--market-radius, 8px);
+  padding: 8px 12px;
+  background: var(--market-green-soft, #e5f5e2);
+  color: var(--market-ink, #1b2932);
+  cursor: pointer;
+}
+
+.market-trends button:disabled {
+  cursor: default;
+}
+
+.market-trend-sources a {
+  color: var(--market-green, #14584c);
+}
+
+.market-feed button:focus-visible,
+.market-trends :is(button, a):focus-visible {
+  outline: 2px solid var(--market-green, #14584c);
+  outline-offset: 3px;
+}
