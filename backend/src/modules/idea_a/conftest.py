@@ -52,7 +52,7 @@ def postgres_engine() -> Iterator[Engine]:
 
 
 @pytest.fixture
-def marketplace_engine(postgres_engine: Engine) -> Engine:
+def marketplace_v2_engine(postgres_engine: Engine) -> Engine:
     """Upgrade an isolated v1 fixture for marketplace repository tests."""
     from backend.db.alembic.versions import idea_a_0002
 
@@ -62,3 +62,21 @@ def marketplace_engine(postgres_engine: Engine) -> Engine:
     ):
         idea_a_0002.upgrade()
     return postgres_engine
+
+
+@pytest.fixture
+def marketplace_engine(marketplace_v2_engine: Engine) -> Engine:
+    """Upgrade the isolated marketplace fixture to the current revision."""
+    from backend.db.alembic.versions import idea_a_0003
+
+    with (
+        marketplace_v2_engine.begin() as connection,
+        Operations.context(MigrationContext.configure(connection)),
+    ):
+        idea_a_0003.upgrade()
+    return marketplace_v2_engine
+
+
+@pytest.fixture
+def daily_marketplace_engine(marketplace_engine: Engine) -> Engine:
+    return marketplace_engine

@@ -2,19 +2,23 @@ from datetime import date
 from decimal import Decimal
 
 import pytest
+from alembic.migration import MigrationContext
+from alembic.operations import Operations
 from psycopg.conninfo import make_conninfo
 from sqlalchemy import inspect, select
 from sqlalchemy.engine import Engine
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from backend.db import manage
+from backend.db.alembic.versions import idea_a_0003
 from backend.src.modules.idea_a.marketplace import models
 from backend.src.shared.db import database_url
 
 
 def test_marketplace_tables_match_mappings(marketplace_engine: Engine) -> None:
     inspector = inspect(marketplace_engine)
-    assert len(models.Base.metadata.tables) == 10
+    assert len(models.Base.metadata.tables) == 16
     for name, mapping in models.Base.metadata.tables.items():
         assert set(mapping.columns.keys()) == {
             entry["name"] for entry in inspector.get_columns(name)
@@ -90,5 +94,84 @@ def test_make_migration_retains_v1_data_and_migrates_compatible_usage(
         )
         assert (
             db.exec_driver_sql("SELECT version_num FROM alembic_version").scalar_one()
-            == "idea_a_0002"
+            == "idea_a_0003"
         )
+
+
+def test_daily_upgrade_preserves_existing_marketplace_order(
+    marketplace_v2_engine: Engine,
+) -> None:
+    with marketplace_v2_engine.begin() as db:
+        db.exec_driver_sql(
+            "INSERT INTO idea_a_shops VALUES ('shop', 'Bakery', 'bakery', '[]')"
+        )
+        db.exec_driver_sql(
+            "INSERT INTO idea_a_fruits VALUES ('mango', 'Mango', 'มะม่วง', '[]')"
+        )
+        db.exec_driver_sql(
+            "INSERT INTO idea_a_sellers VALUES ('seller', 'Seller', 'Bangkok', 4.5)"
+        )
+        db.exec_driver_sql(
+            "INSERT INTO idea_a_listings VALUES ('listing', 'seller', 'mango', 55, 8, true)"
+        )
+        db.exec_driver_sql(
+            """
+            INSERT INTO idea_a_orders (id, shop_id, idempotency_key, status, total_thb, created_at)
+            VALUES ('order', 'shop', '24cc6935-11e9-4075-901b-c6255d5dab34', 'confirmed', 110, now())
+            """
+        )
+        db.exec_driver_sql(
+            """
+            INSERT INTO idea_a_order_items
+                (order_id, listing_id, fruit_id, fruit_name, seller_name, qty_kg, price_per_kg_thb, line_total_thb)
+            VALUES ('order', 'listing', 'mango', 'Mango', 'Seller', 2, 55, 110)
+            """
+        )
+        with Operations.context(MigrationContext.configure(db)):
+            idea_a_0003.upgrade()
+
+        with Session(db) as session:
+            order = session.get(models.Order, "order")
+            assert order is not None and order.total_thb == Decimal("110.00")
+            item = session.get(models.OrderItem, ("order", 0))
+            assert item is not None
+            assert item.ingredient_id == "mango"
+            assert item.qty_kg == 2
+            assert item.line_total_thb == Decimal("110.00")
+            assert item.trend_slug is None and item.trend_label is None
+        assert (
+            db.exec_driver_sql("SELECT title FROM idea_b_records").scalar_one()
+            == "retained"
+        )
+
+
+def test_daily_run_is_unique_and_allows_unmatched_ingredient(
+    marketplace_engine: Engine,
+) -> None:
+    with marketplace_engine.begin() as db:
+        db.exec_driver_sql(
+            """
+            INSERT INTO idea_a_daily_runs VALUES ('run', '2026-11-21', now(), now(), 'fallback', 'seed')
+            """
+        )
+        with pytest.raises(IntegrityError), db.begin_nested():
+            db.exec_driver_sql(
+                """
+                INSERT INTO idea_a_daily_runs VALUES ('second', '2026-11-21', now(), now(), 'ok', 'live')
+                """
+            )
+        db.exec_driver_sql(
+            """
+            INSERT INTO idea_a_daily_trends VALUES
+                ('run', 'gelato', 'Gelato', 'เจลาโต', 'dessert', 'rising', true, 'Rising', 'กำลังมาแรง', NULL, '[]', 0.7)
+            """
+        )
+        db.exec_driver_sql(
+            """
+            INSERT INTO idea_a_daily_trend_ingredients VALUES
+                ('run', 'gelato', 0, 'kataifi topping', 'ท็อปปิงคาตาอิฟี', NULL)
+            """
+        )
+        assert db.exec_driver_sql(
+            "SELECT ingredient_id FROM idea_a_daily_trend_ingredients"
+        ).one() == (None,)
