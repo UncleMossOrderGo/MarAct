@@ -1,5 +1,28 @@
 import { expect, test } from '@playwright/test';
 
+test('opens Bakery on Today and moves the navigation below content on mobile', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/tests/fixtures/market-shell.html?daily');
+  const nav = page.getByRole('navigation', { name: 'Marketplace navigation' });
+  const today = nav.getByRole('button', { name: 'Today’s Trends' });
+  const switcher = page.getByRole('combobox', { name: 'Active shop' });
+  await expect(today).toHaveAttribute('aria-current', 'page');
+  await expect(switcher).toHaveValue('bakery');
+  await expect(page.getByRole('button', { name: 'Continue' })).toHaveCount(0);
+  await expect(page.getByText('MarAct', { exact: true }).filter({ visible: true })).toHaveCount(1);
+  expect((await nav.boundingBox())!.x).toBeLessThan((await switcher.boundingBox())!.x);
+  await today.focus();
+  await expect(today).toHaveCSS('outline-style', 'solid');
+  await switcher.selectOption('cafe');
+  await expect(switcher).toHaveValue('cafe');
+  await page.setViewportSize({ width: 360, height: 800 });
+  expect((await nav.boundingBox())!.y).toBeGreaterThan((await switcher.boundingBox())!.y);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(360);
+  await expect(page.getByText('MarAct', { exact: true }).filter({ visible: true })).toHaveCount(1);
+  await nav.getByRole('button', { name: 'Settings' }).click();
+  await expect(page.getByRole('status', { name: 'Loading settings' })).toBeVisible();
+});
+
 test('selects a shop, navigates its profile, and switches cart context', async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto('/tests/fixtures/market-shell.html');

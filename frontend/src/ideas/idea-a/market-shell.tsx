@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react';
-import { ArrowUpRight, House, Package, Search, ShoppingCart, UserRound } from 'lucide-react';
+import { ArrowUpRight, House, Package, Search, Settings, ShoppingBag, ShoppingCart, UserRound } from 'lucide-react';
 import { MarketBrand, marketplaceMascot } from './market-brand';
+import { marketCopy, type MarketLocale } from './market-locale';
 import './market-design.css';
 import './market-shell.css';
 
@@ -11,18 +12,27 @@ export type MarketShop = {
   menu_tags: readonly string[];
 };
 
-const navigation = [
+const legacyNavigation = [
   ['marketplace', 'Marketplace', House],
   ['trends', 'Trends', ArrowUpRight],
   ['orders', 'Orders', Package],
   ['profile', 'Shop Profile', UserRound],
 ] as const;
 
-export type MarketDestination = typeof navigation[number][0];
+const dailyNavigation = [
+  ['today', House],
+  ['marketplace', ShoppingBag],
+  ['orders', Package],
+  ['settings', Settings],
+] as const;
+
+export type MarketDestination = typeof legacyNavigation[number][0] | typeof dailyNavigation[number][0];
 
 type MarketShellProps = {
   shops: readonly MarketShop[];
   activeShopId: string | null;
+  defaultShopId?: string;
+  locale?: MarketLocale;
   destination: MarketDestination;
   cartCount: number;
   onShopChange: (shopId: string) => void;
@@ -74,19 +84,25 @@ function ShopPicker({ shops, onSelect }: {
 }
 
 export function MarketShell({
-  shops, activeShopId, destination, cartCount, onShopChange, onNavigate, onOpenCart,
+  shops, activeShopId, defaultShopId, locale = 'th', destination, cartCount, onShopChange, onNavigate, onOpenCart,
   showProfile = destination === 'profile', onSignOut, signingOut, fruitSearch, children,
 }: MarketShellProps) {
-  const shop = shops.find(({ id }) => id === activeShopId);
+  const shop = shops.find(({ id }) => id === activeShopId)
+    ?? shops.find(({ id }) => id === defaultShopId);
+  const daily = defaultShopId !== undefined;
+  const copy = marketCopy[daily ? locale : 'en'];
+  const navigation = daily
+    ? dailyNavigation.map(([id, Icon]) => [id, copy[id], Icon] as const)
+    : legacyNavigation;
 
   const signOut = onSignOut && <button type="button" onClick={onSignOut} disabled={signingOut}>
     {signingOut ? 'Signing out…' : 'Sign out'}
   </button>;
   return (
-    <div className="market-shell">
+    <div className={daily ? 'market-shell market-shell--daily' : 'market-shell'} lang={daily ? locale : undefined}>
       {shop ? (
         <div className="market-layout">
-          <nav aria-label="Marketplace navigation" className="market-navigation">
+          <nav aria-label={copy.navigation} className="market-navigation">
             <MarketBrand />
             {navigation.map(([id, label, Icon]) => (
               <button key={id} type="button" aria-current={destination === id ? 'page' : undefined}
@@ -98,8 +114,9 @@ export function MarketShell({
           </nav>
           <div className="market-workspace">
             <div className="market-toolbar">
+              {daily && <div className="market-mobile-brand"><MarketBrand /></div>}
               <label>
-                Active shop
+                {copy.activeShop}
                 <select value={shop.id} onChange={(event) => onShopChange(event.currentTarget.value)}>
                   {shops.map(({ id, name }) => <option key={id} value={id}>{name}</option>)}
                 </select>
@@ -107,15 +124,15 @@ export function MarketShell({
               {fruitSearch && (
                 <div className="market-search">
                   <Search size={20} aria-hidden="true" />
-                  <input type="search" aria-label="Search fruit"
-                    placeholder="Search fruit" value={fruitSearch.value}
+                  <input type="search" aria-label={daily ? copy.search : 'Search fruit'}
+                    placeholder={daily ? copy.search : 'Search fruit'} value={fruitSearch.value}
                     onChange={(event) => fruitSearch.onChange(event.currentTarget.value)} />
                 </div>
               )}
               <div className="market-toolbar-actions">
                 <button type="button" className="market-cart-control" onClick={onOpenCart}>
                   <ShoppingCart size={20} aria-hidden="true" />
-                  Cart ({cartCount})
+                  {copy.cart} ({cartCount})
                 </button>
                 {signOut}
               </div>
@@ -133,7 +150,7 @@ export function MarketShell({
             {children}
           </div>
         </div>
-      ) : <>
+      ) : daily ? <div className="market-workspace">{children}</div> : <>
         {signOut && <div className="market-toolbar market-welcome-toolbar">{signOut}</div>}
         <ShopPicker shops={shops} onSelect={onShopChange} />
       </>}

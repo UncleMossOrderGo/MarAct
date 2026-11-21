@@ -15,11 +15,6 @@ main:has(> .market-shell) {
   max-width: 600px;
 }
 
-.market-shell :focus-visible {
-  outline: 2px solid var(--market-green);
-  outline-offset: 3px;
-}
-
 .market-welcome {
   max-width: 540px;
   margin: auto;
@@ -96,6 +91,27 @@ main:has(> .market-shell) {
   display: grid;
   grid-template-columns: 168px minmax(0, 1fr);
   min-height: 480px;
+}
+
+.market-shell--daily .market-layout {
+  grid-template-columns: 192px minmax(0, 1fr);
+}
+
+.market-shell--daily nav button {
+  min-height: 44px;
+}
+
+.market-shell--daily nav button svg {
+  flex: none;
+}
+
+.market-mobile-brand,
+.market-app-header:has(+ main .market-shell--daily) .market-brand {
+  display: none;
+}
+
+.market-app-header:has(+ main .market-shell--daily) label {
+  margin-inline-start: auto;
 }
 
 .market-navigation {
@@ -219,6 +235,11 @@ main:has(> .market-shell) {
 }
 
 @media (max-width: 660px) {
+  .market-mobile-brand {
+    display: block;
+    flex-basis: 100%;
+  }
+
   .market-shop-options {
     grid-template-columns: 1fr;
   }
@@ -238,7 +259,8 @@ main:has(> .market-shell) {
     max-width: none;
   }
 
-  .market-layout {
+  .market-layout,
+  .market-shell--daily .market-layout {
     grid-template-columns: 1fr;
   }
 
@@ -254,7 +276,7 @@ main:has(> .market-shell) {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 4px;
-    padding: 10px 8px;
+    padding: 8px 8px max(8px, env(safe-area-inset-bottom));
     border-inline-end: 0;
     border-top: 1px solid var(--market-border);
     border-radius: 0 0 var(--market-radius) var(--market-radius);

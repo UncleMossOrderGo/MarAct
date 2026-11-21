@@ -10,6 +10,33 @@
   --market-radius: 12px;
   --market-button-radius: 10px;
   --market-font: 'Inter Variable', system-ui, sans-serif;
+  --market-space-1: 8px;
+  --market-space-2: 16px;
+  --market-space-3: 24px;
+  --market-space-4: 32px;
+}
+
+.market-skeleton {
+  display: grid;
+  gap: var(--market-space-2);
+  padding: var(--market-space-2);
+  border: 1px solid var(--market-border);
+  border-radius: var(--market-radius);
+}
+
+.market-skeleton-line {
+  height: 16px;
+  border-radius: 4px;
+  background: var(--market-border);
+}
+
+.market-skeleton-line:nth-child(even) {
+  width: 72%;
+}
+
+.market-shell :focus-visible {
+  outline: 2px solid var(--market-green);
+  outline-offset: 3px;
 }
 
 .market-brand {
