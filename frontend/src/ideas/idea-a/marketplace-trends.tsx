@@ -89,7 +89,7 @@ export function MarketplaceTrends({
       </div>
       {(loading || pending) && <p role="status">{pending ? 'Checking trends…' : 'Loading trends…'}</p>}
       {(error || refreshError) && <p role="alert">{error ?? 'Could not refresh trends. Try again.'}</p>}
-      {!loading && !pending && !error && !refreshError && !cards?.length && <p>No trends are available yet.</p>}
+      {!loading && !pending && !error && !refreshError && !cards?.length && <p>No trends yet.</p>}
       {!!cards?.length && (
         <ul className={`market-trend-cards market-trend-cards--${view}`}>
           {cards.map((card) => (
@@ -97,7 +97,7 @@ export function MarketplaceTrends({
               <h3>{card.trend_name}</h3>
               <p>{card.rationale}</p>
               {view === 'full' && card.related_menus.length > 0 && (
-                <p className="market-feed-muted">Menu ideas · {card.related_menus.join(', ')}</p>
+                <p className="market-feed-muted">Menu ideas: {card.related_menus.join(', ')}</p>
               )}
               {view === 'full' && (
                 <p className="market-feed-muted">{card.mention_count} {card.mention_count === 1 ? 'source' : 'sources'}</p>

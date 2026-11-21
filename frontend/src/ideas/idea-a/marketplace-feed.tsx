@@ -83,7 +83,7 @@ function FeedGrid({
     };
   }, [shopId, feedKey, locale, openExplanations, onObsolete]);
 
-  if (!feed.items.length) return <p>No fruit recommendations are available for this shop yet.</p>;
+  if (!feed.items.length) return <p>No fruit recommendations yet.</p>;
 
   return (
     <ol className="market-feed-grid" aria-label="Ranked fruit recommendations">
@@ -105,7 +105,7 @@ function FeedGrid({
               {trend_name && <p className="market-trend-tag">{trend_name}</p>}
               {recommended && (
                 <p className="market-fruit-offer">
-                  <strong>฿{recommended.price_per_kg_thb} / kg</strong> · {recommended.seller.name}
+                  <strong>฿{recommended.price_per_kg_thb} / kg</strong> from {recommended.seller.name}
                 </p>
               )}
               <p className="market-feed-muted">{sellers} {sellers === 1 ? 'seller' : 'sellers'}</p>

@@ -48,7 +48,7 @@ test('labels the cached run, displays sources and recovers from a failed refresh
   await expect(trends.getByRole('link', { name: 'Read the source' })).toHaveAttribute('href', 'https://example.com/mango');
   await expect(trends.getByRole('link', { name: 'Invalid source' })).toHaveCount(0);
   await trends.getByRole('button', { name: 'View all trends' }).click();
-  await expect(trends.getByText('Menu ideas · Mango shake')).toBeVisible();
+  await expect(trends.getByText('Menu ideas: Mango shake')).toBeVisible();
 
   const run = trends.getByRole('button', { name: 'Run trend check' });
   await run.click();

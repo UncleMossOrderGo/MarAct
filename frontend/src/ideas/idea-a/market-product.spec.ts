@@ -33,6 +33,6 @@ test('shows disabled seller choices when stock is unavailable', async ({ page })
   await page.goto('/tests/fixtures/market-product.html?unavailable');
   await expect(page.getByRole('radio', { name: /Tropical Farm/ })).toBeDisabled();
   await expect(page.getByRole('radio', { name: /Sunrise Fruits/ })).toBeDisabled();
-  await expect(page.getByText('No sellers have this fruit available.')).toBeVisible();
+  await expect(page.getByText('No offers available.')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Add to cart' })).toHaveCount(0);
 });

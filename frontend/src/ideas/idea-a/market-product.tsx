@@ -89,7 +89,7 @@ function ProductDetail({ fruit, listings, suggestedKg, trendName, imageUrl, onAd
           <h1>{fruit.name_en}</h1>
           {fruit.name_th && <p lang="th">{fruit.name_th}</p>}
           {trendName && <p className="market-product-trend">{trendName}</p>}
-          {fruit.tags.length > 0 && <p>{fruit.tags.join(' · ')}</p>}
+          {fruit.tags.length > 0 && <p>{fruit.tags.join(', ')}</p>}
           <fieldset className="market-product-offers">
             <legend>Choose a seller</legend>
             {offers.map((offer) => {
@@ -109,7 +109,7 @@ function ProductDetail({ fruit, listings, suggestedKg, trendName, imageUrl, onAd
                 </label>
               );
             })}
-            {!seller && <p>No sellers have this fruit available.</p>}
+            {!seller && <p>No offers available.</p>}
           </fieldset>
           {seller && <AddOffer key={seller.id} listing={seller} suggestedKg={suggestedKg} onAdd={(qty) => {
             onAdd({

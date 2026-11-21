@@ -31,12 +31,6 @@ type MarketShellProps = {
   children?: ReactNode;
 };
 
-const shopIcons: Readonly<Record<string, string>> = {
-  'Smoothie Café': '🥤',
-  Bakery: '🥐',
-  'Café': '☕',
-};
-
 function ShopPicker({ shops, onSelect }: {
   shops: readonly MarketShop[];
   onSelect: (shopId: string) => void;
@@ -46,9 +40,7 @@ function ShopPicker({ shops, onSelect }: {
 
   return (
     <section className="market-welcome">
-      <p className="market-brand">MarAct Market</p>
-      <h1>Buy fresh fruit for your business</h1>
-      <p>Compare suppliers and get recommendations for your menu.</p>
+      <h1>Fruit marketplace</h1>
       <form onSubmit={(event) => {
         event.preventDefault();
         if (selected) onSelect(selected.id);
@@ -65,7 +57,6 @@ function ShopPicker({ shops, onSelect }: {
                   checked={selected?.id === shop.id}
                   onChange={() => setSelection(shop.id)}
                 />
-                {shopIcons[shop.name] && <span aria-hidden="true">{shopIcons[shop.name]}</span>}
                 {shop.name}
               </label>
             ))}
