@@ -1,5 +1,6 @@
 export type Lot = {
   id: string;
+  cover_url?: string | null;
   farm: string;
   name: string;
   grade: string | null;

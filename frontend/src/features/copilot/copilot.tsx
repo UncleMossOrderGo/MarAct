@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Sparkles, X } from 'lucide-react';
 import type { FormEvent, ReactNode } from 'react';
 import { requestJson } from '../../shared/http';
 import type { Lot } from '../marketplace/types';
@@ -92,8 +93,8 @@ export function MarketCopilot({ postcode, arrival, preference, deliveryFields, o
     if (!pending) onClose();
   }}>
     <header>
-      <h2 id="market-copilot-title">ผู้ช่วยจัดซื้อ MarAct</h2>
-      <button type="button" disabled={pending} onClick={onClose}>ปิดแชต</button>
+      <h2 id="market-copilot-title"><Sparkles size={20} aria-hidden="true" />ผู้ช่วยจัดซื้อ MarAct</h2>
+      <button type="button" disabled={pending} onClick={onClose} aria-label="ปิดแชต"><X size={18} aria-hidden="true" /></button>
     </header>
     <fieldset disabled={pending}>{deliveryFields}</fieldset>
     <div className="market-copilot__thread" role="log" aria-label="บทสนทนา">

@@ -1,13 +1,10 @@
 import { useEffect, useState } from "react";
+import { ClipboardList, LayoutGrid, ShoppingBasket, Sparkles, Sprout, TrendingUp } from "lucide-react";
+import { WorkspaceNav } from "../../shared/workspace-nav";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { MarketCopilot } from "../copilot/copilot";
 import type { Lot } from "./types";
 import "./style.css";
-
-const mangoPhoto = new URL(
-  "./assets/product-mango-namdokmai-a.webp",
-  import.meta.url,
-).href;
 
 type Line = Pick<Lot, "id" | "name" | "unit" | "price" | "requested_kg"> & {
   units: number;
@@ -405,12 +402,12 @@ export function Marketplace() {
   );
   return (
     <fieldset className="market" lang="th" disabled={busy}>
-      <nav aria-label="Marketplace">
-        {[
-          ["market", "เลือกผลผลิต"],
-          ["cart", "ตะกร้า (" + cart.length + ")"],
-          ["orders", "คำสั่งซื้อ"],
-        ].map(([key, text]) => (
+      <WorkspaceNav label="Marketplace">
+        {([
+          ["market", "เลือกผลผลิต", LayoutGrid],
+          ["cart", "ตะกร้า (" + cart.length + ")", ShoppingBasket],
+          ["orders", "คำสั่งซื้อ", ClipboardList],
+        ] as const).map(([key, text, Icon]) => (
           <button
             key={key}
             aria-pressed={key === tab}
@@ -420,13 +417,14 @@ export function Marketplace() {
               if (key === "orders" && buyer) void run(loadOrders);
             }}
           >
-            {text}
+            <Icon aria-hidden="true" />{text}
           </button>
         ))}
-        <Link to="/market/shop">เทรนด์และสต็อกร้าน</Link>
-        <button type="button" onClick={() => setCopilot(true)}>ผู้ช่วยจัดซื้อ</button>
-        <Link to="/market/farm">จัดการสวน · LINE OA</Link>
-      </nav>
+        <Link to="/market/shop" aria-label="เทรนด์และสต็อกร้าน"><TrendingUp aria-hidden="true" />เทรนด์ร้าน</Link>
+        <button type="button" onClick={() => setCopilot(true)}><Sparkles aria-hidden="true" />ผู้ช่วยจัดซื้อ</button>
+        <Link to="/market/farm" aria-label="จัดการสวน · LINE OA"><Sprout aria-hidden="true" />จัดการสวน</Link>
+      </WorkspaceNav>
+      <div className="catalog-workspace">
       {copilotOpen && <MarketCopilot postcode={postcode} arrival={arrival} preference={preference}
         deliveryFields={fields} onClose={() => setCopilot(false)} onApply={applyCopilot}
         onBrowse={(query) => { setQ(query); setCopilot(false, ""); }} />}
@@ -435,11 +433,7 @@ export function Marketplace() {
         <>
           <section className="market-hero" data-enter>
             <div className="market-story">
-              <h1>
-                ตลาดผลไม้
-                <br />
-                <em>ยกล็อต</em>
-              </h1>
+              <h1>ตลาดผลไม้ยกล็อต</h1>
               <form
                 className="fruit-search"
                 role="search"
@@ -463,11 +457,6 @@ export function Marketplace() {
                 </div>
               </form>
             </div>
-            <img
-              className="market-orchard"
-              src={mangoPhoto}
-              alt="มะม่วงน้ำดอกไม้เรียงในลังที่สวน"
-            />
           </section>
           <div className="catalog-layout" id="market-catalog">
             <div className="catalog-results">
@@ -563,6 +552,8 @@ export function Marketplace() {
                   return (
                     <article key={l.id} className="market-product">
                       <div className="lot-identity">
+                        {l.cover_url?.startsWith("/api/farmer/marketplace/photos/") &&
+                          <img className="farm-lot-cover" src={l.cover_url} alt={l.name} loading="lazy" />}
                         <h3>{l.name}</h3>
                         <strong>{l.farm}</strong>
                         <p>{l.grade ?? "สวนยังไม่ระบุเกรด"}</p>
@@ -966,6 +957,7 @@ export function Marketplace() {
           })}
         </>
       )}
+      </div>
     </fieldset>
   );
 }

@@ -1,14 +1,15 @@
 .farmer {
-  --ink: #172f25;
-  --pine: #214c36;
-  --leaf: #dcf19c;
-  --muted: #53665a;
-  --line: #d9dfd3;
-  --paper: #fafaf5;
+  --ink: var(--market-ink);
+  --pine: var(--market-green);
+  --leaf: var(--market-green-soft);
+  --muted: var(--market-muted);
+  --line: var(--market-border);
+  --paper: var(--market-paper);
   min-height: 100vh;
   background: var(--paper);
   color: var(--ink);
-  font: 16px/1.6 'Noto Sans Thai Variable', 'Leelawadee UI', sans-serif;
+  font: 400 16px/1.55 var(--market-font);
+  display:grid; grid-template-columns:clamp(192px,16vw,248px) minmax(0,1fr);
   overflow-wrap: anywhere;
 }
 .farmer *, .farmer *::before, .farmer *::after { box-sizing: border-box; }
@@ -16,33 +17,23 @@
 .farmer h1,.farmer h2,.farmer h3 { line-height: 1.3; letter-spacing: -.035em; }
 .farmer h2 { font-size: clamp(22px,2.3vw,31px); }
 .farmer :is(button,input,textarea) { font: inherit; }
-.farmer button,.farmer .harvest-link { min-height: 44px; display: inline-flex; align-items:center; justify-content:center; gap:8px; border:1px solid var(--line); border-radius:9px; background:white; padding:8px 16px; color:var(--ink); cursor:pointer; font-weight:600; text-decoration:none; }
-.farmer button:hover,.farmer .harvest-link:hover { background:#e9f0dc; }
+.farmer button,.farmer .harvest-link { min-height: 44px; display: inline-flex; align-items:center; justify-content:center; gap:8px; border:1px solid var(--line); border-radius:var(--market-button-radius); background:white; padding:8px 16px; color:var(--ink); cursor:pointer; font-weight:600; text-decoration:none; }
+.farmer button:hover,.farmer .harvest-link:hover { background:var(--leaf); }
 .farmer button:disabled { opacity:.55;cursor:default; }
-.farmer :is(button,a,input,textarea):focus-visible { outline:3px solid #aa681d;outline-offset:3px; }
+.farmer :is(button,a,input,textarea):focus-visible { outline:3px solid var(--pine);outline-offset:3px; }
 .farmer .primary { background:var(--pine);color:white;border-color:var(--pine); }
 .farmer .primary:hover {background:#183b2a;}
 .farmer .skip {position:absolute;left:12px;top:-99px;background:white;padding:8px;z-index:3;}
 .farmer .skip:focus {top:5px;}
-.farmer .mast {background:#fff;border-bottom:1px solid var(--line);}
-.farmer .wrap,.farmer .mast-inner {width:min(1160px,92%);margin:auto;}
-.farmer .mast-inner {min-height:76px;display:flex;align-items:center;gap:clamp(18px,4vw,65px);}
-.farmer nav {display:flex;align-items:center;gap:4px;}
-.farmer nav button {border:0;border-radius:8px;font-size:14px;color:var(--muted);}
-.farmer nav [aria-current] {background:#eaf1de;color:#214c36;}
-.farmer .account {display:flex;align-items:center;gap:9px;margin-left:auto;font-size:13px;font-weight:650;line-height:1.4;}
-.farmer .account img {width:38px;height:38px;object-fit:cover;border-radius:50%;}
-.farmer .account small {display:block;font-weight:450;color:var(--muted);}
-.farmer .wrap {padding:28px 0 70px;}
+.farmer .wrap {min-width:0;padding:clamp(16px,3vw,36px); }
 .farmer fieldset {padding:0;margin:0;border:0;min-width:0;}
-.farmer .farm-intro {display:grid;grid-template-columns:44% 56%;border-radius:20px;overflow:hidden;background:#193f30;color:#fff;}
+.farmer .farm-intro {display:grid;grid-template-columns: minmax(0,1.4fr) minmax(0,1fr);border-radius:var(--market-radius);overflow:hidden;background:var(--market-green-soft);color:var(--ink);}
 .farmer .farm-story {position:relative;isolation:isolate;padding:clamp(28px,4vw,54px);display:flex;flex-direction:column;align-items:flex-start;justify-content:center;overflow:hidden;}
-.farmer .farm-story::before {content:"";position:absolute;z-index:-1;width:250px;height:380px;right:-178px;bottom:-200px;border:1px solid #40614a;border-radius:50%;box-shadow:0 0 0 16px #193f30,0 0 0 17px #395b45,0 0 0 34px #193f30,0 0 0 35px #345540,0 0 0 55px #193f30,0 0 0 56px #32543e;transform:rotate(-32deg);}
-.farmer .region {display:flex;align-items:center;gap:6px;color:#dfefcb;font-size:14px;}
-.farmer .farm-story h1 {font-size:clamp(42px,4.8vw,70px);font-weight:680;margin:10px 0 8px;line-height:1.28;}
-.farmer .farm-about {max-width:34ch;color:#eef3ea;}
-.farmer .harvest-link {margin-top:22px;background:var(--leaf);border:0;font-size:14px;}
-.farmer .orchard {width:100%;height:100%;min-height:285px;max-height:315px;object-fit:cover;}
+.farmer .region {display:flex;align-items:center;gap:6px;color:var(--pine);font-size:14px;}
+.farmer .farm-story h1 {font-size:clamp(28px,3.2vw,42px);font-weight:680;margin:10px 0 8px;line-height:1.28;}
+.farmer .farm-about {max-width:34ch;color:var(--muted);}
+.farmer .harvest-link {margin-top:16px;background:white;border:1px solid var(--line);font-size:14px;}
+.farmer .orchard {width:100%;height:100%;min-height:180px;max-height:250px;object-fit:cover;}
 .farmer .supply-strip {display:flex;align-items:center;gap:clamp(18px,4vw,65px);padding:17px 6px 21px;border-bottom:1px solid var(--line);}
 .farmer .supply-strip>div {display:flex;align-items:center;gap:12px;}
 .farmer .supply-strip>div>svg {width:21px;color:#4b664b;}
@@ -52,9 +43,9 @@
 .farmer .heading,.farmer .title-row,.farmer .product-title {display:flex;align-items:center;justify-content:space-between;gap:12px;}
 .farmer .heading {margin:30px 0 15px;}
 .farmer .title-row {justify-content:start;}
-.farmer .count {border:1px solid #c9d4c3;border-radius:20px;padding:1px 10px;color:var(--muted);font:600 14px/22px system-ui;}
+.farmer .count {border:1px solid #c9d4c3;border-radius:20px;padding:1px 10px;color:var(--muted);font:600 14px/22px var(--market-font);}
 .farmer .lots {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:start;}
-.farmer article,.farmer .panel {border:1px solid var(--line);background:white;border-radius:15px;overflow:hidden;}
+.farmer article,.farmer .panel {border:1px solid var(--line);background:white;border-radius:var(--market-radius);overflow:hidden;}
 .farmer .product-image {position:relative;background:#eceee3;}
 .farmer .lotpic,.farmer .placeholder {display:block;width:100%;height:clamp(170px,16vw,230px);object-fit:cover;}
 .farmer .placeholder {display:grid;place-content:center;justify-items:center;color:var(--muted);}
@@ -91,7 +82,7 @@
 .farmer .switch button {border:0;background:transparent;}
 .farmer .switch [aria-pressed=true] {background:white;box-shadow:0 1px 4px #16372220;}
 .farmer .thread {max-height:350px;overflow:auto;background:var(--paper);padding:14px;border-radius:8px;margin-bottom:16px;}
-.farmer .agent-icon {display:grid;place-items:center;background:var(--leaf);border-radius:9px;width:36px;height:36px;}
+.farmer .agent-icon {display:grid;place-items:center;background:var(--leaf);border-radius:var(--market-button-radius);width:36px;height:36px;}
 .farmer .bubble {padding:10px;white-space:pre-line;}
 .farmer .bubble small {display:block;color:var(--muted);}
 .farmer .bubble.seller {margin-left:12%;background:#e5eedc;border-radius:10px;}
@@ -111,16 +102,10 @@
 .farmer .notice:not(:empty) {background:#e8f0df;}
 .farmer .alert,.farmer .question {background:#fff1d4;color:#694912;}
 @media(max-width:800px){
-  .farmer .account span {display:none;}
-  .farmer .mast-inner {gap:15px;}
   .farmer .work {grid-template-columns:1fr;}
   .farmer .orchard {min-height:255px;}
 }
 @media(max-width:620px){
-  .farmer .mast-inner {flex-wrap:wrap;gap:0 10px;padding-top:11px;}
-  .farmer .account span {display:block;}
-  .farmer nav {order:3;flex-basis:100%;justify-content:space-between;margin:8px 0 4px;}
-  .farmer nav button {font-size:13px;padding:6px;gap:5px;}
   .farmer .wrap {padding-top:16px;}
   .farmer .farm-intro {grid-template-columns:1fr;}
   .farmer .orchard {order:-1;height:150px;min-height:0;}
@@ -136,28 +121,33 @@
   .farmer .stock strong {grid-column:1/-1;}
 }
 
-.farmer .file-picker {position:relative;display:flex;align-items:center;gap:12px;border:1px dashed #8da88c;border-radius:9px;background:var(--paper);padding:16px;color:var(--pine);cursor:pointer;}
+.farmer .file-picker {position:relative;display:flex;align-items:center;gap:12px;border:1px dashed #8da88c;border-radius:var(--market-button-radius);background:var(--paper);padding:16px;color:var(--pine);cursor:pointer;}
 .farmer .file-picker small {display:block;color:var(--muted);font-weight:450;}
 .farmer .file-picker input {position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;}
-.farmer .file-picker:focus-within {outline:3px solid #aa681d;outline-offset:2px;}
+.farmer .file-picker:focus-within {outline:3px solid var(--pine);outline-offset:2px;}
 main:has(> .farmer) { max-width: none; margin: 0; padding: 0; }
-.farmer .mast { display: block; padding: 0; }
 .farmer .farm-intro, .farmer #harvest { border: 0; padding: 0; }
 .farmer #harvest { background: transparent; }
 
 .farmer .market-link {display:inline-flex;align-items:center;gap:6px;color:var(--pine);padding:12px 0;font-weight:600;}
-.farmer .market-filters {display:grid;grid-template-columns:2fr 1fr;gap:16px;}
-.farmer .market-filters select {width:100%;min-height:44px;background:white;border:1px solid #98ad9b;border-radius:8px;font:inherit;color:var(--ink);padding:8px;}
-.farmer .market-count {margin:16px 0;color:var(--muted);}
 .farmer summary {cursor:pointer;padding:12px 0;color:var(--pine);font-weight:650;}
-.farmer :is(select,summary):focus-visible {outline:3px solid #aa681d;outline-offset:3px;}
+.farmer :is(select,summary):focus-visible {outline:3px solid var(--pine);outline-offset:3px;}
 .farmer .line-panel button,.farmer .pair-code,.farmer .line-panel details {margin-top:10px;}
 .farmer .pair-code {background:var(--paper);border-radius:8px;padding:14px;}
 .farmer .lotbody details {border-top:1px solid var(--line);margin-top:12px;}
-@media(max-width:620px){.farmer .market-filters {grid-template-columns:minmax(0,1fr);}}
 
 .farmer .farm-orders .heading {margin:0 0 14px;}
 .farmer .farm-order {padding:16px 0;border-top:1px solid var(--line);}
 .farmer .farm-order ul {margin:8px 0;}
 .farmer .farm-order-actions,.farmer .farm-order form {margin-top:12px;}
 .farmer .farm-order button + button {margin-inline-start:8px;}
+
+.farmer .farm-intro[data-has-cover=false] {grid-template-columns:1fr;}
+.farmer .farm-order {padding:16px;}
+.farmer .workspace-rail nav button {border-color:transparent;background:transparent;justify-content:flex-start;}
+.farmer .workspace-rail nav button:is(:hover,[aria-current=page]) {background:var(--leaf);color:var(--pine);}
+@media(max-width:760px){
+  .farmer {display:block;}
+  .farmer .wrap {padding:16px 16px calc(84px + env(safe-area-inset-bottom));}
+  .farmer .workspace-rail nav button {justify-content:center;}
+}

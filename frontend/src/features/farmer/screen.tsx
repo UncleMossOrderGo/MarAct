@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useState} from 'react'
 import type {FormEvent, ChangeEvent} from 'react'
-import '@fontsource-variable/noto-sans-thai'
+import { WorkspaceNav } from '../../shared/workspace-nav'
 import { ArrowDown, ArrowUpRight, Boxes, ChevronDown, ImagePlus, MapPin, PencilLine, Send, SlidersHorizontal, Sparkles, Store, Truck } from 'lucide-react'
 import { FarmOrders } from './farm-orders'
 import { LinePanel } from './line-panel'
@@ -10,8 +10,6 @@ const api='/api/farmer'
 const assets = {
   gold:new URL('./assets/product-mango-namdokmai-a.webp',import.meta.url).href,
   green:new URL('./assets/product-mango-khiaosawoei-b.webp',import.meta.url).href,
-  orchard:new URL('./assets/cover-suan-lung-som.webp',import.meta.url).href,
-  logo:new URL('./assets/logo-suan-lung-som.webp',import.meta.url).href
 }
 const photo=(id:string)=>id==='gold'||id==='green'?assets[id]:api+'/photos/'+id
 type Profile={name:string;location:string;area:string;about:string}
@@ -109,30 +107,28 @@ export function FarmerStudio(){
     if(files.length+(farm?.draft.photos.length||0)>6||files.some(f=>f.size>4*1024*1024)){setError('เลือกได้รวม 6 รูป รูปละไม่เกิน 4 MB');return}
     try{await act('/draft/photos','POST',{images:await Promise.all(files.map(fileData))},'เพิ่มรูปในร่างแล้ว')}catch{setError('อ่านไฟล์ภาพไม่ได้')}
   }
+  const coverLot=farm?.listings.find(lot=>lot.photos[lot.cover])
   const d=farm?.draft
   const navIcons = [Store, SlidersHorizontal, Sparkles]
   return <div className="farmer" lang="th">
     <a className="skip" href="#farm-content">ข้ามไปที่เนื้อหา</a>
-    <header className="mast"><div className="mast-inner">
-      <nav aria-label="เมนูสวน">{tabs.map((t,i)=>{
+    <WorkspaceNav label="เมนูสวน">{tabs.map((t,i)=>{
         const Icon = navIcons[i]
         return <button key={t} aria-current={tab===t?'page':undefined} onClick={()=>{setTab(t);setDetail('')}}><Icon size={17}/>{t}</button>
-      })}</nav>
-      <div className="account"><img src={assets.logo} alt=""/><span>เจ้าของสวน<small>พื้นที่ทดลอง</small></span></div>
-    </div></header>
+      })}</WorkspaceNav>
     <div className="wrap" id="farm-content" tabIndex={-1}>
     {error&&<div role="alert" className="alert">{error} <button onClick={()=>void refresh()}>โหลดข้อมูลล่าสุด</button></div>}
     <div role="status" className="notice">{busy?'กำลังดำเนินการ…':notice}</div>
     {!farm||!d?<p>{error?'ยังไม่มีข้อมูลให้แสดง':'กำลังโหลดสวน…'}</p>:<fieldset disabled={busy}>
     {tab==='โปรไฟล์สวน'?<>
-      <section className="farm-intro">
+      <section className="farm-intro" data-has-cover={Boolean(coverLot)}>
         <div className="farm-story">
           <p className="region"><MapPin size={16}/>{farm.profile.location||'โปรไฟล์เกษตรกร'}</p>
           <h1>{farm.profile.name}</h1>
           <p className="farm-about">{farm.profile.about}</p>
           <a className="harvest-link" href="#harvest">ดูผลผลิตจากสวน <ArrowDown size={17}/></a>
         </div>
-        <img className="orchard" src={assets.orchard} alt="บรรยากาศแปลงมะม่วงในสวนตัวอย่าง" fetchPriority="high"/>
+        {coverLot && <img className="orchard" src={photo(coverLot.photos[coverLot.cover])} alt={coverLot.fields.fruit} fetchPriority="high"/>}
       </section>
       <div className="supply-strip">
         <div><Truck/><span><small>พื้นที่จัดส่งของสวน</small><strong>{farm.profile.area||'ยังไม่ระบุ'}</strong></span></div>
