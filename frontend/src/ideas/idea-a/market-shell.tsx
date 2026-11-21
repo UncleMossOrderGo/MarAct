@@ -26,6 +26,8 @@ type MarketShellProps = {
   onNavigate: (destination: MarketDestination) => void;
   onOpenCart: () => void;
   showProfile?: boolean;
+  onSignOut?: () => void;
+  signingOut?: boolean;
   children?: ReactNode;
 };
 
@@ -52,7 +54,7 @@ function ShopPicker({ shops, onSelect }: {
         if (selected) onSelect(selected.id);
       }}>
         <fieldset>
-          <legend>Select your shop</legend>
+          <legend>Choose your shop</legend>
           <div className="market-shop-options">
             {shops.map((shop) => (
               <label key={shop.id} className="market-shop-option">
@@ -77,10 +79,13 @@ function ShopPicker({ shops, onSelect }: {
 
 export function MarketShell({
   shops, activeShopId, destination, cartCount, onShopChange, onNavigate, onOpenCart,
-  showProfile = destination === 'profile', children,
+  showProfile = destination === 'profile', onSignOut, signingOut, children,
 }: MarketShellProps) {
   const shop = shops.find(({ id }) => id === activeShopId);
 
+  const signOut = onSignOut && <button type="button" onClick={onSignOut} disabled={signingOut}>
+    {signingOut ? 'Signing out…' : 'Sign out'}
+  </button>;
   return (
     <div className="market-shell">
       {shop ? (
@@ -103,6 +108,7 @@ export function MarketShell({
                 </select>
               </label>
               <button type="button" onClick={onOpenCart}>Cart ({cartCount})</button>
+              {signOut}
             </div>
             {showProfile && (
               <section className="market-profile">
@@ -117,7 +123,10 @@ export function MarketShell({
             {children}
           </div>
         </div>
-      ) : <ShopPicker shops={shops} onSelect={onShopChange} />}
+      ) : <>
+        {signOut && <div className="market-toolbar market-welcome-toolbar">{signOut}</div>}
+        <ShopPicker shops={shops} onSelect={onShopChange} />
+      </>}
     </div>
   );
 }

@@ -1,8 +1,7 @@
-import { requestJson } from '../../shared/http';
 import type { MarketOrderRequest, SavedMarketOrder } from './market-checkout';
 import type { ExplanationUpdate, OpenExplanationStream } from './marketplace-feed';
 
-const base = '/api/ideas/idea-a';
+import { checkMarketplaceSession, marketplaceBase as base, marketplaceJson } from './marketplace-session';
 const shopPath = (id: string) => `/shops/${encodeURIComponent(id)}`;
 
 export type Shop = { id: string; name: string; category: string; menu_tags: string[] };
@@ -47,23 +46,23 @@ export type FeedItem = {
 };
 export type Feed = { feed_key: string; run_id: string | null; items: FeedItem[] };
 export const marketplaceApi = {
-  shops: (signal?: AbortSignal) => requestJson<{ shops: Shop[] }>(`${base}/shops`, { signal }),
+  shops: (signal?: AbortSignal) => marketplaceJson<{ shops: Shop[] }>(`${base}/shops`, { signal }),
   async trends(signal?: AbortSignal) {
-    const { run, cards } = await requestJson<Trends>(`${base}/trends/latest`, { signal });
+    const { run, cards } = await marketplaceJson<Trends>(`${base}/trends/latest`, { signal });
     return { run: run && { ...run, completed_at: run.finished_at }, cards };
   },
-  refreshTrends: () => requestJson<{ run_id: string; status: TrendStatus }>(
+  refreshTrends: () => marketplaceJson<{ run_id: string; status: TrendStatus }>(
     `${base}/trends/run`, { method: 'POST' },
   ),
   feed: (shopId: string, signal?: AbortSignal) =>
-    requestJson<Feed>(`${base}${shopPath(shopId)}/feed`, { signal }),
+    marketplaceJson<Feed>(`${base}${shopPath(shopId)}/feed`, { signal }),
   explanationsUrl: (shopId: string, feedKey: string, locale: string) =>
     `${base}${shopPath(shopId)}/feed/explanations?${new URLSearchParams({ feed_key: feedKey, locale })}`,
-  checkout: (body: MarketOrderRequest) => requestJson<SavedMarketOrder>(`${base}/orders`, {
+  checkout: (body: MarketOrderRequest) => marketplaceJson<SavedMarketOrder>(`${base}/orders`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
   }),
   orders: (shopId: string, signal?: AbortSignal) =>
-    requestJson<{ orders: SavedMarketOrder[] }>(`${base}${shopPath(shopId)}/orders`, { signal }),
+    marketplaceJson<{ orders: SavedMarketOrder[] }>(`${base}${shopPath(shopId)}/orders`, { signal }),
 };
 
 function isExplanation(value: unknown): value is ExplanationUpdate {
@@ -84,6 +83,7 @@ export const openMarketplaceExplanations: OpenExplanationStream = ({ shopId, fee
       events.onObsolete();
       return;
     }
+    if (!controller.signal.aborted) checkMarketplaceSession(response.status);
     if (!response.ok || !response.body) return;
 
     const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();

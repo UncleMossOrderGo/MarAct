@@ -10,6 +10,7 @@ import { marketplaceApi, openMarketplaceExplanations, type FeedItem } from './ma
 import { MarketplaceFeed } from './marketplace-feed';
 import { marketplaceFruitImage } from './marketplace-fruit-images';
 import { useMarketplaceResource } from './marketplace-resource';
+import { MarketplaceSessionGate } from './marketplace-sign-in';
 import { MarketplaceTrends } from './marketplace-trends';
 
 type View = { type: 'navigation' } | { type: 'product'; item: FeedItem } |
@@ -18,7 +19,17 @@ const activeShopStorage = 'maract.idea-a.shop';
 const loadShops = (_: string, signal: AbortSignal) => marketplaceApi.shops(signal);
 const loadTrends = (_: string, signal: AbortSignal) => marketplaceApi.trends(signal);
 
+function clearMarketplace() {
+  sessionStorage.removeItem(activeShopStorage);
+}
+
 export function IdeaA() {
+  return <MarketplaceSessionGate onClear={clearMarketplace}>
+    {(signOut, signingOut) => <Marketplace signOut={signOut} signingOut={signingOut} />}
+  </MarketplaceSessionGate>;
+}
+
+function Marketplace({ signOut, signingOut }: { signOut: () => void; signingOut: boolean }) {
   const [shopId, setShopId] = useState(() => sessionStorage.getItem(activeShopStorage));
   const activeShop = useRef(shopId);
   const [destination, setDestination] = useState<MarketDestination>('marketplace');
@@ -83,6 +94,8 @@ export function IdeaA() {
       onShopChange={changeShop}
       onNavigate={navigate}
       onOpenCart={() => setCartOpen(true)}
+      onSignOut={signOut}
+      signingOut={signingOut}
     >
       {shop && <>
         {view.type === 'product' && (
