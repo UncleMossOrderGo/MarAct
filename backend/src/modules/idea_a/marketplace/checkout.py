@@ -1,3 +1,4 @@
+from collections import Counter
 from collections.abc import Callable
 from datetime import UTC, datetime
 from decimal import Decimal
@@ -5,7 +6,7 @@ from typing import Annotated, Literal, Protocol, Self
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, HTTPException, Response
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, model_validator
 from sqlalchemy import Engine, func, select
 from sqlalchemy.orm import Session
 
@@ -16,6 +17,7 @@ from .catalog import Money
 class CheckoutItem(BaseModel):
     listing_id: str
     qty_kg: Annotated[int, Field(strict=True, ge=1, le=500)]
+    trend_slug: Annotated[str, Field(min_length=1, max_length=120)] | None = None
 
 
 class CheckoutRequest(BaseModel):
@@ -25,8 +27,10 @@ class CheckoutRequest(BaseModel):
 
     @model_validator(mode="after")
     def validate_unique_items(self) -> Self:
-        if len({item.listing_id for item in self.items}) != len(self.items):
-            raise ValueError("Include each listing only once.")
+        if len({(item.listing_id, item.trend_slug) for item in self.items}) != len(
+            self.items
+        ):
+            raise ValueError("Include each listing and trend combination only once.")
         return self
 
 
@@ -36,6 +40,12 @@ class OrderLine(BaseModel):
     listing_id: str
     fruit_id: str
     fruit_name: str
+    ingredient_id: str
+    ingredient_name: str = Field(
+        validation_alias=AliasChoices("ingredient_name", "fruit_name")
+    )
+    trend_slug: str | None
+    trend_label: str | None
     seller_name: str
     qty_kg: int
     price_per_kg_thb: Money
@@ -93,13 +103,30 @@ def _saved_orders(session: Session, *orders: models.Order) -> tuple[SavedOrder, 
     statement = (
         select(models.OrderItem)
         .where(models.OrderItem.order_id.in_(items_by_order))
-        .order_by(models.OrderItem.listing_id)
+        .order_by(models.OrderItem.line_index)
     )
     for item in session.scalars(statement):
         items_by_order[item.order_id].append(OrderLine.model_validate(item))
     return tuple(
         _saved_order(order, tuple(items_by_order[order.id])) for order in orders
     )
+
+
+def _trend_labels(session: Session, slugs: set[str]) -> dict[str, str]:
+    if not slugs:
+        return {}
+    rows = session.execute(
+        select(
+            models.DailyTrend.slug, models.DailyTrend.name_en, models.DailyTrend.name_th
+        )
+        .join(models.DailyRun, models.DailyRun.id == models.DailyTrend.run_id)
+        .where(models.DailyTrend.slug.in_(slugs))
+        .order_by(models.DailyRun.trend_date.desc(), models.DailyRun.finished_at.desc())
+    )
+    labels: dict[str, str] = {}
+    for slug, name_en, name_th in rows:
+        labels.setdefault(slug, name_en or name_th)
+    return labels
 
 
 class OrderRepository:
@@ -129,7 +156,9 @@ class OrderRepository:
                 return _saved_orders(session, saved)[0], False
 
             _require_shop(session, request.shop_id)
-            quantities = {item.listing_id: item.qty_kg for item in request.items}
+            quantities: Counter[str] = Counter()
+            for item in request.items:
+                quantities[item.listing_id] += item.qty_kg
             offers = {
                 listing.id: (listing, fruit_name, seller_name)
                 for listing, fruit_name, seller_name in session.execute(
@@ -141,13 +170,11 @@ class OrderRepository:
                     .with_for_update(of=models.Listing)
                 )
             }
-            order_id = str(uuid4())
-            lines: list[models.OrderItem] = []
             for listing_id, quantity in sorted(quantities.items()):
                 offer = offers.get(listing_id)
                 if offer is None or not offer[0].active:
                     raise OrderError(422, "listing_unavailable", listing_id=listing_id)
-                listing, fruit_name, seller_name = offer
+                listing = offer[0]
                 if listing.stock_kg < quantity:
                     raise OrderError(
                         422,
@@ -157,16 +184,29 @@ class OrderRepository:
                         requested_kg=quantity,
                     )
                 listing.stock_kg -= quantity
+
+            labels = _trend_labels(
+                session, {item.trend_slug for item in request.items if item.trend_slug}
+            )
+            order_id = str(uuid4())
+            lines = []
+            for position, item in enumerate(request.items):
+                listing, ingredient_name, seller_name = offers[item.listing_id]
                 lines.append(
                     models.OrderItem(
                         order_id=order_id,
+                        line_index=position,
                         listing_id=listing.id,
                         fruit_id=listing.fruit_id,
-                        fruit_name=fruit_name,
+                        fruit_name=ingredient_name,
                         seller_name=seller_name,
-                        qty_kg=quantity,
+                        qty_kg=item.qty_kg,
                         price_per_kg_thb=listing.price_per_kg_thb,
-                        line_total_thb=listing.price_per_kg_thb * quantity,
+                        line_total_thb=listing.price_per_kg_thb * item.qty_kg,
+                        trend_slug=item.trend_slug,
+                        trend_label=labels.get(item.trend_slug)
+                        if item.trend_slug
+                        else None,
                     )
                 )
 

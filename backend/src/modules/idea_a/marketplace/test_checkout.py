@@ -91,6 +91,10 @@ def test_checkout_replays_and_reads_captured_order(
             "listing_id": "a",
             "fruit_id": "mango",
             "fruit_name": "Mango",
+            "ingredient_id": "mango",
+            "ingredient_name": "Mango",
+            "trend_slug": None,
+            "trend_label": None,
             "seller_name": "Supplier",
             "qty_kg": 5,
             "price_per_kg_thb": "60.25",
@@ -223,3 +227,108 @@ def test_invalid_checkout_and_failure_with_multiple_lines_are_atomic(
     )
     assert read_stock(marketplace_engine) == 8
     assert clients.get("/shops/one/orders").json() == {"orders": []}
+
+
+def test_shared_listing_combines_stock_and_snapshots_trend_label(
+    clients: TestClient,
+    marketplace_engine: Engine,
+) -> None:
+    with Session(marketplace_engine) as session, session.begin():
+        session.add(
+            models.DailyRun(
+                id="daily",
+                trend_date=NOW.date(),
+                started_at=NOW,
+                finished_at=NOW,
+                status="ok",
+                source="live",
+            )
+        )
+        session.flush()
+        session.add(
+            models.DailyTrend(
+                run_id="daily",
+                slug="mango-smoothie",
+                name_en="Mango Smoothie",
+                name_th="มะม่วง",
+                kind="drink",
+                momentum="rising",
+                is_new=True,
+                why_rising_en="Evidence",
+                why_rising_th="หลักฐาน",
+                score=Decimal("0.8"),
+                sources=[],
+            )
+        )
+
+    payload = checkout_payload(qty=5)
+    payload["items"].append(
+        {"listing_id": "a", "qty_kg": 4, "trend_slug": "mango-smoothie"}
+    )
+    response = clients.post("/orders", json=payload)
+    assert response.status_code == 422
+    assert response.json()["detail"]["requested_kg"] == 9
+    assert read_stock(marketplace_engine) == 8
+
+    payload["items"][1]["qty_kg"] = 3
+    response = clients.post("/orders", json=payload)
+    assert response.status_code == 201, response.text
+    order = response.json()
+    assert order["total_thb"] == "482.00"
+    assert [item["trend_label"] for item in order["items"]] == [None, "Mango Smoothie"]
+    assert read_stock(marketplace_engine) == 0
+
+    with Session(marketplace_engine) as session, session.begin():
+        run = session.get(models.DailyRun, "daily")
+        assert run is not None
+        session.delete(run)
+    assert clients.get(f"/orders/{order['id']}").json() == order
+    assert clients.post("/orders", json=payload).json() == order
+    assert read_stock(marketplace_engine) == 0
+
+
+def test_seeded_gelato_order_uses_server_prices(marketplace_engine: Engine) -> None:
+    from typing import cast
+
+    from psycopg import Connection
+
+    from backend.db.seeds.idea_a_marketplace import (
+        CHECKOUT_LINES,
+        DEFAULT_DAILY_SHOP_ID,
+        seed_daily_marketplace,
+    )
+
+    with marketplace_engine.begin() as connection:
+        seed_daily_marketplace(
+            cast(Connection, connection.connection.driver_connection), NOW.date()
+        )
+    app = FastAPI()
+    app.include_router(
+        orders_router(OrderRepository(marketplace_engine, clock=lambda: NOW))
+    )
+    payload = {
+        "shop_id": DEFAULT_DAILY_SHOP_ID,
+        "idempotency_key": str(uuid4()),
+        "items": [
+            {"listing_id": listing, "qty_kg": qty, "trend_slug": "pistachio-gelato"}
+            for listing, qty in CHECKOUT_LINES
+        ],
+    }
+    with TestClient(app) as client:
+        created = client.post("/orders", json=payload)
+        assert created.status_code == 201, created.text
+        body = created.json()
+        assert body["total_thb"] == "5495.00"
+        assert {line["trend_label"] for line in body["items"]} == {"Pistachio Gelato"}
+        replay = client.post("/orders", json=payload)
+        assert replay.status_code == 200
+        assert replay.json() == body
+
+    with Session(marketplace_engine) as session:
+        assert dict(
+            session.execute(
+                select(models.Listing.id, models.Listing.stock_kg).where(
+                    models.Listing.id.in_([listing for listing, _ in CHECKOUT_LINES])
+                )
+            ).all()
+        ) == {"pistachio-sweeting": 20, "cream-dairypro": 25, "milk-thaidairy": 40}
