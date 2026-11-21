@@ -32,7 +32,7 @@ Open [บัญชีและบทบาท](http://127.0.0.1:5173/market/logi
 ## Demo a farm order
 
 1. **Grower.** Sign in as the grower and open Farmer Studio → **จัดการสวน** to edit a farm, or pair a LINE account. Open **ผู้ช่วยลงขาย** to describe a lot or enter its details. Set quantity, unit price, sales unit, ready date and delivery area. Review the draft and confirm publication.
-2. **Buyer.** Open the shop's daily trends and follow an ingredient to the farm market. Search by fruit or farm. Set the requested kg, postcode, and arrival date. Compare minimum units, available stock and delivered total. A newly published lot needs a matching delivery policy.
+2. **Buyer.** Open the buyer home at `/market`. The weekend trial starts at ฿500 for 5 kg, Bangkok postcode 10100, for the next Saturday. Adjust the inputs for the café, review the suggested fruit, farm, delivered total and remaining budget, then open the basket. Expand the comparison only if another lot is needed. A newly published lot needs a matching delivery policy.
 3. **Reserve.** Add the farm lot to the marketplace basket and confirm the quote with a buyer account. The marketplace reserves stock and creates the farm order. Open the buyer's orders to see its status. The shop's sample ingredient checkout and demo PromptPay receipt are separate from this farm reservation.
 4. **Farm handoff.** Open **จัดการสวน → คำสั่งซื้อจากตลาด** or send **ออเดอร์** in the linked LINE chat. Accept the reservation with payment instructions or decline it with a reason. Refresh the buyer’s order to see the decision. To show supply changing, send **สต็อก**, then **ของหมด 1** for the intended lot, and confirm. The next quote checks the new stock. The existing reservation keeps its original price. No money moves during the demo.
 

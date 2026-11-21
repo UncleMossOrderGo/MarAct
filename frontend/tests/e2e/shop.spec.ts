@@ -45,8 +45,7 @@ test('trend trial carries the selected ingredient and delivery limits into the f
       units: 2, total: 120, requested_kg: 2, misses: [], preferred: false,
     }] : [] });
   });
-  await page.goto('/market');
-  await page.getByRole('link', { name: 'เทรนด์และสต็อกร้าน' }).click();
+  await page.goto('/market/shop');
   await page.getByLabel('Trial kg').fill('2');
   await page.getByLabel('Delivery postcode').fill('10100');
   const comparison = page.locator('.market-farm-trial');

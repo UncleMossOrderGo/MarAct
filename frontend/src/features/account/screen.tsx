@@ -60,7 +60,7 @@ export function AccountPage() {
         <p className="account-caption">{account}</p>
         <h1>เลือกบทบาท</h1>
         <div className="account-roles">
-          <Link to="/market"><Store /><span><strong>ผู้ซื้อ</strong><small>เลือกผลผลิตและดูคำสั่งซื้อ</small></span><ArrowRight /></Link>
+          <Link to="/market"><Store /><span><strong>ผู้ซื้อ</strong><small>เลือกเมนูทดลองและจองผลไม้จากสวน</small></span><ArrowRight /></Link>
           <Link to="/market/farm"><Sprout /><span><strong>เกษตรกร</strong><small>จัดการสวน ลงขาย และรับการจอง</small></span><ArrowRight /></Link>
         </div>
         <button className="account-link" onClick={signOut} disabled={busy}>ออกจากระบบ</button>

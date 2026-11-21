@@ -95,3 +95,12 @@ main:has(> .market) { max-width:none; margin:0; padding:0; }
 @media(prefers-reduced-motion:no-preference) {
   .catalog-workspace button,.workspace-rail nav :is(a,button) { transition:background-color .16s ease,color .16s ease; }
 }
+.catalog-workspace .weekend-trial { border:0; margin:0; padding:0; }
+.weekend-trial > p { color:var(--market-muted); }
+.trial-conditions { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin:24px 0; }
+.trial-conditions .market-fields { display:contents; }
+.trial-pick { display:grid; grid-template-columns:1fr 1fr; gap:24px; background:var(--market-green-soft); border-radius:var(--market-radius); padding:clamp(18px,3vw,32px); }
+.trial-pick small { display:block; color:var(--market-muted); }
+.trial-catalog { margin-top:24px; border-top:1px solid var(--market-border); }
+.trial-catalog > summary { cursor:pointer; padding:16px 0; font-weight:650; }
+@media(max-width:760px){.trial-conditions{grid-template-columns:1fr 1fr}.trial-pick{grid-template-columns:1fr;gap:16px}}

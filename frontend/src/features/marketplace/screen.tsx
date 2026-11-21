@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { ClipboardList, LayoutGrid, ShoppingBasket, Sparkles, Sprout, TrendingUp } from "lucide-react";
+import { ClipboardList, LayoutGrid, ShoppingBasket, Sparkles } from "lucide-react";
 import { WorkspaceNav } from "../../shared/workspace-nav";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { MarketCopilot } from "../copilot/copilot";
 import type { Lot } from "./types";
+import { nextSaturday, WeekendTrial } from "./weekend-trial";
 import "./style.css";
 
 type Line = Pick<Lot, "id" | "name" | "unit" | "price" | "requested_kg"> & {
@@ -164,15 +165,17 @@ export function Marketplace() {
     window.scrollTo(0, 0);
   }
   const [params] = useState(() => new URLSearchParams(location.search));
+  const guided = !["q", "kg", "arrival", "postcode", "preference", "budget", "sort"].some(key => params.has(key));
+  const [catalogOpen, setCatalogOpen] = useState(!guided);
   const [q, setQ] = useState(params.get("q") ?? "");
-  const [budget, setBudget] = useState(params.get("budget") ?? "");
-  const [kg, setKg] = useState(params.get("kg") ?? "");
+  const [budget, setBudget] = useState(params.get("budget") ?? (guided ? "500" : ""));
+  const [kg, setKg] = useState(params.get("kg") ?? (guided ? "5" : ""));
   const resumingCart = tab === "cart" && saved.cart.length > 0;
   const [postcode, setPostcode] = useState(
-    resumingCart ? saved.postcode : (params.get("postcode") ?? saved.postcode),
+    resumingCart ? saved.postcode : (params.get("postcode") ?? (saved.postcode || (guided ? "10100" : ""))),
   );
   const [arrival, setArrival] = useState(
-    resumingCart ? saved.arrival : (params.get("arrival") ?? saved.arrival),
+    resumingCart ? saved.arrival : (params.get("arrival") ?? (guided ? nextSaturday() : saved.arrival)),
   );
   const [preference, setPreference] = useState(params.get("preference") ?? "");
   const [sort, setSort] = useState(
@@ -404,14 +407,18 @@ export function Marketplace() {
     <fieldset className="market" lang="th" disabled={busy}>
       <WorkspaceNav label="Marketplace">
         {([
-          ["market", "เลือกผลผลิต", LayoutGrid],
+          ["market", "วางแผนเมนู", LayoutGrid],
           ["cart", "ตะกร้า (" + cart.length + ")", ShoppingBasket],
           ["orders", "คำสั่งซื้อ", ClipboardList],
         ] as const).map(([key, text, Icon]) => (
           <button
             key={key}
-            aria-pressed={key === tab}
+            aria-pressed={key === tab && (key !== "market" || guided)}
             onClick={() => {
+              if (key === "market" && !guided) {
+                window.location.assign("/market");
+                return;
+              }
               setTab(key);
               setError("");
               if (key === "orders" && buyer) void run(loadOrders);
@@ -420,20 +427,28 @@ export function Marketplace() {
             <Icon aria-hidden="true" />{text}
           </button>
         ))}
-        <Link to="/market/shop" aria-label="เทรนด์และสต็อกร้าน"><TrendingUp aria-hidden="true" />เทรนด์ร้าน</Link>
-        <button type="button" onClick={() => setCopilot(true)}><Sparkles aria-hidden="true" />ผู้ช่วยจัดซื้อ</button>
-        <Link to="/market/farm" aria-label="จัดการสวน · LINE OA"><Sprout aria-hidden="true" />จัดการสวน</Link>
       </WorkspaceNav>
       <div className="catalog-workspace">
       {copilotOpen && <MarketCopilot postcode={postcode} arrival={arrival} preference={preference}
         deliveryFields={fields} onClose={() => setCopilot(false)} onApply={applyCopilot}
-        onBrowse={(query) => { setQ(query); setCopilot(false, ""); }} />}
+        onBrowse={(query) => { setQ(query); setCatalogOpen(true); setCopilot(false, ""); }} />}
       {error && <p role="alert">{error}</p>}
       {tab === "market" && (
         <>
+          {guided && <WeekendTrial lots={lots} budget={budget} postcode={postcode} arrival={arrival} kg={kg}
+            loading={loadedQuery !== queryString} error={catalogError} hasCart={cart.length > 0}
+            onCart={() => setTab("cart")} onReserve={lot => { add(lot); setTab("cart"); }}
+            conditions={<>
+              <label>งบรวมค่าส่ง (บาท)<input type="number" min="1" value={budget} onChange={e => setBudget(e.target.value)} /></label>
+              <label>จำนวนที่ต้องการ (กก.)<input type="number" min="1" value={kg} onChange={e => setKg(e.target.value)} /></label>
+              {fields}
+            </>} />}
+          <button type="button" onClick={() => setCopilot(true)}><Sparkles size={16} aria-hidden="true" /> ผู้ช่วยจัดซื้อ</button>
+          <details className="trial-catalog" open={catalogOpen} onToggle={event => setCatalogOpen(event.currentTarget.open)}>
+            <summary>เปรียบเทียบล็อตอื่นจากสวน</summary>
           <section className="market-hero" data-enter>
             <div className="market-story">
-              <h1>ตลาดผลไม้ยกล็อต</h1>
+              {!guided && <h1>ล็อตผลไม้จากสวน</h1>}
               <form
                 className="fruit-search"
                 role="search"
@@ -464,7 +479,7 @@ export function Marketplace() {
                 <h2 id="market-results" tabIndex={-1}>
                   ล็อตผลผลิต <span className="market-count">{lots.length}</span>
                 </h2>
-                <button
+                {!guided && <button
                   className="filter-toggle"
                   type="button"
                   aria-expanded={filtersOpen}
@@ -472,7 +487,7 @@ export function Marketplace() {
                   onClick={() => setFiltersOpen(!filtersOpen)}
                 >
                   เงื่อนไขการซื้อ
-                </button>
+                </button>}
                 <span className="condition-summary">
                   {[
                     kg && kg + " กก.",
@@ -499,7 +514,7 @@ export function Marketplace() {
               </div>
               <section
                 id="market-conditions"
-                hidden={!filtersOpen}
+                hidden={guided || !filtersOpen}
                 className="market-filters"
                 aria-label="เงื่อนไขการเลือกผลผลิต"
               >
@@ -526,7 +541,7 @@ export function Marketplace() {
                     />
                   </label>
                 </div>
-                {fields}
+                {!guided && fields}
               </section>
               {catalogError && <p role="alert">{catalogError}</p>}
               {!lots.length && !catalogError && loadedQuery !== queryString && (
@@ -624,6 +639,10 @@ export function Marketplace() {
                             type="button"
                             className="edit-conditions"
                             onClick={() => {
+                              if (guided) {
+                                document.querySelector<HTMLInputElement>(".trial-conditions input")?.focus();
+                                return;
+                              }
                               setFiltersOpen(true);
                               requestAnimationFrame(() => {
                                 const selector =
@@ -659,6 +678,7 @@ export function Marketplace() {
               </div>
             </div>
           </div>
+          </details>
         </>
       )}
       {tab === "orders" && !buyer && accountForm}
