@@ -1,0 +1,71 @@
+.market-settings {
+  display: grid;
+  gap: 16px;
+  padding: 0;
+  border: 0;
+  color: var(--market-ink, #171717);
+}
+
+.market-settings :is(h1, h2, dl, dd, ul) {
+  margin: 0;
+}
+
+.market-settings h2 {
+  margin-block-end: 8px;
+  font-size: 1.125rem;
+}
+
+.market-settings dl,
+.market-settings label {
+  display: grid;
+  gap: 8px;
+}
+
+.market-settings dl > div,
+.market-settings li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  border-block-start: 1px solid var(--market-border, #e5e7eb);
+  padding-block: 8px;
+}
+
+.market-settings label {
+  justify-items: start;
+}
+
+.market-settings select {
+  max-width: 100%;
+  min-width: min(160px, 100%);
+  border-color: var(--market-border, #e5e7eb);
+  border-radius: var(--market-button-radius, 10px);
+  color: inherit;
+}
+
+.market-settings :is(small, time) {
+  color: var(--market-muted, #6b7280);
+  font-size: .875rem;
+}
+
+.market-settings li > span {
+  display: grid;
+  min-width: 0;
+  justify-items: start;
+}
+
+.market-settings button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--market-green, #237a32);
+  text-align: start;
+  overflow-wrap: anywhere;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.market-settings :focus-visible {
+  outline: 2px solid var(--market-green, #237a32);
+  outline-offset: 2px;
+}

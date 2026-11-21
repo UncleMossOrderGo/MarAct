@@ -129,7 +129,21 @@ export function useMarketCart(shopId: string | null) {
   return { items, add, addAll, setQuantity, remove, clearShop, checkoutItems: orderLines(items) };
 }
 
+const cartCopy = {
+  en: {
+    title: 'Your cart', close: 'Close cart', empty: 'Your cart is empty.', subtotal: 'Estimated subtotal',
+    checkout: 'Continue to checkout', kilogram: 'kg', remove: 'Remove', from: 'from', quantity: 'quantity',
+    decrease: 'Decrease', increase: 'Increase',
+  },
+  th: {
+    title: 'ตะกร้าของคุณ', close: 'ปิดตะกร้า', empty: 'ตะกร้าของคุณยังว่าง', subtotal: 'ยอดรวมโดยประมาณ',
+    checkout: 'ตรวจสอบคำสั่งซื้อ', kilogram: 'กก.', remove: 'นำออก', from: 'จาก', quantity: 'จำนวน',
+    decrease: 'ลด', increase: 'เพิ่ม',
+  },
+};
+
 type MarketCartProps = {
+  locale?: 'th' | 'en';
   items: readonly MarketCartItem[];
   onQuantityChange: (listingId: string, quantity: number, trendSlug?: string | null) => void;
   onRemove: (listingId: string, trendSlug?: string | null) => void;
@@ -141,7 +155,8 @@ function priceInSatang(price: string) {
   return Math.round(Number(price) * 100);
 }
 
-export function MarketCart({ items, onQuantityChange, onRemove, onCheckout, onClose }: MarketCartProps) {
+export function MarketCart({ locale = 'en', items, onQuantityChange, onRemove, onCheckout, onClose }: MarketCartProps) {
+  const copy = cartCopy[locale];
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   const subtotal = items.reduce((total, item) => total + priceInSatang(item.price_per_kg_thb) * item.qty_kg, 0);
@@ -161,6 +176,7 @@ export function MarketCart({ items, onQuantityChange, onRemove, onCheckout, onCl
     <dialog
       ref={dialogRef}
       className="market-cart"
+      lang={locale}
       aria-labelledby={titleId}
       onCancel={(event) => {
         event.preventDefault();
@@ -168,64 +184,68 @@ export function MarketCart({ items, onQuantityChange, onRemove, onCheckout, onCl
       }}
     >
       <div className="market-cart__header">
-        <h2 id={titleId}>Your cart ({items.length})</h2>
-        <button type="button" onClick={closeCart}>Close cart</button>
+        <h2 id={titleId}>{copy.title} ({items.length})</h2>
+        <button type="button" onClick={closeCart}>{copy.close}</button>
       </div>
       {items.length === 0 ? (
-        <p>Your cart is empty.</p>
+        <p>{copy.empty}</p>
       ) : (
         <>
           <ul className="market-cart__items">
-            {items.map((item) => (
-              <li key={marketLineKey(item.listing_id, item.trend_slug)} className="market-cart__item">
-                {item.image_url && <img src={item.image_url} alt="" width={64} height={64} />}
-                <div className="market-cart__description">
-                  <h3>{marketItemName(item)}</h3>
-                  <p>{item.seller_name}</p>
-                  {item.trend_label && <p>{item.trend_label}</p>}
-                  <div className="market-cart__controls">
-                    <div className="market-cart__quantity">
+            {items.map((item) => {
+              const displayName = `${marketItemName(item)} ${copy.from} ${item.seller_name}`;
+              const lineLabel = item.trend_label ? `${displayName} (${item.trend_label})` : displayName;
+              return (
+                <li key={marketLineKey(item.listing_id, item.trend_slug)} className="market-cart__item">
+                  {item.image_url && <img src={item.image_url} alt="" width={64} height={64} />}
+                  <div className="market-cart__description">
+                    <h3>{marketItemName(item)}</h3>
+                    <p>{item.seller_name}</p>
+                    {item.trend_label && <p>{item.trend_label}</p>}
+                    <div className="market-cart__controls">
+                      <div className="market-cart__quantity">
+                        <button
+                          type="button"
+                          aria-label={`${copy.decrease} ${lineLabel} ${copy.quantity}`}
+                          disabled={item.qty_kg <= 1}
+                          onClick={() => onQuantityChange(item.listing_id, item.qty_kg - 1, item.trend_slug)}
+                        >
+                          −
+                        </button>
+                        <output aria-label={`${lineLabel} ${copy.quantity}`}>{item.qty_kg} {copy.kilogram}</output>
+                        <button
+                          type="button"
+                          aria-label={`${copy.increase} ${lineLabel} ${copy.quantity}`}
+                          disabled={item.qty_kg >= maxQuantity(item, items)}
+                          onClick={() => onQuantityChange(item.listing_id, item.qty_kg + 1, item.trend_slug)}
+                        >
+                          +
+                        </button>
+                      </div>
                       <button
                         type="button"
-                        aria-label={`Decrease ${marketItemName(item)} from ${item.seller_name} quantity`}
-                        disabled={item.qty_kg <= 1}
-                        onClick={() => onQuantityChange(item.listing_id, item.qty_kg - 1, item.trend_slug)}
+                        aria-label={`${copy.remove} ${lineLabel}`}
+                        onClick={() => onRemove(item.listing_id, item.trend_slug)}
                       >
-                        −
-                      </button>
-                      <output aria-label={`${marketItemName(item)} from ${item.seller_name} quantity`}>{item.qty_kg} kg</output>
-                      <button
-                        type="button"
-                        aria-label={`Increase ${marketItemName(item)} from ${item.seller_name} quantity`}
-                        disabled={item.qty_kg >= maxQuantity(item, items)}
-                        onClick={() => onQuantityChange(item.listing_id, item.qty_kg + 1, item.trend_slug)}
-                      >
-                        +
+                        {copy.remove}
                       </button>
                     </div>
-                    <button
-                      type="button"
-                      aria-label={`Remove ${marketItemName(item)} from ${item.seller_name}`}
-                      onClick={() => onRemove(item.listing_id, item.trend_slug)}
-                    >
-                      Remove
-                    </button>
                   </div>
-                </div>
-                <div className="market-cart__prices">
-                  <p>{currency.format(Number(item.price_per_kg_thb))} / kg</p>
-                  <strong>{currency.format(priceInSatang(item.price_per_kg_thb) * item.qty_kg / 100)}</strong>
-                </div>
-              </li>
-            ))}
+                  <div className="market-cart__prices">
+                    <p>{currency.format(Number(item.price_per_kg_thb))} / {copy.kilogram}</p>
+                    <strong>{currency.format(priceInSatang(item.price_per_kg_thb) * item.qty_kg / 100)}</strong>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
           <footer className="market-cart__actions">
             <dl className="market-cart__total">
-              <dt>Estimated subtotal</dt>
+              <dt>{copy.subtotal}</dt>
               <dd>{currency.format(subtotal / 100)}</dd>
             </dl>
             <button className="market-cart__checkout" type="button" onClick={() => onCheckout(orderLines(items))}>
-              Continue to checkout
+              {copy.checkout}
             </button>
           </footer>
         </>

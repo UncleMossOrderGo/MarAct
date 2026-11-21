@@ -1,0 +1,15 @@
+.market-order-trend {
+  width: fit-content;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 4px 8px;
+  border-radius: 8px;
+  color: var(--market-green, #237a32);
+  background: var(--market-green-soft, #eaf5e5);
+  font-size: .875rem;
+  overflow-wrap: anywhere;
+}
+
+.market-order-history .market-order-heading h2 {
+  margin-inline-end: auto;
+}

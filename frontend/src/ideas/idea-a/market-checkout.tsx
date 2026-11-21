@@ -3,8 +3,10 @@ import { useRef, useState } from 'react';
 import { HttpError } from '../../shared/http';
 import { marketItemName, marketLineKey, orderLines, type MarketCartLine, type MarketItemName } from './market-cart';
 import { marketplaceMascot } from './market-brand';
-import { marketplaceListingImage } from './marketplace-fruit-images';
+import { MarketOrderDetails, marketOrderAmount as amountLabel } from './market-order-history';
 import './market-checkout.css';
+
+export { MarketOrders } from './market-order-history';
 
 export type MarketCheckoutLine = MarketCartLine & MarketItemName & {
   seller_name: string;
@@ -61,36 +63,45 @@ export function useMarketCheckoutAttempts() {
   return attempts;
 }
 
-const currency = new Intl.NumberFormat('en-TH', {
-  style: 'currency',
-  currency: 'THB',
-  currencyDisplay: 'narrowSymbol',
-});
-const bangkokOrderDate = new Intl.DateTimeFormat('en-GB', {
-  dateStyle: 'medium',
-  timeStyle: 'short',
-  timeZone: 'Asia/Bangkok',
-});
+const checkoutCopy = {
+  en: {
+    checkout: 'Checkout', backCart: 'Back to cart', place: 'Place order', placing: 'Placing order…',
+    summary: 'Order summary', empty: 'Your cart is empty.', total: 'Total', estimate: 'Estimated total',
+    kilogram: 'kg', placed: 'Order placed.', confirmation: 'Order confirmation', saved: 'Order saved',
+    view: 'View orders', trends: 'Back to Trends', keepShopping: 'Keep shopping',
+    failed: 'Could not place the order. Try again.',
+    stock: 'An offer may have changed. Review the cart and adjust quantities to the available stock.',
+    replay: 'This checkout could not be replayed. Return to the cart and review the order.',
+  },
+  th: {
+    checkout: 'ตรวจสอบคำสั่งซื้อ', backCart: 'กลับไปยังตะกร้า', place: 'สั่งซื้อ', placing: 'กำลังสั่งซื้อ…',
+    summary: 'สรุปคำสั่งซื้อ', empty: 'ตะกร้าของคุณยังว่าง', total: 'ยอดรวม', estimate: 'ยอดรวมโดยประมาณ',
+    kilogram: 'กก.', placed: 'สั่งซื้อสำเร็จ', confirmation: 'ยืนยันคำสั่งซื้อ', saved: 'บันทึกคำสั่งซื้อแล้ว',
+    view: 'ดูคำสั่งซื้อ', trends: 'กลับไปยังเทรนด์', keepShopping: 'เลือกซื้อสินค้าต่อ',
+    failed: 'ไม่สามารถสั่งซื้อได้ ลองอีกครั้ง',
+    stock: 'สินค้าอาจมีการเปลี่ยนแปลง ตรวจสอบจำนวนที่มีในสต็อกและปรับจำนวนในตะกร้า',
+    replay: 'ไม่สามารถส่งคำสั่งซื้อนี้ซ้ำได้ กลับไปตรวจสอบตะกร้า',
+  },
+};
 
-function amountLabel(amount: string | number) {
-  return currency.format(Number(amount));
-}
+type Locale = keyof typeof checkoutCopy;
 
-function checkoutError(error: unknown) {
-  if (!(error instanceof HttpError)) return 'Could not place the order. Try again.';
+function checkoutError(error: unknown, copy: (typeof checkoutCopy)[Locale]) {
+  if (!(error instanceof HttpError)) return copy.failed;
   const { detail, status } = error;
   if (typeof detail === 'string' && detail.trim()) return detail;
   if (status === 422) {
     if (detail && typeof detail === 'object' && 'message' in detail && typeof detail.message === 'string') {
       return detail.message;
     }
-    return 'An offer may have changed. Review the cart and adjust quantities to the available stock.';
+    return copy.stock;
   }
-  if (status === 409) return 'This checkout could not be replayed. Return to the cart and review the order.';
-  return 'Could not place the order. Try again.';
+  if (status === 409) return copy.replay;
+  return copy.failed;
 }
 
 type MarketCheckoutProps = {
+  locale?: Locale;
   shopId: string;
   lines: readonly MarketCheckoutLine[];
   attempts: MarketCheckoutAttempts;
@@ -115,8 +126,9 @@ export function MarketCheckout(props: MarketCheckoutProps) {
 }
 
 function CheckoutSummary({
-  shopId, lines, attempts, items, signature, onPlaceOrder, onPlaced, onBack,
+  locale = 'en', shopId, lines, attempts, items, signature, onPlaceOrder, onPlaced, onBack,
 }: MarketCheckoutProps & { items: MarketCartLine[]; signature: string }) {
+  const copy = checkoutCopy[locale];
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
   const submitting = useRef(false);
@@ -139,7 +151,7 @@ function CheckoutSummary({
       attempts.complete(shopId, key);
       setSaved(order);
     } catch (failure) {
-      setError(checkoutError(failure));
+      setError(checkoutError(failure, copy));
       return;
     } finally {
       submitting.current = false;
@@ -149,14 +161,14 @@ function CheckoutSummary({
   }
 
   return (
-    <section className="market-checkout" aria-label="Checkout">
+    <section className="market-checkout" aria-label={copy.checkout} lang={locale}>
       <button className="market-checkout-back" type="button" onClick={onBack} disabled={pending}>
-        Back to cart
+        {copy.backCart}
       </button>
-      <h1>Place order</h1>
+      <h1>{copy.place}</h1>
       <div className="market-order-panel">
-        <h2>Order summary</h2>
-        {lines.length === 0 ? <p>Your cart is empty.</p> : (
+        <h2>{copy.summary}</h2>
+        {lines.length === 0 ? <p>{copy.empty}</p> : (
           <ul className="market-order-items">
             {lines.map((line) => (
               <li key={marketLineKey(line.listing_id, line.trend_slug)}>
@@ -165,9 +177,9 @@ function CheckoutSummary({
                   <strong>{marketItemName(line)}</strong>
                   <span>{line.seller_name}</span>
                   {line.trend_label && <span>{line.trend_label}</span>}
-                  <span>{line.qty_kg} kg × {amountLabel(line.price_per_kg_thb)} / kg</span>
+                  <span>{line.qty_kg} {copy.kilogram} × {amountLabel(line.price_per_kg_thb, locale)} / {copy.kilogram}</span>
                 </div>
-                <span>{amountLabel(Number(line.price_per_kg_thb) * line.qty_kg)}</span>
+                <span>{amountLabel(Number(line.price_per_kg_thb) * line.qty_kg, locale)}</span>
               </li>
             ))}
           </ul>
@@ -176,8 +188,8 @@ function CheckoutSummary({
       {error && <p className="market-checkout-error" role="alert">{error}</p>}
       <div className="market-checkout-submit">
         <p className="market-order-total">
-          <span>{saved ? 'Total' : 'Estimated total'}</span>
-          <strong>{amountLabel(saved?.total_thb ?? totalCents / 100)}</strong>
+          <span>{saved ? copy.total : copy.estimate}</span>
+          <strong>{amountLabel(saved?.total_thb ?? totalCents / 100, locale)}</strong>
         </p>
         <button
           className="market-checkout-action"
@@ -185,99 +197,31 @@ function CheckoutSummary({
           onClick={placeOrder}
           disabled={pending || items.length === 0 || Boolean(saved)}
         >
-          {pending ? 'Placing order…' : 'Place order'}
+          {pending ? copy.placing : copy.place}
         </button>
-        {saved && <p role="status">Order placed.</p>}
+        {saved && <p role="status">{copy.placed}</p>}
       </div>
     </section>
-  );
-}
-
-function orderStatus(status: string) {
-  return status === 'placed' ? 'Placed' : status;
-}
-
-function OrderDetails({ order }: { order: SavedMarketOrder }) {
-  return (
-    <>
-      <div className="market-order-heading">
-        <h2>Order {order.id}</h2>
-        <time dateTime={order.created_at}>{bangkokOrderDate.format(new Date(order.created_at))}</time>
-        <span className="market-order-status">{orderStatus(order.status)}</span>
-      </div>
-      <ul className="market-order-items">
-        {order.items.map((item) => {
-          const image = item.image_url ?? marketplaceListingImage({
-            id: item.ingredient_id ?? item.fruit_id ?? '', name_en: marketItemName(item) ?? '',
-          }, item.listing_id);
-          return (
-            <li key={marketLineKey(item.listing_id, item.trend_slug)}>
-              {image && <img src={image} alt="" width={56} height={56} />}
-              <div>
-                <strong>{marketItemName(item)}</strong>
-                <span>{item.seller_name}</span>
-                {item.trend_label && <span>{item.trend_label}</span>}
-                <span>{item.qty_kg} kg × {amountLabel(item.price_per_kg_thb)} / kg</span>
-              </div>
-              <span>{amountLabel(item.line_total_thb)}</span>
-            </li>
-          );
-        })}
-      </ul>
-      <p className="market-order-total">
-        <span>Total</span>
-        <strong>{amountLabel(order.total_thb)}</strong>
-      </p>
-    </>
   );
 }
 
 export function MarketOrderConfirmation({
-  order, onViewOrders, onKeepShopping, onBackToTrends,
-}: { order: SavedMarketOrder; onViewOrders: () => void; onKeepShopping?: () => void; onBackToTrends?: () => void }) {
+  order, onViewOrders, onKeepShopping, onBackToTrends, locale = 'en',
+}: { order: SavedMarketOrder; onViewOrders: () => void; onKeepShopping?: () => void; onBackToTrends?: () => void; locale?: Locale }) {
+  const copy = checkoutCopy[locale];
   return (
-    <section className="market-checkout" aria-label="Order confirmation">
+    <section className="market-checkout" aria-label={copy.confirmation} lang={locale}>
       <div className="market-order-confirmation-title">
         {(onKeepShopping || onBackToTrends) && <img src={marketplaceMascot} alt="" width={104} height={104} />}
-        <h1>Order saved</h1>
+        <h1>{copy.saved}</h1>
       </div>
-      <article className="market-order-panel"><OrderDetails order={order} /></article>
-      <button className="market-checkout-action" type="button" onClick={onViewOrders}>View orders</button>
+      <article className="market-order-panel"><MarketOrderDetails order={order} locale={locale} /></article>
+      <button className="market-checkout-action" type="button" onClick={onViewOrders}>{copy.view}</button>
       {(onBackToTrends || onKeepShopping) && (
         <button className="market-checkout-back" type="button" onClick={onBackToTrends ?? onKeepShopping}>
-          {onBackToTrends ? 'Back to Trends' : 'Keep shopping'}
+          {onBackToTrends ? copy.trends : copy.keepShopping}
         </button>
       )}
-    </section>
-  );
-}
-
-export function MarketOrders({
-  orders, loading, error, onRetry, onSelectOrder,
-}: {
-  orders: readonly SavedMarketOrder[];
-  loading?: boolean;
-  error?: string;
-  onRetry?: () => void;
-  onSelectOrder: (order: SavedMarketOrder) => void;
-}) {
-  return (
-    <section className="market-checkout" aria-label="Order history">
-      <h1>Orders</h1>
-      {loading && <p role="status">Loading orders…</p>}
-      {error && (
-        <div>
-          <p role="alert">{error}</p>
-          {onRetry && <button type="button" onClick={onRetry}>Retry loading orders</button>}
-        </div>
-      )}
-      {!loading && !error && orders.length === 0 && <p>No orders for this shop yet.</p>}
-      {orders.map((order) => (
-        <article key={order.id} className="market-order-panel">
-          <OrderDetails order={order} />
-          <button type="button" onClick={() => onSelectOrder(order)}>View order {order.id}</button>
-        </article>
-      ))}
     </section>
   );
 }

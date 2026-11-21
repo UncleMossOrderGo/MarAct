@@ -118,6 +118,6 @@ test('preserves ingredient attribution on retry and displays the authoritative s
   expect(requests[2].items).toContainEqual({ listing_id: 'pistachio-sweeting', qty_kg: 5, trend_slug: 'pistachio-gelato' });
   const receipt = page.getByRole('region', { name: 'Order confirmation' });
   await expect(receipt.getByText('฿5,495.00')).toBeVisible();
-  await expect(receipt.getByText('Pistachio Gelato')).toHaveCount(3);
+  await expect(receipt.getByText('Related trend: Pistachio Gelato')).toBeVisible();
   await expect(receipt.getByRole('button', { name: 'Back to Trends' })).toBeVisible();
 });
