@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { MarketAssistantPanel } from '../../src/ideas/idea-a/market-assistant';
-import { marketItemName } from '../../src/ideas/idea-a/market-cart';
+import { MarketAssistantPanel } from '../../src/features/shop/market-assistant';
+import { marketItemName } from '../../src/features/shop/market-cart';
 
 function Fixture() {
   const [cart, setCart] = useState('');

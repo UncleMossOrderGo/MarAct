@@ -3,8 +3,8 @@ import { createRoot } from 'react-dom/client';
 import { requestJson } from '../../src/shared/http';
 import {
   MarketIngredientCatalog, MarketIngredientProduct, type MarketIngredientListing,
-} from '../../src/ideas/idea-a/market-ingredient-catalog';
-import type { MarketProductCartItem } from '../../src/ideas/idea-a/market-product';
+} from '../../src/features/shop/market-ingredient-catalog';
+import type { MarketProductCartItem } from '../../src/features/shop/market-product';
 import '../../src/app/styles.css';
 
 async function loadListings(
@@ -16,7 +16,7 @@ async function loadListings(
     if (value) params.set(key, value);
   }
   const { listings } = await requestJson<{ listings: MarketIngredientListing[] }>(
-    `/api/ideas/idea-a/listings?${params}`,
+    `/api/shop/listings?${params}`,
     { signal },
   );
   return listings;

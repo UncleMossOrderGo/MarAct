@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { MarketTrendDetail } from '../../src/ideas/idea-a/market-trend-detail';
+import { MarketTrendDetail } from '../../src/features/shop/market-trend-detail';
 import '../../src/app/styles.css';
-import '../../src/ideas/idea-a/market-design.css';
+import '../../src/features/shop/market-design.css';
 import { dailyFixture, dailyFixtureImage } from './market-daily-data';
 
 function Fixture() {

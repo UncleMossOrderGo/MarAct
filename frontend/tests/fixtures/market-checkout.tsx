@@ -4,7 +4,7 @@ import { createRoot } from 'react-dom/client';
 import {
   MarketCheckout, MarketOrderConfirmation, MarketOrders, useMarketCheckoutAttempts,
   type MarketCheckoutLine, type SavedMarketOrder,
-} from '../../src/ideas/idea-a/market-checkout';
+} from '../../src/features/shop/market-checkout';
 import { requestJson } from '../../src/shared/http';
 
 const initialLine: MarketCheckoutLine = {

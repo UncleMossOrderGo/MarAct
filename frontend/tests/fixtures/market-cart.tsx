@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
 
-import { MarketCart, useMarketCart, type MarketCartItem, type MarketCartLine } from '../../src/ideas/idea-a/market-cart';
+import { MarketCart, useMarketCart, type MarketCartItem, type MarketCartLine } from '../../src/features/shop/market-cart';
 
 const mango: MarketCartItem = {
   listing_id: 'mango-1',

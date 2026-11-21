@@ -1,0 +1,110 @@
+.market-trial {
+  grid-column: 1/-1;
+  padding: 16px;
+  border: 0;
+  border-top: 1px solid var(--market-border);
+  border-radius: 0;
+  background: #fff;
+}
+.market-trial h3 {
+  margin: 0 0 12px;
+}
+.market-trial-inputs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(142px, 100%), 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.market-trial-inputs label,
+.supplier-trial-fields label {
+  display: grid;
+  gap: 4px;
+  font-size: 0.85rem;
+}
+.market-trial-inputs :is(input, select) {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.market-trial-lot p {
+  margin: 4px 0;
+}
+.market-trial-lot span,
+.market-trial small {
+  color: var(--market-muted);
+}
+.market-trial summary {
+  cursor: pointer;
+}
+.market-trial details,
+.market-trial small,
+.market-trial button {
+  display: block;
+  margin-block: 8px;
+}
+.market-trend-choices {
+  grid-column: 1/-1;
+  display: grid;
+  grid-template-columns: repeat(auto-fit,minmax(min(200px,100%),1fr));
+  gap: 8px;
+  padding: 12px;
+  border-bottom: 1px solid var(--market-border);
+  background: #fff;
+}
+.market-trend-choices button {
+  background: white;
+  color: var(--market-ink);
+  border: 1px solid var(--market-border);
+  text-align: start;
+}
+.market-trend-choices button[aria-pressed='true'] {
+  background: var(--market-green-soft);
+  border-color: var(--market-green);
+  color: #19572c;
+}
+.supplier-trial-fields {
+  display: flex;
+  align-items: end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.supplier-trial-fields input {
+  width: 6rem;
+}
+.market-trial-brief label {
+  display: grid;
+  gap: 4px;
+}
+.market-trial-brief textarea {
+  min-height: 50px;
+  border: 1px solid var(--market-border);
+  border-radius: 8px;
+  padding: 8px;
+  font: inherit;
+}
+.market-trial-brief .market-voice-input button {
+  position: static;
+}
+.market-trial-brief .market-voice-status:not(:empty) {
+  position: static;
+  display: block;
+}
+
+.market-trial-activity {margin-block:16px;border-top:1px solid var(--market-border);padding:12px 0;}
+.market-trial-activity summary {cursor:pointer;}
+.market-trial-activity dl {display:flex;flex-wrap:wrap;gap:16px;}
+.market-trial-activity dd {margin:0;font-weight:600;}
+
+.market-trend-choices button { display:flex; align-items:center; gap:8px; min-width:0; padding:8px; }
+.market-trend-choices .market-choice-photo { width:48px; height:48px; flex:none; border-radius:6px; object-fit:cover; }
+.market-trend-choices button span {display:grid;gap:2px;}
+.market-trend-choices small {font-weight:400; line-height:1.35; color:var(--market-muted);}
+
+.market-farm-trial {
+  margin-block: 12px 18px;
+  padding: 14px 16px;
+  border-inline-start: 3px solid var(--market-green);
+  background: var(--market-green-soft);
+}
+.market-farm-trial h4, .market-farm-trial p { margin: 0 0 6px; }
+.market-farm-trial a { color: var(--market-green); font-weight: 700; }

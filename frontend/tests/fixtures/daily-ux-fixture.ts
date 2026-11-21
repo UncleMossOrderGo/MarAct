@@ -37,9 +37,9 @@ export async function installDailyUxFixture(page: Page) {
   let releaseToday: (() => void) | undefined;
   let delayedToday: Promise<void> | undefined;
   await page.clock.setFixedTime(new Date('2026-11-21T06:00:00+07:00'));
-  await page.route('**/api/ideas/idea-a/**', async (route) => {
+  await page.route('**/api/shop/**', async (route) => {
     const url = new URL(route.request().url());
-    const path = url.pathname.replace('/api/ideas/idea-a', '');
+    const path = url.pathname.replace('/api/shop', '');
     const locale = url.searchParams.get('locale') === 'en' ? 'en' : 'th';
     const copy = featuredIngredientCopy[locale];
     if (path === '/shops') return route.fulfill({ json: { default_shop_id: bakery.id, shops: [bakery, cafe] } });

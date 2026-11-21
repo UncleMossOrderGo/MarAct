@@ -1,8 +1,10 @@
 """Serve the real app against disposable, repeatable Playwright fixtures."""
 
 import os
+import re
 import signal
 from datetime import datetime
+from tempfile import TemporaryDirectory
 from threading import Lock
 from unittest.mock import patch
 from uuid import uuid4
@@ -14,7 +16,7 @@ from psycopg import sql
 from psycopg.conninfo import make_conninfo
 
 from backend.db.manage import migrate, seed
-from backend.src.modules.idea_a.scheduler import BANGKOK
+from backend.src.modules.shop.scheduler import BANGKOK
 from backend.src.shared.db import database_url
 
 NOW = datetime(2026, 11, 21, 6, tzinfo=BANGKOK)
@@ -24,14 +26,22 @@ def main() -> None:
     # Uvicorn replays SIGTERM after shutdown. Let the runner unwind and drop its schema.
     signal.signal(signal.SIGTERM, lambda _signum, _frame: None)
     base_url = database_url()
-    schema_name = f"playwright_{uuid4().hex}"
+    schema_name = os.environ.get("MARACT_BROWSER_SCHEMA") or f"playwright_{uuid4().hex}"
+    if not re.fullmatch(r"playwright_[0-9a-f]{32}", schema_name):
+        raise ValueError("Invalid Playwright schema name")
     schema = sql.Identifier(schema_name)
-    with psycopg.connect(base_url, autocommit=True) as admin:
+    with TemporaryDirectory(prefix="maract-browser-farm-") as farm_data, psycopg.connect(base_url, autocommit=True) as admin:
         admin.execute(sql.SQL("CREATE SCHEMA {}").format(schema))
         try:
             isolated_url = make_conninfo(base_url, options=f"-csearch_path={schema_name}")
             os.environ["DATABASE_URL"] = isolated_url
-            os.environ["OPENAI_API_KEY"] = ""
+            os.environ.update(
+                MARACT_FARM_DATA_DIR=farm_data,
+                IDEA_D_DATA_DIR=farm_data,
+                LINE_CHANNEL_ACCESS_TOKEN="",
+                LINE_CHANNEL_SECRET="",
+                OPENAI_API_KEY="",
+            )
             os.environ["IDEA_A_USE_SEED_TRENDS"] = "true"
             os.environ["IDEA_A_JOB_TOKEN"] = ""
             os.environ["IDEA_A_DEMO_TRIGGER_ENABLED"] = "true"

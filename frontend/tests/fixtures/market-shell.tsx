@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { MarketShell, type MarketDestination } from '../../src/ideas/idea-a/market-shell';
-import { MarketSkeleton } from '../../src/ideas/idea-a/market-skeleton';
+import { MarketShell, type MarketDestination } from '../../src/features/shop/market-shell';
+import { MarketSkeleton } from '../../src/features/shop/market-skeleton';
 import '../../src/app/styles.css';
 
 const shops = [

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { MarketNotifications, MarketPayment, MarketSellerWorkspace } from '../../src/ideas/idea-a/market-commerce';
-import type { SavedMarketOrder } from '../../src/ideas/idea-a/market-checkout';
+import { MarketNotifications, MarketPayment, MarketSellerWorkspace } from '../../src/features/shop/market-commerce';
+import type { SavedMarketOrder } from '../../src/features/shop/market-checkout';
 import '../../src/app/styles.css';
 
 const initial: SavedMarketOrder = {

@@ -1,69 +1,62 @@
 # MarAct
 
-Python backend dependencies live in `pyproject.toml` and `uv.lock`. The React frontend, its TypeScript config, and its npm dependencies live under `frontend/`.
-
-A modular monolith starter for comparing hackathon ideas in one app. The React and Vite frontend switches ideas by URL. One Python FastAPI backend runs both modules against PostgreSQL, with a separate set of tables for each idea.
+MarAct helps a shop turn a food trend into a farm order. Buyers review the daily trends, compare available lots, check minimum quantities and delivery costs, and reserve stock. Growers manage their listings through Farmer Studio or a linked LINE Official Account.
 
 ## Local setup
 
-Install Node.js 24, npm, Python 3.12–3.14, uv, Make, and Docker with the Compose plugin. Start Docker, then run the seed-only demo:
+Install Node.js 24, npm, Python 3.12–3.14, uv, Make and Docker Compose. Start Docker and run:
 
 ```sh
 make init
 make dev-demo
 ```
 
-Open [MarAct on port 5173](http://127.0.0.1:5173). Idea A opens Today’s Trends for MarAct Bakery, its single buyer store. Use the idea dropdown to compare it with Idea B. The starter API listens on port 3000 and Vite proxies `/api` requests. Adjust `.env` if local ports conflict. Keep `DB_PORT` and the port in `DATABASE_URL` in sync.
+Open [the marketplace](http://127.0.0.1:5173/market), [shop trends](http://127.0.0.1:5173/market/shop), or [Farmer Studio](http://127.0.0.1:5173/market/farm). The seed demo uses saved trends. For live discovery and shop chat, set the server-side `OPENAI_API_KEY` in `.env` and run `make dev-live`. The live URLs use port 5175 and the API uses port 3002.
 
-| Command | Behavior |
+| Command | Purpose |
 | --- | --- |
-| `make init` | Create `.env` if needed, install locked Python and Node dependencies, start PostgreSQL, apply migrations, and seed all demos. Safe to rerun. |
-| `make dev` | Start PostgreSQL and both development apps. |
-| `make dev-demo` | Start the local seeded demo with the Run daily job button enabled. The daily job uses saved fixtures. |
-| `make dev-live` | Start the live app on 5175 and API on 3002, with the 06:00 Asia/Bangkok job enabled while the server runs. Configure the OpenAI key in `.env`. |
-| `make migrate` | Apply pending starter SQL and Alembic revisions to `DATABASE_URL`. |
-| `make seed IDEA=idea-b` | Insert that idea’s fixtures once. |
-| `make test-idea IDEA=idea-a` | Run the idea’s API and browser suites. |
-| `make test-api` | Run the Python API tests with PostgreSQL. |
-| `make check` | Run lint, type checks, all idea suites, and the cross-idea browser smoke tests. |
-| `make build` | Compile-check Python and build the frontend. Run `make start` to serve them together. |
-| `make doctor` | Print runtime and Docker versions and check Docker connectivity. |
+| `make init` | Install locked dependencies, start PostgreSQL, apply migrations, load sample data. |
+| `make migrate` | Apply pending SQL and Alembic migrations. |
+| `make seed DOMAIN=marketplace` | Load farm catalog fixtures. Use `DOMAIN=shop` for shop fixtures. |
+| `make dev` | Start the database, API and Vite. |
+| `make check` | Run the configured lint, type, API and browser checks. |
+| `make build` | Build React and compile-check Python. |
+| `make start` | Serve the built application from FastAPI. |
 
-Before the first browser test, run `cd frontend && npx playwright install chromium` from the repo root. API tests use `DATABASE_URL`. Browser tests create and remove a disposable PostgreSQL schema with fixed demo fixtures and seed mode with the OpenAI key cleared. Browser tests use port 5174 and API port 3001 by default. Keep these ports free, and set a distinct `DB_PORT` and `DATABASE_URL` when running database environments in parallel.
+Install Chromium before the first browser test with `cd frontend && npx playwright install chromium`.
 
-## Run the daily ingredient demo
+## Demo a farm order
 
-1. Open Idea A. Today’s Trends opens for MarAct Bakery in Thai. Use Settings to switch to English.
-2. Open **Pistachio Gelato**, review its sources and menu idea, and open **Order Ingredients**.
-3. Set pistachio paste to 5 kg and add the eligible ingredients. Place the mock order for **฿5,495.00** at the seeded prices.
-4. Open **Orders** to see the saved quantities and related trend. Try **Run daily job** on Today’s Trends. The saved order keeps its price, quantities, and trend label.
+1. **Grower.** Open Farmer Studio → **จัดการสวน** to edit a farm, or pair a LINE account. Open **ผู้ช่วยลงขาย** to describe a lot or enter its details. Set quantity, unit price, sales unit, ready date and delivery area. Review the draft and confirm publication.
+2. **Buyer.** Open the shop's daily trends and follow an ingredient to the farm market. Search by fruit or farm. Set the requested kg, postcode, and arrival date. Compare minimum units, available stock and delivered total. A newly published lot needs a matching delivery policy.
+3. **Reserve.** Add the farm lot to the marketplace basket and confirm the quote with a buyer account. The marketplace reserves stock and creates the farm order. Open the buyer's orders to see its status. The shop's sample ingredient checkout and demo PromptPay receipt are separate from this farm reservation.
+4. **Farm handoff.** Open **จัดการสวน → คำสั่งซื้อจากตลาด** or send **ออเดอร์** in the linked LINE chat. Accept the reservation with payment instructions or decline it with a reason. Refresh the buyer’s order to see the decision. To show supply changing, send **สต็อก**, then **ของหมด 1** for the intended lot, and confirm. The next quote checks the new stock. The existing reservation keeps its original price. No money moves during the demo.
 
-For an existing clone, run `make migrate && make seed IDEA=idea-a` before restarting the app. The new Alembic revision retains existing order IDs and totals. Reseeding preserves previous orders and depleted stock.
+## Connect a LINE Official Account
 
-The seed-only command uses no OpenAI calls. With live mode enabled, page reads still use saved SQL snapshots. To run live search and assistant chat locally, set `OPENAI_API_KEY` in the server's `.env` and run:
+Set `LINE_CHANNEL_SECRET` and `LINE_CHANNEL_ACCESS_TOKEN` in the backend environment. Point LINE's webhook at the public HTTPS endpoint `/api/farmer/line/webhook` and enable webhook delivery. Existing integrations can keep `/api/ideas/idea-d/line/webhook`. Farmer Studio runs on localhost for the demo. Expose only the signed webhook when tunneling. Open **จัดการสวน → สร้างรหัสเชื่อม LINE**, then send the displayed pairing message to the OA within ten minutes. The grower reviews the draft in LINE before publishing.
 
-```sh
-make dev-live
+Set `MARACT_FARM_DELIVERY` to a JSON object keyed by the grower's exact delivery-area text. For a local demonstration, the following example supplies a Bangkok policy. Replace it with agreed farm terms for a real order.
+
+```dotenv
+MARACT_FARM_DELIVERY='{"กรุงเทพฯ":{"postcodes":["10"],"transit":1,"freight":60,"window_days":7}}'
 ```
 
-Open [the live Idea A demo](http://127.0.0.1:5175/ideas/idea-a). Use **Run daily job** to update the saved trends, or **Ask agent** to send a chat message. Sourced trend photos appear when supported publishers provide a usable preview. Ingredient listings and simulated PromptPay use demo supplier data.
+For a development tunnel, run the webhook-only gateway below and point the tunnel at port 3010. Use `API_PORT=3000` with the seed demo.
 
-The model and trend cap are configurable via `OPENAI_MODEL` and `IDEA_A_DAILY_TREND_CAP`. Missing credentials or unusable discovery falls back to the demo trends. Verify the configured model's tool support, source quality, and costs before deployment.
+```sh
+API_PORT=3002 uv run --locked uvicorn backend.src.modules.farmer.webhook_gateway:app --host 127.0.0.1 --port 3010
+```
 
-For a deployed job, configure the [token-protected Bangkok host cron](docs/idea-a-daily-trigger.md). Leave the public demo trigger disabled in live deployment. For a single local API worker, `IDEA_A_SCHEDULER_ENABLED=1` enables the in-process 06:00 Bangkok schedule. Use one scheduling method per environment.
+Private grower drafts, pairings, images and the LINE event queue use the grower adapter’s SQLite data directory. Published purchasable lots and buyer reservations use PostgreSQL. A hosted farmer deployment needs durable storage and a provisioned owner session flow. The server-to-server partner API uses a separate per-farm `X-Market-Key`. [Marketplace partner contract](backend/src/modules/marketplace/README.md)
 
-## Add an idea
+## Product structure
 
-1. Pick a stable lowercase ID such as `idea-c`. Create a screen and a `*.spec.ts` test under `frontend/src/ideas/idea-c/`.
-2. Register its label, status, and screen in [the idea registry](frontend/src/ideas/registry.ts). The screen URL is `/ideas/idea-c`.
-3. Create the module and its `test_*.py` test under `backend/src/modules/idea_c/`. Use underscores in the Python package name. Mount its router at `/api/ideas/idea-c` in [the backend app](backend/src/app/main.py).
-4. Coordinate the next Alembic revision under `backend/db/alembic/versions/` and prefix idea tables with `idea_c_`. Put repeatable fixtures under `backend/db/seeds/idea-c/` using stable unique seed keys.
-5. Run `make migrate`, `make seed IDEA=idea-c`, and `make test-idea IDEA=idea-c`. Record the addition in [CHANGELOG.md](CHANGELOG.md).
+| Domain | Frontend | Backend |
+| --- | --- | --- |
+| Catalog, quotes, buyer accounts and reservations | `frontend/src/features/marketplace` | `backend/src/modules/marketplace` |
+| Shopping copilot | `frontend/src/features/copilot` | `backend/src/modules/copilot` |
+| Daily trends, shop stock and assistant | `frontend/src/features/shop` | `backend/src/modules/shop` |
+| Farmer Studio and LINE | `frontend/src/features/farmer` | `backend/src/modules/farmer` |
 
-A `draft` idea is available by direct link. A `demo` is also selectable. A `retired` idea’s page is unavailable. To promote an idea, set it to `demo`, update `defaultIdeaId`, keep the previous default at `demo`, and update the changelog. Preserve IDs and tables through promotion.
-
-## CI and deployment
-
-GitHub Actions routes changes in idea-owned folders to the corresponding suites. Changes to shared inputs trigger all idea suites and the smoke tests. Each test job migrates its own disposable database. Configure branch protection for the aggregate `ci` job. Pushes to `main` also compile-check the backend and build the frontend.
-
-See [infra/README.md](infra/README.md) for the deployment contract and [docs/adr/](docs/adr/) for architecture decisions.
+Marketplace sessions and the partner API retain their established `/api/ideas/idea-c` path. The shop API is mounted at `/api/shop`. [Daily trigger setup](docs/idea-a-daily-trigger.md) · [Product structure](docs/adr/0003-product-structure.md) · [Deployment](infra/README.md)

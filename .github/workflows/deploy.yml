@@ -1,0 +1,114 @@
+name: Deploy GCP demo
+
+on:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: Full main commit SHA with passing Checks
+        required: true
+        type: string
+      seed_demo:
+        description: Load demo fixtures into the demo database
+        type: boolean
+        default: false
+
+concurrency:
+  group: maract-gcp-demo
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read
+  id-token: write
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: gcp-demo
+    env:
+      SHA: ${{ inputs.sha }}
+      SEED_DEMO: ${{ inputs.seed_demo }}
+      PROJECT: ${{ vars.GCP_PROJECT_ID }}
+      REGION: ${{ vars.GCP_REGION }}
+      REPOSITORY: ${{ vars.GCP_ARTIFACT_REPOSITORY }}
+      RUNTIME_SA: ${{ vars.GCP_RUNTIME_SERVICE_ACCOUNT }}
+      CLOUD_SQL: ${{ vars.GCP_CLOUD_SQL_CONNECTION }}
+      DATABASE_SECRET: ${{ vars.GCP_DATABASE_SECRET_REF }}
+      OPENAI_SECRET: ${{ vars.GCP_OPENAI_SECRET_REF }}
+      OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}
+      SERVICE: maract
+      JOB: maract-migrate
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Verify selected commit and demo configuration
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          [[ "$SHA" =~ ^[0-9a-f]{40}$ ]]
+          git merge-base --is-ancestor "$SHA" origin/main
+          runs=$(gh run list --workflow ci.yml --commit "$SHA" --branch main --event push --status success --json headSha --jq length)
+          test "$runs" -gt 0
+          for value in "$PROJECT" "$REGION" "$REPOSITORY" "$RUNTIME_SA" "$CLOUD_SQL" "$DATABASE_SECRET" "$OPENAI_SECRET" "$OPENAI_MODEL"; do
+            test -n "$value"
+          done
+          git checkout --detach "$SHA"
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v3
+      - name: Build and publish image
+        id: image
+        run: |
+          set -euo pipefail
+          registry="$REGION-docker.pkg.dev"
+          image="$registry/$PROJECT/$REPOSITORY/maract"
+          gcloud auth configure-docker "$registry" --quiet
+          docker build --platform linux/amd64 -t "$image:$SHA" .
+          docker push "$image:$SHA"
+          digest=$(gcloud artifacts docker images describe "$image:$SHA" --format='value(image_summary.fully_qualified_digest)')
+          [[ "$digest" == "$image"@sha256:* ]]
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+      - name: Apply database migrations
+        env:
+          IMAGE: ${{ steps.image.outputs.digest }}
+        run: |
+          set -euo pipefail
+          gcloud run jobs deploy "$JOB" --project "$PROJECT" --region "$REGION" --image "$IMAGE" \
+            --service-account "$RUNTIME_SA" --set-cloudsql-instances "$CLOUD_SQL" \
+            --set-secrets "DATABASE_URL=$DATABASE_SECRET" --max-retries 0 \
+            --command /app/.venv/bin/python --args=-m,backend.db.manage,migrate --execute-now --wait --quiet
+          if [ "$SEED_DEMO" = true ]; then
+            gcloud run jobs deploy maract-seed --project "$PROJECT" --region "$REGION" --image "$IMAGE" \
+              --service-account "$RUNTIME_SA" --set-cloudsql-instances "$CLOUD_SQL" \
+              --set-secrets "DATABASE_URL=$DATABASE_SECRET" --max-retries 0 \
+              --command /app/.venv/bin/python --args=-m,backend.db.manage,seed,--all --execute-now --wait --quiet
+          fi
+      - name: Deploy candidate and switch traffic after smoke checks
+        env:
+          IMAGE: ${{ steps.image.outputs.digest }}
+        run: |
+          set -euo pipefail
+          cloud=(--project "$PROJECT" --region "$REGION" --quiet)
+          existing=$(gcloud run services list "${cloud[@]}" --filter "metadata.name=$SERVICE" --format='value(metadata.name)')
+          rollout=()
+          if [ "$existing" = "$SERVICE" ]; then rollout+=(--no-traffic); fi
+          gcloud run deploy "$SERVICE" "${cloud[@]}" --image "$IMAGE" --service-account "$RUNTIME_SA" \
+            --execution-environment gen2 --port 8080 --max-instances 3 --allow-unauthenticated \
+            --set-cloudsql-instances "$CLOUD_SQL" \
+            --set-secrets "DATABASE_URL=$DATABASE_SECRET,OPENAI_API_KEY=$OPENAI_SECRET" \
+            --set-env-vars "API_HOST=0.0.0.0,MARACT_PUBLIC_DEMO=1,OPENAI_MODEL=$OPENAI_MODEL" \
+            --startup-probe 'httpGet.path=/api/readiness,httpGet.port=8080,timeoutSeconds=4,periodSeconds=5,failureThreshold=12' \
+            "${rollout[@]}" --tag candidate
+          service=$(gcloud run services describe "$SERVICE" "${cloud[@]}" --format=json)
+          candidate=$(jq -er '.status.traffic[] | select(.tag == "candidate") | .url' <<< "$service")
+          revision=$(jq -er '.status.traffic[] | select(.tag == "candidate") | .revisionName' <<< "$service")
+          curl -fsS --retry 4 "$candidate/api/health"
+          curl -fsS --retry 4 "$candidate/api/readiness"
+          curl -fsS --retry 4 "$candidate/market" | grep -F '<div id="root">'
+          curl -fsS --retry 4 "$candidate/api/ideas/idea-c/lots" | jq -e 'type == "array"'
+          gcloud run services update-traffic "$SERVICE" "${cloud[@]}" --to-revisions "$revision=100"

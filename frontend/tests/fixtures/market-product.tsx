@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { MarketProduct, type MarketProductCartItem } from '../../src/ideas/idea-a/market-product';
+import { MarketProduct, type MarketProductCartItem } from '../../src/features/shop/market-product';
 import '../../src/app/styles.css';
 
 const fruit = { id: 'mango', name_en: 'Mango', name_th: 'มะม่วง', tags: ['tropical', 'smoothie'] };

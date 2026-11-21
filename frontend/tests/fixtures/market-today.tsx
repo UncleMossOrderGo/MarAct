@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { MarketToday } from '../../src/ideas/idea-a/market-today';
-import type { MarketTodayData } from '../../src/ideas/idea-a/market-daily-types';
+import { MarketToday } from '../../src/features/shop/market-today';
+import type { MarketTodayData } from '../../src/features/shop/market-daily-types';
 import '../../src/app/styles.css';
-import '../../src/ideas/idea-a/market-design.css';
+import '../../src/features/shop/market-design.css';
 import { dailyFixture, dailyFixtureImage } from './market-daily-data';
 
 function Fixture() {

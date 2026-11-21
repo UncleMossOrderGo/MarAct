@@ -1,4 +1,4 @@
-import type { MarketTodayData } from '../../src/ideas/idea-a/market-daily-types';
+import type { MarketTodayData } from '../../src/features/shop/market-daily-types';
 
 export const dailyFixture: MarketTodayData = {
   shop: { id: 'bakery-main', name: 'MarAct Bakery', category: 'bakery' },
@@ -45,4 +45,4 @@ export const dailyFixture: MarketTodayData = {
   ],
 };
 
-export { trendImage as dailyFixtureImage } from '../../src/ideas/idea-a/market-ingredient-assets';
+export { trendImage as dailyFixtureImage } from '../../src/features/shop/market-ingredient-assets';

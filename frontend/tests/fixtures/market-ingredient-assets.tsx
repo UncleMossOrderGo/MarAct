@@ -1,6 +1,6 @@
 import { createRoot } from 'react-dom/client';
-import { ingredientImage } from '../../src/ideas/idea-a/market-ingredient-assets';
-import { marketCopy, useMarketLanguage } from '../../src/ideas/idea-a/market-locale';
+import { ingredientImage } from '../../src/features/shop/market-ingredient-assets';
+import { marketCopy, useMarketLanguage } from '../../src/features/shop/market-locale';
 import { featuredIngredientCopy } from './ingredient-copy';
 
 const keys = [

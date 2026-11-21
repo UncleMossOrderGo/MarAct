@@ -9,10 +9,10 @@ from alembic.config import Config
 from sqlalchemy import create_engine
 from sqlalchemy.pool import NullPool
 
-from backend.db.seeds.idea_a import BANGKOK, seed_demo
-from backend.db.seeds.idea_a_assistant import seed_assistant_stock
-from backend.db.seeds.idea_a_marketplace import seed_daily_marketplace, seed_marketplace
-from backend.db.seeds.idea_a_trials import seed_trial_terms
+from backend.db.seeds.shop.assistant import seed_assistant_stock
+from backend.db.seeds.shop.catalog import seed_daily_marketplace, seed_marketplace
+from backend.db.seeds.shop.restocking import BANGKOK, seed_demo
+from backend.db.seeds.shop.trials import seed_trial_terms
 from backend.src.shared.db import database_url
 
 DB = Path(__file__).resolve().parent
@@ -61,10 +61,13 @@ def seed(idea: str | None, *, planning_date: date | None = None) -> None:
         path.name: path for path in (DB / "seeds").iterdir()
         if path.is_dir() and not path.name.startswith((".", "_"))
     }
-    if idea == "--all":
+    aliases = {"idea-b": "workspace", "idea-c": "marketplace"}
+    if idea == "idea-a":
+        selected = ["records", "shop"]
+    elif idea == "--all":
         selected = sorted(directories)
-    elif idea in directories:
-        selected = [idea]
+    elif idea is not None and aliases.get(idea, idea) in directories:
+        selected = [aliases.get(idea, idea)]
     else:
         raise SystemExit(f"Choose --all or an idea ID from {', '.join(sorted(directories))}.")
 
@@ -73,7 +76,7 @@ def seed(idea: str | None, *, planning_date: date | None = None) -> None:
             with connection.transaction():
                 for path in sorted(directories[idea_id].glob("*.sql")):
                     connection.execute(path.read_text(), prepare=False)
-                if idea_id == "idea-a":
+                if idea_id == "shop":
                     schema = connection.execute(
                         "SELECT COALESCE(to_regclass('idea_a_daily_runs'), "
                         "to_regclass('idea_a_shops'), to_regclass('idea_a_cafes'))::text"
@@ -103,7 +106,7 @@ def main() -> None:
     commands.add_parser("migrate")
     seed_command = commands.add_parser("seed")
     selection = seed_command.add_mutually_exclusive_group(required=True)
-    selection.add_argument("--idea")
+    selection.add_argument("--domain", "--idea", dest="idea")
     selection.add_argument("--all", action="store_true")
     args = parser.parse_args()
     if args.command == "migrate":

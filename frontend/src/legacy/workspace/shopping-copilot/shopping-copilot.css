@@ -1,0 +1,38 @@
+.shopping-copilot__products {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.shopping-copilot__profile { display: grid; gap: .35rem; max-width: 24rem; }
+.shopping-copilot__profile select,
+.shopping-copilot__brief textarea {
+  box-sizing: border-box;
+  min-height: var(--maract-target);
+  padding: .55rem .75rem;
+  background: var(--maract-background);
+  border: 1px solid var(--maract-control-border);
+  border-radius: var(--maract-control-radius);
+  color: var(--maract-text);
+  font: inherit;
+}
+.shopping-copilot__brief { margin-top: 1rem; }
+.shopping-copilot__brief .shopping-copilot__actions { margin-top: 0; }
+.shopping-copilot__manual { margin: 1rem 0 0; }
+.shopping-copilot__brief textarea { width: 100%; resize: vertical; }
+.shopping-copilot__notice,
+.shopping-copilot__cart {
+  padding: .85rem 1rem;
+  margin-top: 1rem;
+  background: var(--maract-success-surface);
+  border-radius: var(--maract-card-radius);
+}
+.shopping-copilot__cart button { margin-top: .75rem; }
+.shopping-copilot__products .buyer-intelligence__farm { margin: 0; }
+.shopping-copilot__trends { margin: 1rem 0 0; }
+.shopping-copilot__trends label { margin-top: .75rem; }
+.shopping-copilot__actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .75rem; }
+.shopping-copilot__notice a { overflow-wrap: anywhere; }
+.shopping-copilot__log { display: grid; gap: .6rem; overflow-wrap: anywhere; }
+.shopping-copilot__log > div { padding: .6rem; background: var(--maract-background); border-radius: var(--maract-control-radius); }

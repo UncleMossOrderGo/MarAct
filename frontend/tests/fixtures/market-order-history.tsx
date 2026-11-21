@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import type { SavedMarketOrder } from '../../src/ideas/idea-a/market-checkout';
-import { MarketOrderDetails, MarketOrderHistory } from '../../src/ideas/idea-a/market-order-history';
-import { MarketSettings } from '../../src/ideas/idea-a/market-settings';
+import type { SavedMarketOrder } from '../../src/features/shop/market-checkout';
+import { MarketOrderDetails, MarketOrderHistory } from '../../src/features/shop/market-order-history';
+import { MarketSettings } from '../../src/features/shop/market-settings';
 import '../../src/app/styles.css';
-import '../../src/ideas/idea-a/market-checkout.css';
+import '../../src/features/shop/market-checkout.css';
 
 const shop = { id: 'bakery-main', name: 'MarAct Bakery', category: 'bakery' };
 const order: SavedMarketOrder = {

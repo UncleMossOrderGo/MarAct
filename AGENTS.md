@@ -1,8 +1,26 @@
-# Working in MarAct
+﻿# ทำงานใน MarAct
 
-1. Start in your assigned idea’s folders under `frontend/src/ideas/`, `backend/src/modules/`, and `backend/db/seeds/`. Use a separate branch or worktree for parallel work.
-2. Keep each module’s SQL and seed fixtures scoped to its own prefixed tables. Keep applied migrations intact and append a uniquely numbered migration for schema changes.
-3. Coordinate edits to the idea registry, backend route mounts, and migration filenames with the teammate responsible for shared changes.
-4. Run `make test-idea IDEA=<id>` before handing off idea changes. Run `make check` for shared changes.
+MarAct ใช้ React + Vite + TypeScript, FastAPI และ PostgreSQL ผู้ซื้อเริ่มที่ `/market` ดูวิธีตั้งเครื่องและรันแอปใน [README.md](README.md)
 
-See [README.md](README.md) when setting up a clone, adding an idea, or changing the default demo.
+## เลือกจุดแก้
+
+- งานเทรนด์ร้านค้าและสต็อกอยู่ใน `features/shop` และ `modules/shop` ส่วน Farmer Studio และ LINE OA อยู่ใน `features/farmer` และ `modules/farmer`
+- แชตผู้ช่วยจัดซื้ออยู่ใน `frontend/src/features/copilot/`
+
+- หน้าตลาดและตะกร้าฝั่งผู้ซื้ออยู่ใน `frontend/src/features/marketplace/`
+- กฎจัดอันดับล็อต จำนวนหน่วยซื้อขั้นต่ำ สต็อก และใบเสนอราคาอยู่ใน `backend/src/modules/marketplace/catalog.py` ให้แชตและหน้าตลาดเรียกกฎชุดเดียวกัน
+- แก้การตีความคำถาม การเรียกเครื่องมือ และโควตาที่ `backend/src/modules/copilot/router.py` ส่วนบัญชีผู้ซื้อและการยืนยันคำสั่งซื้ออยู่ใน `backend/src/modules/marketplace/router.py`
+- งานเฉพาะเดโมเดิมให้เริ่มในโฟลเดอร์ legacy อ่าน AGENTS.md ที่ใกล้ไฟล์ก่อนแก้ ใช้ branch หรือ worktree แยกเมื่อทำงานขนานกัน
+
+## รักษาสัญญากับผู้ซื้อและทีม
+
+- ใช้ภาษาไทยเป็นหลัก ให้ OpenAI ตีความคำถาม ส่วนราคา จำนวนหน่วย ค่าขนส่ง และตัวเลขแนวโน้มให้คำนวณจากข้อมูลที่ตรวจสอบได้ ระบุข้อมูลเดโมและแสดงแหล่งข่าวเมื่อมีหลักฐาน ถ้าตอบจากข้อมูลที่มีไม่ได้ให้บอกผู้ซื้อ
+- ข้อเสนอจากแชตเป็นตัวอย่างตะกร้า เมื่อผู้ซื้อเลือกเพิ่มให้ตรวจใบเสนอราคากับเซิร์ฟเวอร์อีกครั้ง การสร้างคำสั่งซื้อต้องผ่านการยืนยันที่ checkout
+- รักษาลิงก์เดิมและ API ที่ผู้ใช้เดิมเรียก รวมถึงขอบเขต cookie ที่ `/api/ideas/idea-c` ประสานทีมเมื่อเปลี่ยน route กลางหรือ registry
+- เพิ่ม migration ด้วยชื่อใหม่ที่ไม่ซ้ำ เก็บ migration ที่ใช้แล้วไว้ตามเดิม เก็บ fixtures ใน `backend/db/seeds/<domain>/` และจำกัด SQL ให้อยู่ในตารางของโมดูล
+
+## ตรวจงานก่อนส่งต่อ
+
+- ก่อนส่งงานให้รัน `make check` ใช้ PostgreSQL สำหรับพัฒนาและทดสอบ
+- เมื่อแก้เส้นทางซื้อ ให้ตรวจตั้งแต่เสนอสินค้า เพิ่มตะกร้า จนถึงยืนยันคำสั่งซื้อด้วย Playwright ที่ `frontend/tests/e2e/marketplace.spec.ts` ชุดนี้ใช้ข้อมูลทดสอบและรันได้โดยไม่ต้องใส่ OpenAI key
+- การปล่อยขึ้น GCP เป็นหน้าที่ผู้รับผิดชอบ deploy ดูขั้นตอนจัดการ secrets, migration และ rollback ใน [infra/README.md](infra/README.md)

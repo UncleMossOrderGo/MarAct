@@ -37,15 +37,21 @@ migrate: .env
 	uv run --locked --no-dev python -m backend.db.manage migrate
 
 seed: .env
-	@test -n "$$IDEA" || { echo "Usage: make seed IDEA=idea-b"; exit 1; }
-	uv run --locked --no-dev python -m backend.db.manage seed --idea "$$IDEA"
+	uv run --locked --no-dev python -m backend.db.manage seed $(if $(DOMAIN),--domain "$(DOMAIN)",$(if $(IDEA),--idea "$(IDEA)",--all))
 
+# Compatibility aliases for existing contributor commands.
 test-idea: .env
-	uv run --locked python -m scripts.test_idea "$$IDEA"
+	@case "$(IDEA)" in \
+	  idea-a) api=backend/src/modules/shop; web='features/shop/|e2e/shop' ;; \
+	  idea-b) api=backend/tests/copilot; web='ShoppingCopilot|workspace' ;; \
+	  idea-c) api=backend/tests/marketplace; web='e2e/marketplace' ;; \
+	  *) echo 'Use IDEA=idea-a, idea-b, or idea-c'; exit 2 ;; \
+	esac; \
+	uv run --locked python -m pytest "$$api" && npm --prefix frontend run test:web -- "$$web"
 
 quality:
-	uv run --locked ruff check backend scripts
-	uv run --locked mypy backend scripts
+	uv run --locked ruff check backend
+	uv run --locked mypy backend
 	npm --prefix frontend run lint
 	npm --prefix frontend run typecheck
 
