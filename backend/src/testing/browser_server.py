@@ -3,19 +3,21 @@
 import os
 import signal
 from datetime import datetime
+from threading import Lock
+from unittest.mock import patch
 from uuid import uuid4
 
 import psycopg
 import uvicorn
+from openai.resources.responses import AsyncResponses, Responses
 from psycopg import sql
 from psycopg.conninfo import make_conninfo
 
 from backend.db.manage import migrate, seed
-from backend.src.modules.idea_a.marketplace.auth import make_password_hash
 from backend.src.modules.idea_a.scheduler import BANGKOK
 from backend.src.shared.db import database_url
 
-NOW = datetime(2026, 6, 12, 15, 30, tzinfo=BANGKOK)
+NOW = datetime(2026, 11, 21, 6, tzinfo=BANGKOK)
 
 
 def main() -> None:
@@ -31,20 +33,37 @@ def main() -> None:
             os.environ["DATABASE_URL"] = isolated_url
             os.environ["OPENAI_API_KEY"] = ""
             os.environ["IDEA_A_USE_SEED_TRENDS"] = "true"
-            os.environ["IDEA_A_TREND_CACHE_HOURS"] = "0"
-            os.environ["IDEA_A_DEMO_EMAIL"] = "buyer@example.test"
-            os.environ["IDEA_A_DEMO_PASSWORD_HASH"] = make_password_hash("test-demo-password")
-            os.environ["IDEA_A_SESSION_SECRET"] = uuid4().hex + uuid4().hex
+            os.environ["IDEA_A_JOB_TOKEN"] = ""
+            os.environ["IDEA_A_DEMO_TRIGGER_ENABLED"] = "true"
+            os.environ["IDEA_A_DEMO_DAILY_LIMIT"] = "3"
             migrate()
             seed("--all", planning_date=NOW.date())
 
-            from backend.src.app.main import create_app
+            calls = 0
+            lock = Lock()
 
-            uvicorn.run(
-                create_app(clock=lambda: NOW, schedule=False),
-                host="127.0.0.1",
-                port=int(os.environ["API_PORT"]),
-            )
+            def reject_provider_call(*_args: object, **_kwargs: object) -> None:
+                nonlocal calls
+                with lock:
+                    calls += 1
+                raise AssertionError("The browser demo must use saved or seeded data.")
+
+            with (
+                patch.object(Responses, "create", reject_provider_call),
+                patch.object(Responses, "parse", reject_provider_call),
+                patch.object(AsyncResponses, "create", reject_provider_call),
+                patch.object(AsyncResponses, "parse", reject_provider_call),
+            ):
+                from backend.src.app.main import create_app
+
+                app = create_app(clock=lambda: NOW, schedule=False)
+
+                @app.get("/api/__test/idea-a/provider-calls")
+                def provider_calls() -> dict[str, int]:
+                    with lock:
+                        return {"calls": calls}
+
+                uvicorn.run(app, host="127.0.0.1", port=int(os.environ["API_PORT"]))
         finally:
             admin.execute(sql.SQL("DROP SCHEMA {} CASCADE").format(schema))
 

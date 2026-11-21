@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from psycopg_pool import ConnectionPool
 from sqlalchemy import create_engine
 
-from backend.src.modules.idea_a.marketplace.trend_cache import TrendService
+from backend.src.modules.idea_a.marketplace.daily_composition import build_daily_job
 from backend.src.modules.idea_a.router import marketplace_router
 from backend.src.modules.idea_a.scheduler import (
     BANGKOK,
@@ -30,12 +30,10 @@ def create_app(
     engine = create_engine(
         "postgresql+psycopg://", creator=lambda: psycopg.connect(database_url()),
     )
-    trends = TrendService.from_env(engine, clock=clock)
+    job = build_daily_job(engine, clock)
 
     def refresh_trends(now: datetime) -> None:
-        result = trends.refresh(now)
-        if result.status == "error":
-            raise RuntimeError(f"Trend run {result.id} found no usable cards.")
+        job.run(now.astimezone(BANGKOK).date())
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -45,15 +43,18 @@ def create_app(
                 enabled = schedule if schedule is not None else os.getenv("IDEA_A_SCHEDULER_ENABLED") == "1"
                 worker: AbstractContextManager[None] = nullcontext()
                 if enabled:
-                    at = parse_schedule_time(os.getenv("IDEA_A_SCHEDULE_TIME", "15:30"))
+                    at = parse_schedule_time(os.getenv("IDEA_A_SCHEDULE_TIME", "06:00"))
                     worker = scheduled_checks(refresh_trends, clock=clock, at=at)
                 with worker:
                     yield
         finally:
-            engine.dispose()
+            try:
+                job.close()
+            finally:
+                engine.dispose()
 
     app = FastAPI(title="MarAct", lifespan=lifespan)
-    app.include_router(marketplace_router(engine, trends, clock), prefix="/api/ideas/idea-a")
+    app.include_router(marketplace_router(engine, job, clock), prefix="/api/ideas/idea-a")
     app.include_router(idea_b, prefix="/api/ideas/idea-b")
 
     @app.get("/api/health")

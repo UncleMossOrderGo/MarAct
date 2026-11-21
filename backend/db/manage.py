@@ -10,7 +10,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.pool import NullPool
 
 from backend.db.seeds.idea_a import BANGKOK, seed_demo
-from backend.db.seeds.idea_a_marketplace import seed_marketplace
+from backend.db.seeds.idea_a_marketplace import seed_daily_marketplace, seed_marketplace
 from backend.src.shared.db import database_url
 
 DB = Path(__file__).resolve().parent
@@ -73,14 +73,19 @@ def seed(idea: str | None, *, planning_date: date | None = None) -> None:
                     connection.execute(path.read_text(), prepare=False)
                 if idea_id == "idea-a":
                     schema = connection.execute(
-                        "SELECT COALESCE(to_regclass('idea_a_shops'), to_regclass('idea_a_cafes'))::text"
+                        "SELECT COALESCE(to_regclass('idea_a_daily_runs'), "
+                        "to_regclass('idea_a_shops'), to_regclass('idea_a_cafes'))::text"
                     ).fetchone()
-                    if schema and schema[0] == "idea_a_shops":
-                        seed_marketplace(connection, planning_date or datetime.now(BANGKOK).date())
-                    elif schema and schema[0] == "idea_a_cafes":
-                        seed_demo(connection, planning_date or datetime.now(BANGKOK).date())
+                    seeders = {
+                        "idea_a_daily_runs": seed_daily_marketplace,
+                        "idea_a_shops": seed_marketplace,
+                        "idea_a_cafes": seed_demo,
+                    }
+                    seeder = seeders.get(schema[0]) if schema else None
+                    if seeder is None:
+                        print("Skipped Idea A fixtures because the schema is pending.")
                     else:
-                        print("Skipped Idea A restock fixtures because the schema is pending.")
+                        seeder(connection, planning_date or datetime.now(BANGKOK).date())
             print(f"Loaded {idea_id} fixtures")
 
 

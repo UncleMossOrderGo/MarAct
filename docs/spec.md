@@ -1,103 +1,70 @@
-# MarAct Idea A — B2B fruit marketplace
+# MarAct Idea A — Daily trends to ingredient orders
 
-Draft for the hackathon PoC · 2026-11-21 · Supersedes café restocking v1.
+Draft implementation plan for the hackathon PoC · Target branch `feat/idea-a`.
 
-## Problem Statement
+## Product and demo
 
-Food businesses need to choose which fruit to buy and from which supplier. A generic catalog gives shop owners little context about what fits their menu, what they already use, or what is gaining attention in Thailand.
+Every morning, a food-business owner opens MarAct, finds relevant Thai food trends, sees what to make, and orders the ingredients. The default is **Today’s Trends** for **Bakery** at `/ideas/idea-a`. The journey is Today’s Trends → Trend Details → Recommended Ingredients → Cart → Place Order → Order History. A shop switcher supports seeded bakeries, cafés, and juice shops. The PoC opens directly with no login or separate shop-selection page. These updated briefs supersede the earlier login and fruit-feed design.
 
-## Solution
+The live job discovers changing trends. The deterministic walkthrough uses Pistachio Gelato as a seeded fallback: read evidence and menu idea, edit pistachio paste to 5 kg, add the available ingredients, place a mock order, and find the quantities, server total, and related trend in Orders. Replaying checkout returns the same order. Running the trend job again leaves that order unchanged.
 
-Idea A gives a demo buyer a shop-specific marketplace feed, a cached view of Thai web and social buzz, and a mock order flow. Python ranks listings, determines suggested quantities, calculates prices, and writes orders. OpenAI gathers trend evidence and explains recommendations. Sellers are seeded suppliers with prices and stock.
+## Experience
 
-## User Stories
-
-1. As a buyer, I want to choose a demo shop so my feed reflects the business I am buying for.
-2. As a buyer, I want to switch shops so I can compare recommendations for different menus.
-3. As a buyer, I want to inspect the active shop’s menu tags so I can understand its feed.
-4. As a buyer, I want to see recommended fruits ordered by relevance so I can decide what to buy.
-5. As a buyer, I want to know why each recommendation fits my shop so I can judge it.
-6. As a buyer, I want a suggested quantity based on recent usage so I can start from a sensible amount.
-7. As a buyer, I want to see recent Thai web and social buzz so I can identify emerging demand.
-8. As a buyer, I want source links and a live or cached indicator so I can judge freshness and credibility.
-9. As a buyer, I want to run a trend check so I can refresh the evidence when needed.
-10. As a buyer, I want to compare seller prices and stock for one fruit so I can choose a listing.
-11. As a buyer, I want to edit whole kilograms and add the listing to my cart so I can assemble an order.
-12. As a buyer, I want to edit or remove cart items so I can correct my order before checkout.
-13. As a buyer, I want to review the total and place an order so I can save the purchase in the app.
-14. As a buyer, I want stock or listing errors shown beside my checkout so I can correct the cart.
-15. As a buyer, I want checkout retries to return the same order so a network failure cannot duplicate the purchase.
-16. As a buyer, I want confirmation and order history so I can recover the saved quantities and prices later.
-17. As a buyer, I want my cart and orders scoped to my shop so switching shops does not mix their purchases.
-18. As a demo operator, I want seeded trends and template explanations so I can run the walkthrough without OpenAI.
-19. As a demo operator, I want the schedule and button to share the trend workflow so the manual demo reflects the scheduled behavior.
-20. As a developer, I want deterministic fixtures and a stubbed SDK in CI so tests run without production secrets.
-21. As a buyer, I want to sign in before choosing a shop so that marketplace access is limited to demo participants.
-22. As a buyer, I want to sign out when I finish so that the next person sees the sign-in screen.
-
-## Implementation Decisions
-
-### Product flow and design
-
-Start with a MarAct-themed email and password screen for signed-out buyers. After sign-in, use the attached image as the reference for the sequence **Choose shop → Marketplace → Product detail → Cart → Checkout → Orders**. Keep shop choice in the onboarding screen and a switcher in the marketplace header. The left navigation covers Marketplace, Trends, Orders, and Shop Profile, and collapses for small screens. Surface the trend strip on Marketplace and allow Trends to show the full cards. Show a cart drawer on wide screens and a dedicated cart view where space is limited. Place order from the checkout summary, then open the saved order with its confirmation and offer a route to order history.
-
-Use existing MarAct colors, typography, surface treatments, controls, and focus patterns. Use the reference’s hierarchy, fruit photography, card grid, seller comparison, and order summary as layout guidance. Use MarAct branding and accessible controls. Search, favorites, and image galleries shown in the reference are visual cues outside the MVP. English ships by default. Thai names are available in the catalog and explanation locale is explicit, so a Thai toggle can be added later.
-
-### Architecture and data
-
-Keep the Idea A slot and route prefix, React/TypeScript/Vite, Python/FastAPI/Pydantic/SQLAlchemy/Alembic, shared PostgreSQL, Docker Compose, Make, and GitHub Actions. Keep the OpenAI stub in CI and use the Python SDK and Responses API. Use one shared, server-configured buyer login with an expiring signed session cookie. The session opens Idea A. Signed-in buyers may switch among all seeded shops. Registration, password reset, and per-shop roles are out of scope.
-
-Use the `idea_a_` prefix for shops, usage, fruits, sellers, listings, trend runs, trends, recommendations, orders, and order items. Seed Smoothie Café, Bakery, Café, three suppliers, multiple fruits and listings, and seven days of per-shop use as the purchase-history signal. Seed menu tags. A globally unique order idempotency key resolves retries to their original order. Successful checkout snapshots server prices and quantities and decrements available stock atomically. Trends never modify orders.
-
-Append a migration after the existing restocking revision. Map seeded café usage into the marketplace shop/catalog model where applicable. Preserve legacy restocking data during the demo migration until its retention is explicitly decided, and remove v1 screens and endpoints at marketplace cutover. Idea B is unchanged. See the [pivot ADR](adr/0003-pivot-idea-a-to-fruit-marketplace.md).
-
-### Trend workflow
-
-The manual action and daily Bangkok scheduler call one refresh service. Pass the current Bangkok date explicitly, region TH, a seven-day lookback, and the fruit catalog to one Responses request with built-in `web_search`. Request `web_search_call.action.sources`. Use a small Thai-domain allow-list only after validating it. Otherwise steer by prompt. Accept up to five mapped fruit cards with a trend name, up to two rationale sentences, up to three menu ideas, confidence in [0,1], and supporting URLs. Drop unmapped cards. Resolve sources against returned search evidence and count distinct supported sources in Python.
-
-Compute `clamp(0.6 × confidence + 0.4 × min(mention_count, 5) / 5, 0, 1)`. Cache and deduplicate refreshes within the configured window. Use seed trends on timeout, provider error, missing credentials, zero valid cards, or explicit seed mode. Cap provider wait at 30 seconds and label fallback results “Showing cached trends.” Label the feature **Web & social buzz**. The demo uses prefetched or seeded cards.
-
-### Personalized feed and explanations
-
-Rank active in-stock listings using `(0.35 × history + 0.25 × profile + 0.30 × trend + 0.10 × value) × stock_ok`. History is the shop’s seven-day fruit usage normalized across fruits, profile is the fraction of shop menu tags matched by the fruit, and value is inverse normalized price among eligible listings for that fruit. Stock factor is 1 when available stock meets the suggestion, otherwise 0.5. Suggested kilograms are the ceiling of average daily usage, or 2 kg with no fruit history and trend score above 0.5. Use 0 when there is no usage and the trend threshold is unmet. Show up to five fruits and two seller choices per fruit. Break ties by higher trend, lower price, then stable IDs. Keep weights in one Python configuration.
-
-Show the ranked feed immediately with templates. Stream one batched explanation result separately and cache it. Request one explanation per recommendation of at most 25 words in the requested locale. Give the model the computed score, trend, quantity, seller, and price. Validate output and preserve Python values. Template format is “{fruit} fits your {menu_tag} menu{, trending: {trend_name}}. Suggested {kg} kg from {seller} at ฿{price}/kg.” Use neutral wording when there is no matching tag. A zero suggestion remains informational and the cart quantity must be at least 1 kg.
-
-### Backend contracts and budget
-
-All routes are relative to `/api/ideas/idea-a`.
-
-| Method | Path | Purpose |
+| Surface | Desktop | Mobile |
 | --- | --- | --- |
-| POST | `/auth/login` | Sign in and set the session cookie |
-| GET | `/auth/session` | Check the active session |
-| POST | `/auth/logout` | Clear the session cookie |
-| GET | `/shops` | Demo shop list |
-| GET | `/shops/{shop_id}` | Profile and tags |
-| GET | `/listings?fruit_id=` | Seller options and availability |
-| POST | `/trends/run` | Refresh or reuse the trend cache |
-| GET | `/trends/latest` | Latest usable trends with sources |
-| GET | `/shops/{shop_id}/feed` | Ranked recommendations |
-| GET | `/shops/{shop_id}/feed/explanations` | Stream validated batched explanations |
-| POST | `/orders` | Place or replay a mock order |
-| GET | `/orders/{order_id}` | Saved order detail |
-| GET | `/shops/{shop_id}/orders` | Shop order history |
+| Today’s Trends | Sidebar, compact Bakery header, last update, featured trend with photo, badges, menu idea and sources, ingredient rows and two more trends | Compact header and bottom navigation, one-column hero and cards, clear Order Ingredients action |
+| Trend Details | Trend evidence and menu idea beside or above an ingredient list with seller alternatives, whole-kg controls and Add All to Cart | Trend photo and Overview/Ingredients tabs, compact ingredient rows, sticky primary action |
+| Marketplace | Search, category filters, photo-based ingredient grid with price, supplier, availability and add action, plus product detail | Two columns where space allows, tappable category controls and focused product detail |
+| Cart and checkout | Review seller, quantities, prices, removals and total before Place Order | Full-height cart, sticky total and Place Order action with safe-area spacing |
+| Order confirmation and history | Confirmation, saved item details, status, time, total and related trend | Mascot success state, View Order, Back to Trends, and readable order cards |
+| Settings | Active shop name/category, language, recent purchases, and last trend update | Same content with compact navigation and controls |
 
-Require a valid session for marketplace reads, writes, and streams. Idea B and the internal scheduled trend job remain available independently. Use whole quantities of 1–500 kg, eligible listings, nonempty item arrays, UUID checkout keys, and server-computed THB totals. Show clear validation and stock errors. Preserve the same checkout key across retries.
+Follow the supplied UX reference with Inter, Lucide, 8 px spacing, 12 px card radius, 10 px button radius, white surfaces, green `#237A32`, light green `#EAF5E5`, border `#E5E7EB`, and text `#171717` / `#6B7280`. Reuse the existing green-cap mascot for branding, empty states, and order success. Use real-looking supplier photos for ingredient products. Ship Thai by default with an English toggle. Keep copy, dates, units, THB and text layout appropriate to the active locale. The seed pack supplies localized demo wording, with a readable source-language fallback for live text.
 
-Use `OPENAI_API_KEY` server-side. Defaults are `OPENAI_MODEL=gpt-6-luna`, `OPENAI_TREND_EFFORT=low`, `OPENAI_EXPLAIN_EFFORT=none`, `IDEA_A_TREND_CACHE_HOURS=24`, and `IDEA_A_USE_SEED_TRENDS=false`. The walkthrough runs with seed mode enabled. Arrange static instructions and schemas before request-specific facts, limit web-search fan-out, cache explanation batches, and use plain Responses calls. Seeded menu tags avoid a model call on shop selection. Targets are cached feed under 300 ms, explanations under 3 s, and total PoC OpenAI spend under $5. Verify model capability and pricing before enabling live search.
+Show shell and content-shaped skeletons on an initial load or reload. During a refresh, keep the last usable result visible with its timestamp. A failed first load offers retry, and a successful empty result has a distinct empty state. Keep unmatched ingredients visible as “Not on MarAct yet” or its Thai equivalent. Add All includes eligible lines only and tells the user what was omitted. Buttons and steppers must work with keyboard and touch. There is no standalone loading page.
 
-## Testing Decisions
+## Repository assessment and architecture
 
-- Test Python ranking, suggestions, trend normalization and scoring, and explanation fallback with repeatable input fixtures. Use stubbed OpenAI calls in API tests, including source validation, seed mode, invalid output, and timeout.
-- Use FastAPI and a migrated PostgreSQL database for checkout validation, stock races, server totals, retry idempotency, per-shop order history, and persistence after trend refresh.
-- Test signed-out API access, valid and invalid credentials, cookie expiry, session resume, and sign-out. Use Playwright for sign-in, shop selection, trend refresh, mango ranked first with two sellers, product detail, edit to 5 kg, cart, checkout, order confirmation, same-key retry, and unchanged order after a new trend run. Keep cross-idea isolation coverage.
-- Run `make test-idea IDEA=idea-a` and shared checks when changing migration or app wiring. Test seed-only behavior without a key. Treat latency and spend as measured demo targets.
+Keep React, TypeScript, Vite, FastAPI, Pydantic, SQLAlchemy, Alembic, PostgreSQL, Docker Compose, Make, and GitHub Actions. Reuse the current Idea A shell styles, design tokens, mascot, cart state, quantity controls, checkout, order read seams, browser fixtures, and Idea B isolation setup. The current branch opens a sign-in gate then a marketplace feed, streams per-feed explanations, and still defaults scheduling to 15:30. Replace that wiring with a Bakery-first saved Today view, independent ingredient catalog, and 06:00 daily job. Remove superseded public authentication and per-page AI routes at cutover. Do not change Idea B.
 
-## Out of Scope
+Keep discovery, ingredient extraction, category matching, Python ranking, job publication, catalog, and order transactions separate. The backend uses the OpenAI Python SDK, Responses API, Structured Outputs, and built-in web search. No page read or language change invokes OpenAI. All AI work happens inside the daily job.
 
-Café stock entry, shortage/spoilage math, supplier cutoff and delivery-time rules, and copying supplier drafts. Also excluded are live scraping in the walkthrough, real payments, logistics, seller onboarding, seller UI, reviews, chat, notifications, photo grading, market-price data, routing, external messaging, third-party search tools, embeddings, Agents SDK, Assistants API, and Fast mode.
+## Daily trend job
 
-## Further Notes
+See the [daily publication ADR](adr/0004-publish-daily-ingredient-recommendations.md).
 
-Open decisions are the validated Thai domain list or prompt-only search, a Thai UI toggle, destructive cleanup of legacy restocking data, and the demo host. The local work queue under `.scratch/idea-a/` defines parallel ownership and integration order.
+Run the same `run_daily_trend_job(trend_date)` at **06:00 Asia/Bangkok**, from the demo control, or from a token-protected platform cron endpoint. Prefer APScheduler in a single FastAPI worker unless the chosen host provides cron. Set the schedule, model, public demo control, seed mode and trend cap from server configuration. Keep job tokens and OpenAI credentials on the server.
+
+1. Discover up to five Thai food, dessert, and drink trends in one Responses web-search call. Pass the current Bangkok date explicitly and request evidence from the preceding seven days. Validate supporting URLs against tool evidence and capture available dates/titles. Keep the allow-list optional until validated.
+2. Extract up to six ingredients per trend in one batched structured call. Python normalizes and matches names against Thai and English catalog names and aliases. Keep unmatched names and log them.
+3. Run one batched fit call per shop category, for bakery, café and juice shop. Require fit at least 0.4. Save a short rationale, one menu idea, and up to three stock-first ingredients per kept insight. Use seeded fallbacks for known slugs if extraction or matching fails and skip unresolved items.
+4. Compute trend score as `clamp(0.6 × confidence + 0.4 × min(distinct_mentions, 5) / 5, 0, 1)`. Trend rank is fit × trend score plus 0.2 for new rising trends or 0.1 for other rising trends. A slug is new if it did not occur in the prior seven Bangkok dates. Use observed support when classifying momentum. With comparable dated observations, use at least +20% for Rising, at most −20% for Fading, and Peak in between. When coverage is sparse use the validated qualitative label with its evidence, without displaying invented percentages.
+5. Score eligible listings as `0.6 × trend_rank + 0.25 × normalized 7-day usage + 0.15 × inverse normalized same-ingredient price`. Exclude inactive or unavailable offers, break ties with stable IDs, keep the best and one alternate seller. Suggest ceiling of average daily kg or 2 kg without history, then cap the cart control at available stock and 500 kg. Persist the top three trends and up to three ranked ingredient recommendations per shop. Generate card text from saved category insight and Python-calculated facts.
+6. Publish one coherent snapshot per Bangkok date. An explicit run can replace that date’s result atomically, with concurrent invocations coalesced. If discovery fails, takes over 60 seconds, or yields zero usable trends, try seed data. If no usable snapshot can publish, retain the last usable run and show its actual date. Keep orders independent of trend snapshots and refreshes.
+
+Default model is configurable as `gpt-6-luna` per the search spec. Use low effort for discovery and fit and none for extraction. Plan for five calls per complete job and zero per page load. The $0.05 run estimate and model/tool compatibility are to be verified before live deployment. Demo and CI support seed-only runs without a provider key.
+
+## Storage and interfaces
+
+Keep all new data Idea A-owned in shared PostgreSQL. Extend the existing Alembic history without rewriting applied revisions. Shops have category, ingredients have multilingual names, aliases, category and kg unit, and sellers have listings with stock and money. Store seven days of shop/ingredient usage. Save daily run, trend evidence, ingredient matches, category insights, and per-shop recommendations. Checkout records snapshot prices, quantities, and optional trend attribution. Use client-side cart state per shop.
+
+| API under `/api/ideas/idea-a` | Purpose |
+| --- | --- |
+| GET `/shops` | Seeded shop list, with Bakery default |
+| GET `/shops/{shop_id}/today` | One saved home payload including timestamp, trends and ingredient offers |
+| GET `/trends/today` | All saved trends with evidence and availability |
+| GET `/listings?ingredient_id=&q=&category=` | Searchable ingredient offers and per-ingredient product detail |
+| POST `/jobs/daily-trend` | Restricted trigger for the scheduler host or trusted operator |
+| POST `/jobs/daily-trend/demo` | Same-origin demo control, enabled only in demo configuration |
+| GET `/jobs/daily-trend/latest` | Current attempt and last usable run metadata |
+| POST `/orders` | Place or replay a mock order |
+| GET `/orders/{order_id}` | Saved order details |
+| GET `/shops/{shop_id}/orders` | Shop order history, also used in Settings |
+
+Validate UUID checkout keys, active listings and whole quantities from 1–500 within available stock. Compute THB totals and decrement stock once in a transaction with stable lock order. Preserve the price and optional trend attribution even if a listing or trend later changes. A cart line without a trend is valid. Keep API credentials and job token out of the browser. The demo trigger is off by default, ignores cross-origin writes, and uses a server-side run limit plus in-flight coalescing.
+
+## Verification and roadmap
+
+Begin independent backend, frontend, and infrastructure slices against fixed contract fixtures. Merge schema, job pipeline, and API adapters, wire the new shell and saved Today view, then run the deterministic walkthrough and visual review. Run `make test-idea IDEA=idea-a` and shared checks for migration or app wiring. Verify job evidence and fallbacks with provider stubs, ranking with pure Python tests, read-only page requests with network assertions, and checkout serialization with PostgreSQL. Review screenshots of the actual implementation at 1440px desktop and mobile before signing off.
+
+Open decisions are the final Thai domain allow-list, the full catalog and source/image rights, whether the host uses platform cron, and retention of legacy data. Preserve existing orders and legacy data during cutover. Payments, logistics, vendor UI, push notifications, external trend vendors, and embeddings remain outside this PoC.

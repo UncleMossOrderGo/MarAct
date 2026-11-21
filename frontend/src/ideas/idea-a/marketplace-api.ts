@@ -1,117 +1,80 @@
+import { requestJson } from '../../shared/http';
 import type { MarketOrderRequest, SavedMarketOrder } from './market-checkout';
-import type { ExplanationUpdate, OpenExplanationStream } from './marketplace-feed';
+import type { MarketIngredientListing } from './market-ingredient-catalog';
+import type { DailyLocale, DailyRun, DailyShop, MarketTodayData } from './market-daily-types';
 
-import { checkMarketplaceSession, marketplaceBase as base, marketplaceJson } from './marketplace-session';
+const base = '/api/ideas/idea-a';
 const shopPath = (id: string) => `/shops/${encodeURIComponent(id)}`;
 
-export type Shop = { id: string; name: string; category: string; menu_tags: string[] };
-export type Fruit = { id: string; name_en: string; name_th: string; tags: string[] };
-export type Seller = { id: string; name: string; area: string; rating: number };
-export type Listing = {
-  id: string;
-  seller: Seller;
-  fruit: Fruit;
-  price_per_kg_thb: string;
-  stock_kg: number;
-  active: boolean;
+type CatalogOffer = Omit<MarketIngredientListing, 'name_en' | 'name_th' | 'category' | 'unit' | 'image_key'> & {
+  ingredient: Pick<MarketIngredientListing, 'name_en' | 'name_th' | 'category' | 'unit' | 'image_key'>;
 };
-export type TrendSource = { url: string; title: string };
-export type TrendCard = {
-  fruit_id: string;
-  trend_name: string;
-  rationale: string;
-  related_menus: string[];
-  confidence: number;
-  mention_count: number;
-  score: number;
-  sources: TrendSource[];
+export type JobAttempt = {
+  attempt_id: string;
+  state: 'running' | 'published' | 'error';
+  error?: string | null;
 };
-export type TrendStatus = 'ok' | 'fallback' | 'error';
-export type TrendRun = {
-  id: string;
-  started_at: string;
-  finished_at: string;
-  status: TrendStatus;
-  source: string;
+export type JobStatus = {
+  attempt: JobAttempt | null;
+  latest_usable: DailyRun | null;
+  demo_enabled: boolean;
 };
-export type Trends = { run: TrendRun | null; cards: TrendCard[] };
-export type FeedItem = {
-  fruit: Fruit;
-  score: number;
-  suggested_kg: number;
-  trend_name: string | null;
-  listings: Listing[];
-  explanation: string;
-  explanation_source: string;
-};
-export type Feed = { feed_key: string; run_id: string | null; items: FeedItem[] };
-export const marketplaceApi = {
-  shops: (signal?: AbortSignal) => marketplaceJson<{ shops: Shop[] }>(`${base}/shops`, { signal }),
-  async trends(signal?: AbortSignal) {
-    const { run, cards } = await marketplaceJson<Trends>(`${base}/trends/latest`, { signal });
-    return { run: run && { ...run, completed_at: run.finished_at }, cards };
+export const dailyMarketplaceApi = {
+  shops: (signal?: AbortSignal) =>
+    requestJson<{ shops: DailyShop[]; default_shop_id: string | null }>(`${base}/shops`, { signal }),
+  today: (shopId: string, locale: DailyLocale, signal?: AbortSignal) =>
+    requestJson<MarketTodayData>(`${base}${shopPath(shopId)}/today?${new URLSearchParams({ locale })}`, { signal }),
+  async listings(filters: { ingredient_id?: string; q?: string; category?: string }, signal?: AbortSignal) {
+    const query = new URLSearchParams();
+    if (filters.ingredient_id) query.set('ingredient_id', filters.ingredient_id);
+    if (filters.q) query.set('q', filters.q);
+    if (filters.category) query.set('category', filters.category);
+    const { listings } = await requestJson<{ listings: CatalogOffer[] }>(`${base}/listings?${query}`, { signal });
+    return listings.map(({ ingredient, ...offer }) => ({ ...offer, ...ingredient }));
   },
-  refreshTrends: () => marketplaceJson<{ run_id: string; status: TrendStatus }>(
-    `${base}/trends/run`, { method: 'POST' },
-  ),
-  feed: (shopId: string, signal?: AbortSignal) =>
-    marketplaceJson<Feed>(`${base}${shopPath(shopId)}/feed`, { signal }),
-  explanationsUrl: (shopId: string, feedKey: string, locale: string) =>
-    `${base}${shopPath(shopId)}/feed/explanations?${new URLSearchParams({ feed_key: feedKey, locale })}`,
-  checkout: (body: MarketOrderRequest) => marketplaceJson<SavedMarketOrder>(`${base}/orders`, {
+  trigger: (signal?: AbortSignal) =>
+    requestJson<JobAttempt>(`${base}/jobs/daily-trend/demo`, { method: 'POST', signal }),
+  jobStatus: (signal?: AbortSignal) =>
+    requestJson<JobStatus>(`${base}/jobs/daily-trend/latest`, { signal }),
+  checkout: (body: MarketOrderRequest) => requestJson<SavedMarketOrder>(`${base}/orders`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
   }),
   orders: (shopId: string, signal?: AbortSignal) =>
-    marketplaceJson<{ orders: SavedMarketOrder[] }>(`${base}${shopPath(shopId)}/orders`, { signal }),
+    requestJson<{ orders: SavedMarketOrder[] }>(`${base}${shopPath(shopId)}/orders`, { signal }),
 };
 
-function isExplanation(value: unknown): value is ExplanationUpdate {
-  return typeof value === 'object' && value !== null &&
-    'fruit_id' in value && typeof value.fruit_id === 'string' &&
-    'explanation' in value && typeof value.explanation === 'string' &&
-    'explanation_source' in value && typeof value.explanation_source === 'string';
+
+export async function waitForDailyPublication(
+  signal: AbortSignal, onStatus: (state: 'running' | 'published') => void,
+) {
+  const accepted = await dailyMarketplaceApi.trigger(signal);
+  let attempt: JobAttempt | null = accepted;
+  while (true) {
+    signal.throwIfAborted();
+    if (attempt?.attempt_id === accepted.attempt_id) {
+      if (attempt.state === 'published') {
+        onStatus('published');
+        return;
+      }
+      if (attempt.state === 'error') throw new Error(attempt.error ?? 'Publication failed.');
+    }
+    onStatus('running');
+    await delay(signal);
+    attempt = (await dailyMarketplaceApi.jobStatus(signal)).attempt;
+  }
 }
 
-export const openMarketplaceExplanations: OpenExplanationStream = ({ shopId, feedKey, locale }, events) => {
-  const controller = new AbortController();
-  async function stream() {
-    const response = await fetch(marketplaceApi.explanationsUrl(shopId, feedKey, locale), {
-      signal: controller.signal,
-      headers: { Accept: 'text/event-stream' },
-    });
-    if (response.status === 409 && !controller.signal.aborted) {
-      events.onObsolete();
-      return;
+function delay(signal: AbortSignal) {
+  return new Promise<void>((resolve, reject) => {
+    signal.throwIfAborted();
+    const timer = window.setTimeout(() => {
+      signal.removeEventListener('abort', abort);
+      resolve();
+    }, 1000);
+    function abort() {
+      window.clearTimeout(timer);
+      reject(signal.reason);
     }
-    if (!controller.signal.aborted) checkMarketplaceSession(response.status);
-    if (!response.ok || !response.body) return;
-
-    const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
-    try {
-      let buffer = '';
-      while (!controller.signal.aborted) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += value;
-        const frames = buffer.split(/\r?\n\r?\n/);
-        buffer = frames.pop() ?? '';
-        for (const frame of frames) {
-          const lines = frame.split(/\r?\n/);
-          const event = lines.find((line) => line.startsWith('event:'))?.slice(6).trim();
-          if (event === 'done' || controller.signal.aborted) return;
-          if (event !== 'explanation') continue;
-          const data = lines.filter((line) => line.startsWith('data:')).map((line) => line.slice(5).trimStart()).join('\n');
-          const update: unknown = JSON.parse(data);
-          if (isExplanation(update)) events.onExplanation(update);
-        }
-      }
-    } finally {
-      await reader.cancel();
-    }
-  }
-
-  void stream().catch(() => {
-    // The initial feed already provides an explanation for every recommendation.
+    signal.addEventListener('abort', abort, { once: true });
   });
-  return () => controller.abort();
-};
+}

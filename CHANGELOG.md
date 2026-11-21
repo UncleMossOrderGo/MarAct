@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added Bakery-first daily trend snapshots, localized ingredient shopping, and trend attribution on Idea A orders.
+
 - Replaced the Idea A café restocking demo with a shop-specific fruit marketplace, cached trend refresh, and server-priced mock checkout. Preserved legacy data during the migration.
 
 - Added the Idea A café restocking dashboard with stock entry, daily planning, and persistent supplier drafts.

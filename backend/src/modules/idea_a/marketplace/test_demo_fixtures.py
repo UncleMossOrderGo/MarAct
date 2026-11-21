@@ -3,12 +3,10 @@ from datetime import date, datetime, timedelta
 from decimal import Decimal
 from typing import cast
 
-import pytest
 from psycopg import Connection, connect
 from psycopg.conninfo import make_conninfo
 from sqlalchemy.engine import Engine
 
-from backend.db import manage
 from backend.db.seeds.idea_a_marketplace import (
     BANGKOK,
     CHECKOUT_LINES,
@@ -55,15 +53,14 @@ def test_fixture_adapter_writes_seven_local_days_and_sourced_trend() -> None:
     assert trend[7] == Decimal("0.59")
 
 
-def test_seed_dispatch_ranking_and_rerun_after_sale(
-    marketplace_engine: Engine, monkeypatch: pytest.MonkeyPatch
+def test_legacy_marketplace_seed_ranks_and_preserves_sale(
+    marketplace_engine: Engine,
 ) -> None:
     with marketplace_engine.connect() as db:
         schema = db.exec_driver_sql("SELECT current_schema()").scalar_one()
-    monkeypatch.setenv(
-        "DATABASE_URL", make_conninfo(database_url(), options=f"-csearch_path={schema}")
-    )
-    manage.seed("idea-a", planning_date=DAY)
+    dsn = make_conninfo(database_url(), options=f"-csearch_path={schema}")
+    with connect(dsn) as connection:
+        seed_marketplace(connection, DAY)
 
     catalog = CatalogRepository(marketplace_engine)
     smoothie = catalog.shop("demo")
@@ -104,7 +101,8 @@ def test_seed_dispatch_ranking_and_rerun_after_sale(
             """,
             (sale_total,),
         )
-    manage.seed("--all", planning_date=DAY)
+    with connect(dsn) as connection:
+        seed_marketplace(connection, DAY)
     with marketplace_engine.connect() as db:
         assert db.exec_driver_sql("SELECT count(*) FROM idea_a_shops").scalar_one() == 3
         assert (

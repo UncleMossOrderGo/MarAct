@@ -10,6 +10,7 @@ type Result<T> = {
 export function useMarketplaceResource<T>(
   key: string | null,
   load: (key: string, signal: AbortSignal) => Promise<T>,
+  keepSaved = false,
 ) {
   const [result, setResult] = useState<Result<T>>();
   const [attempt, setAttempt] = useState(0);
@@ -21,11 +22,15 @@ export function useMarketplaceResource<T>(
     load(key, controller.signal).then((data) => {
       if (!controller.signal.aborted) setResult({ key, attempt, data });
     }).catch(() => {
-      if (!controller.signal.aborted) setResult({ key, attempt, failed: true });
+      if (!controller.signal.aborted) setResult((previous) => ({
+        key, attempt, failed: true,
+        data: keepSaved && previous?.key === key ? previous.data : undefined,
+      }));
     });
     return () => controller.abort();
-  }, [key, load, attempt]);
+  }, [key, load, attempt, keepSaved]);
 
   const current = result?.key === key && result.attempt === attempt ? result : undefined;
-  return { data: current?.data, failed: current?.failed ?? false, loading: key !== null && !current, reload };
+  const data = current?.data ?? (keepSaved && result?.key === key ? result.data : undefined);
+  return { data, failed: current?.failed ?? false, loading: key !== null && !current, reload };
 }

@@ -1,4 +1,6 @@
-# Idea A demo sign-in
+# Legacy Idea A demo sign-in
+
+The daily ingredient marketplace opens without sign-in. These instructions apply to earlier revisions of Idea A.
 
 The backend reads one shared demo buyer account from its environment. Set these values in the backend `.env` and restart the API.
 

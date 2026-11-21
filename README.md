@@ -6,19 +6,14 @@ A modular monolith starter for comparing hackathon ideas in one app. The React a
 
 ## Local setup
 
-Install Node.js 24, npm, Python 3.12–3.14, uv, Make, and Docker with the Compose plugin. Start Docker, then run:
+Install Node.js 24, npm, Python 3.12–3.14, uv, Make, and Docker with the Compose plugin. Start Docker, then run the seed-only demo:
 
 ```sh
 make init
+OPENAI_API_KEY= IDEA_A_USE_SEED_TRENDS=true IDEA_A_DEMO_TRIGGER_ENABLED=1 make dev
 ```
 
-[Configure the demo buyer account](docs/idea-a-demo-auth.md) in `.env`, then start MarAct.
-
-```sh
-OPENAI_API_KEY= IDEA_A_USE_SEED_TRENDS=true IDEA_A_SCHEDULER_ENABLED=1 make dev
-```
-
-Open [MarAct on port 5173](http://127.0.0.1:5173). The first visit opens the Idea A fruit marketplace. Use the idea dropdown to compare it with Idea B. The starter API listens on port 3000 and Vite proxies `/api` requests. Adjust `.env` if local ports conflict. Keep `DB_PORT` and the port in `DATABASE_URL` in sync.
+Open [MarAct on port 5173](http://127.0.0.1:5173). The first visit opens Today’s Trends for the default Bakery shop. Use the idea dropdown to compare it with Idea B. The starter API listens on port 3000 and Vite proxies `/api` requests. Adjust `.env` if local ports conflict. Keep `DB_PORT` and the port in `DATABASE_URL` in sync.
 
 | Command | Behavior |
 | --- | --- |
@@ -34,20 +29,24 @@ Open [MarAct on port 5173](http://127.0.0.1:5173). The first visit opens the Ide
 
 Before the first browser test, run `cd frontend && npx playwright install chromium` from the repo root. API tests use `DATABASE_URL`. Browser tests create and remove a disposable PostgreSQL schema with fixed demo fixtures and seed mode with the OpenAI key cleared. Browser tests use port 5174 and API port 3001 by default. Keep these ports free, and set a distinct `DB_PORT` and `DATABASE_URL` when running database environments in parallel.
 
-## Run the marketplace demo
+## Run the daily ingredient demo
 
-1. Sign in with the configured demo account. Select **Smoothie Café** and continue. Mango ranks first and has two seller offers in the seed fixtures.
-2. Open Mango, choose the recommended seller at ฿78.00/kg, set the quantity to 5 kg, and add it to your cart.
-3. Continue to checkout and place the order. The saved order shows 5 kg and ฿390.00, calculated by the server.
-4. Run a trend check in **Trends** and reopen the order in **Orders**. The saved quantity and total stay the same.
+1. Open Idea A. Today’s Trends opens for MarAct Bakery in Thai. Use Settings to switch to English.
+2. Open **Pistachio Gelato**, review its sources and menu idea, and open **Order Ingredients**.
+3. Set pistachio paste to 5 kg and add the eligible ingredients. Place the mock order for **฿5,495.00** at the seeded prices.
+4. Open **Orders** to see the saved quantities and related trend. Try **Run daily job** on Today’s Trends. The saved order keeps its price, quantities, and trend label.
 
-The command under Local setup starts the walkthrough without provider calls. A v1 database upgrades through `make migrate`, then `make seed IDEA=idea-a` loads marketplace fixtures without replacing existing orders or depleted stock. Alembic preserves the old café records and migrates compatible usage forward.
+For an existing clone, run `make migrate && make seed IDEA=idea-a` before restarting the app. The new Alembic revision retains existing order IDs and totals. Reseeding preserves previous orders and depleted stock.
 
-Set `IDEA_A_SCHEDULE_TIME` to a 24-hour Bangkok time in `HH:MM` format. The default is `15:30`. Enable the scheduler on one instance only. Manual and scheduled refreshes use the same service. `IDEA_A_TREND_CACHE_HOURS` defaults to 24. Without a key, trend refresh uses seed cards and feed explanations use templates. CI clears the key, selects seed mode, and disables the scheduler.
+The seed-only command uses no OpenAI calls. With live mode enabled, page reads still use saved SQL snapshots. To run the live job locally, set `OPENAI_API_KEY` in the server's `.env` and run:
 
-Before enabling live search, verify the configured model and domain-filter support with the adapter's stubbed Responses request. Check that the request includes the intended allow-list, then verify that every displayed citation matches returned search evidence. Use prompt steering if filters are unavailable.
+```sh
+IDEA_A_USE_SEED_TRENDS=false IDEA_A_DEMO_TRIGGER_ENABLED=1 make dev
+```
 
-To measure the demo targets, warm the shop feed and record repeat feed request timings in the browser Network panel. Measure explanation time from the stream request until its first explanation event. Compare against the targets of 300 ms for cached feed and 3 s for explanations. For a live trial, use a dedicated API project, record the run count and token and search usage, and compare the project spend delta against the $5 PoC target.
+The model and trend cap are configurable via `OPENAI_MODEL` and `IDEA_A_DAILY_TREND_CAP`. Missing credentials or unusable discovery falls back to the demo trends. Verify the configured model's tool support, source quality, and costs before deployment.
+
+For a deployed job, configure the [token-protected Bangkok host cron](docs/idea-a-daily-trigger.md). Leave the public demo trigger disabled in live deployment. For a single local API worker, `IDEA_A_SCHEDULER_ENABLED=1` enables the in-process 06:00 Bangkok schedule. Use one scheduling method per environment.
 
 ## Add an idea
 

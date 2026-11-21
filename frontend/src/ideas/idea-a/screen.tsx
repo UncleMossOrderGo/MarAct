@@ -1,48 +1,61 @@
 import { useRef, useState } from 'react';
-import { MarketCart, useMarketCart } from './market-cart';
+
+import { MarketCart, useMarketCart, type MarketCartItem } from './market-cart';
 import {
-  MarketCheckout, MarketOrderConfirmation, MarketOrders, useMarketCheckoutAttempts,
-  type SavedMarketOrder,
+  MarketCheckout, MarketOrderConfirmation, useMarketCheckoutAttempts, type SavedMarketOrder,
 } from './market-checkout';
-import { MarketProduct } from './market-product';
+import { ingredientImage } from './market-ingredient-assets';
+import { MarketIngredientCatalog, MarketIngredientProduct } from './market-ingredient-catalog';
+import { marketCopy, useMarketLanguage, type MarketLocale } from './market-locale';
+import { MarketOrderDetails, MarketOrderHistory } from './market-order-history';
+import { MarketSettings } from './market-settings';
 import { MarketShell, type MarketDestination } from './market-shell';
-import { marketplaceApi, openMarketplaceExplanations, type FeedItem } from './marketplace-api';
-import { MarketplaceFeed } from './marketplace-feed';
+import { MarketSkeleton } from './market-skeleton';
+import { MarketToday, type MarketDailyJobState } from './market-today';
+import { MarketTrendDetail } from './market-trend-detail';
+import { dailyMarketplaceApi, waitForDailyPublication } from './marketplace-api';
 import { useMarketplaceResource } from './marketplace-resource';
-import { MarketplaceSessionGate } from './marketplace-sign-in';
-import { MarketplaceTrends } from './marketplace-trends';
 
-type View = { type: 'navigation' } | { type: 'product'; item: FeedItem } |
-  { type: 'checkout' } | { type: 'order'; order: SavedMarketOrder; justPlaced: boolean };
-const activeShopStorage = 'maract.idea-a.shop';
-const loadShops = (_: string, signal: AbortSignal) => marketplaceApi.shops(signal);
-const loadTrends = (_: string, signal: AbortSignal) => marketplaceApi.trends(signal);
+type View = { type: 'navigation' } | { type: 'trend'; slug: string; section: 'overview' | 'ingredients' }
+  | { type: 'product'; id: string } | { type: 'checkout' }
+  | { type: 'confirmation' | 'saved-order'; order: SavedMarketOrder };
 
-function clearMarketplace() {
-  sessionStorage.removeItem(activeShopStorage);
+const shopKey = 'maract.idea-a.daily-shop';
+const shopsLoader = (_key: string, signal: AbortSignal) => dailyMarketplaceApi.shops(signal);
+const statusLoader = (_key: string, signal: AbortSignal) => dailyMarketplaceApi.jobStatus(signal);
+const productLoader = (id: string, signal: AbortSignal) => dailyMarketplaceApi.listings({ ingredient_id: id }, signal);
+function todayLoader(key: string, signal: AbortSignal) {
+  const [shopId, locale] = JSON.parse(key) as [string, MarketLocale];
+  return dailyMarketplaceApi.today(shopId, locale, signal);
 }
 
 export function IdeaA() {
-  return <MarketplaceSessionGate onClear={clearMarketplace}>
-    {(signOut, signingOut) => <Marketplace signOut={signOut} signingOut={signingOut} />}
-  </MarketplaceSessionGate>;
-}
-
-function Marketplace({ signOut, signingOut }: { signOut: () => void; signingOut: boolean }) {
-  const [shopId, setShopId] = useState(() => sessionStorage.getItem(activeShopStorage));
-  const activeShop = useRef(shopId);
-  const [destination, setDestination] = useState<MarketDestination>('marketplace');
+  const { locale, setLocale } = useMarketLanguage();
+  const copy = marketCopy[locale];
+  const [selectedShop, setSelectedShop] = useState(() => localStorage.getItem(shopKey));
+  const [destination, setDestination] = useState<MarketDestination>('today');
   const [view, setView] = useState<View>({ type: 'navigation' });
   const [cartOpen, setCartOpen] = useState(false);
-  const [fruitQuery, setFruitQuery] = useState('');
 
-  const shops = useMarketplaceResource('shops', loadShops);
-  const shop = shops.data?.shops.find(({ id }) => id === shopId);
-  const feed = useMarketplaceResource(shop?.id ?? null, marketplaceApi.feed);
-  const trends = useMarketplaceResource(shop ? 'latest' : null, loadTrends);
-  const orders = useMarketplaceResource(destination === 'orders' ? shop?.id ?? null : null, marketplaceApi.orders);
+  const shops = useMarketplaceResource('shops', shopsLoader);
+  const defaultId = shops.data?.default_shop_id;
+  const shop = shops.data?.shops.find(({ id }) => id === selectedShop)
+    ?? shops.data?.shops.find(({ id }) => id === defaultId);
+  const activeShop = useRef<string | null>(null);
+  const today = useMarketplaceResource(shop ? JSON.stringify([shop.id, locale]) : null, todayLoader, true);
+  const jobStatus = useMarketplaceResource('status', statusLoader, true);
+  const orders = useMarketplaceResource(
+    destination === 'orders' || destination === 'settings' ? shop?.id ?? null : null,
+    dailyMarketplaceApi.orders,
+  );
+  const product = useMarketplaceResource(view.type === 'product' ? view.id : null, productLoader);
   const cart = useMarketCart(shop?.id ?? null);
   const attempts = useMarketCheckoutAttempts();
+  async function refresh(signal: AbortSignal, report: (state: MarketDailyJobState) => void) {
+    await waitForDailyPublication(signal, report);
+    today.reload();
+    jobStatus.reload();
+  }
 
   function navigate(next: MarketDestination) {
     setView({ type: 'navigation' });
@@ -51,131 +64,143 @@ function Marketplace({ signOut, signingOut }: { signOut: () => void; signingOut:
 
   function changeShop(id: string) {
     activeShop.current = id;
-    sessionStorage.setItem(activeShopStorage, id);
-    setShopId(id);
+    localStorage.setItem(shopKey, id);
+    setSelectedShop(id);
     setCartOpen(false);
-    setFruitQuery('');
-    navigate('marketplace');
+    navigate('today');
   }
 
-  async function refreshTrends() {
-    const result = await marketplaceApi.refreshTrends();
-    trends.reload();
-    feed.reload();
-    if (result.status === 'error') throw new Error('Could not refresh trends.');
-  }
-
-  function showOrder(order: SavedMarketOrder, justPlaced = false) {
-    setDestination('orders');
-    setView({ type: 'order', order, justPlaced });
+  function addItems(lines: readonly MarketCartItem[]) {
+    if (!shop || !lines.length) return;
+    attempts.invalidate(shop.id);
+    cart.addAll(lines);
   }
 
   function orderPlaced(order: SavedMarketOrder) {
     cart.clearShop(order.shop_id);
-    feed.reload();
-    if (activeShop.current !== order.shop_id) return;
+    today.reload();
     orders.reload();
-    showOrder(order, true);
+    if ((activeShop.current ?? shop?.id) !== order.shop_id) return;
+    setDestination('orders');
+    setView({ type: 'confirmation', order });
   }
 
-  if (shops.loading) return <p role="status">Loading shops…</p>;
-  if (shops.failed) {
-    return <section>
-      <p role="alert">Could not load the shops.</p>
-      <button type="button" onClick={shops.reload}>Retry loading shops</button>
-    </section>;
-  }
+  const trendView = view.type === 'trend' ? view : null;
+  const trend = trendView ? today.data?.trends.find(({ slug }) => slug === trendView.slug) : undefined;
 
   return (
     <MarketShell
-      shops={shops.data?.shops ?? []}
+      shops={shops.data?.shops.map((item) => ({ ...item, menu_tags: [] })) ?? []}
       activeShopId={shop?.id ?? null}
+      defaultShopId={defaultId ?? ''}
+      locale={locale}
       destination={destination}
       cartCount={cart.items.length}
       onShopChange={changeShop}
       onNavigate={navigate}
       onOpenCart={() => setCartOpen(true)}
-      onSignOut={signOut}
-      signingOut={signingOut}
-      fruitSearch={view.type === 'navigation' && destination === 'marketplace'
-        ? { value: fruitQuery, onChange: setFruitQuery }
-        : undefined}
     >
+      {shops.loading && <MarketSkeleton label={copy.loading} />}
+      {shops.failed && (
+        <section><p role="alert">{copy.loadError}</p><button type="button" onClick={shops.reload}>{copy.retry}</button></section>
+      )}
+      {shops.data && !shop && <p>{locale === 'th' ? 'ยังไม่มีร้านค้าตัวอย่าง' : 'No demo shops are available.'}</p>}
       {shop && <>
-        {view.type === 'product' && (
-          <MarketProduct
-            fruit={view.item.fruit}
-            listings={view.item.listings}
-            suggestedKg={view.item.suggested_kg}
-            trendName={view.item.trend_name}
-            onAdd={(line) => {
-              const existing = cart.items.find(({ listing_id }) => listing_id === line.listing_id);
-              if (!existing || existing.qty_kg < Math.min(500, line.stock_kg)) attempts.invalidate(shop.id);
-              cart.add(line);
-            }}
-            onBack={() => navigate('marketplace')}
+        {view.type === 'navigation' && destination === 'today' && (
+          <MarketToday
+            data={today.data ?? null}
+            locale={locale}
+            loading={today.loading}
+            error={today.failed ? copy.loadError : undefined}
+            onRetry={today.reload}
+            dailyJob={jobStatus.data?.demo_enabled ? { run: refresh } : undefined}
+            resolveImage={ingredientImage}
+            onTrendSelect={(slug, section) => setView({ type: 'trend', slug, section })}
           />
         )}
+        {trendView && (trend ? (
+          <MarketTrendDetail
+            key={trend.slug}
+            trend={trend}
+            run={today.data?.run ?? null}
+            locale={locale}
+            initialTab={trendView.section}
+            resolveImage={ingredientImage}
+            onAddItems={addItems}
+            onBack={() => navigate('today')}
+          />
+        ) : today.loading ? <MarketSkeleton label={copy.loading} /> : (
+          <section><p role="alert">{copy.loadError}</p><button type="button" onClick={() => navigate('today')}>{copy.today}</button></section>
+        ))}
+        {view.type === 'navigation' && destination === 'marketplace' && (
+          <MarketIngredientCatalog
+            locale={locale}
+            loadListings={dailyMarketplaceApi.listings}
+            imageFor={ingredientImage}
+            onSelect={(id) => setView({ type: 'product', id })}
+            onAdd={(line) => addItems([line])}
+          />
+        )}
+        {view.type === 'product' && (product.loading ? <MarketSkeleton label={copy.loading} /> : product.failed ? (
+          <section><p role="alert">{copy.loadError}</p><button type="button" onClick={product.reload}>{copy.retry}</button></section>
+        ) : (
+          <MarketIngredientProduct
+            listings={product.data ?? []}
+            locale={locale}
+            imageFor={ingredientImage}
+            onAdd={(line) => addItems([line])}
+            onBack={() => navigate('marketplace')}
+          />
+        ))}
         {view.type === 'checkout' && (
           <MarketCheckout
+            locale={locale}
             shopId={shop.id}
             lines={cart.items}
             attempts={attempts}
-            onPlaceOrder={marketplaceApi.checkout}
+            onPlaceOrder={dailyMarketplaceApi.checkout}
             onPlaced={orderPlaced}
             onBack={() => { navigate('marketplace'); setCartOpen(true); }}
           />
         )}
-        {view.type === 'order' && (
+        {view.type === 'confirmation' && (
           <MarketOrderConfirmation
+            locale={locale}
             order={view.order}
             onViewOrders={() => navigate('orders')}
-            onKeepShopping={view.justPlaced ? () => navigate('marketplace') : undefined}
+            onBackToTrends={() => navigate('today')}
           />
         )}
-        {view.type === 'navigation' && destination === 'marketplace' && (
-          <MarketplaceFeed
-            query={fruitQuery}
-            shop={shop}
-            feed={feed.data ?? null}
-            loading={feed.loading}
-            error={feed.failed ? 'Could not load recommendations.' : undefined}
-            onSelectFruit={({ id }) => {
-              const item = feed.data?.items.find(({ fruit }) => fruit.id === id);
-              if (item) setView({ type: 'product', item });
-            }}
-            openExplanations={openMarketplaceExplanations}
-            onObsolete={feed.reload}
-          />
-        )}
-        {view.type === 'navigation' && (destination === 'marketplace' || destination === 'trends') && (
-          <MarketplaceTrends
-            trends={trends.data ?? null}
-            view={destination === 'trends' ? 'full' : 'strip'}
-            loading={trends.loading}
-            error={trends.failed ? 'Could not load trends.' : undefined}
-            onRefresh={refreshTrends}
-            onViewTrends={() => navigate('trends')}
-          />
+        {view.type === 'saved-order' && (
+          <section className="market-order-panel">
+            <MarketOrderDetails order={view.order} locale={locale} />
+            <button type="button" onClick={() => navigate(destination)}>{copy[destination === 'settings' ? 'settings' : 'orders']}</button>
+          </section>
         )}
         {view.type === 'navigation' && destination === 'orders' && (
-          <MarketOrders
-            orders={orders.data?.orders ?? []}
-            loading={orders.loading}
-            error={orders.failed ? 'Could not load order history.' : undefined}
+          <MarketOrderHistory
+            orders={orders.data?.orders ?? []} loading={orders.loading}
+            error={orders.failed ? copy.loadError : undefined} locale={locale}
             onRetry={orders.reload}
-            onSelectOrder={showOrder}
+            onSelectOrder={(order) => setView({ type: 'saved-order', order })}
+          />
+        )}
+        {view.type === 'navigation' && destination === 'settings' && (
+          <MarketSettings
+            shop={shop} orders={orders.data?.orders ?? []} run={today.data?.run ?? null}
+            locale={locale} onLocaleChange={setLocale}
+            onSelectOrder={(order) => setView({ type: 'saved-order', order })}
           />
         )}
         {cartOpen && (
           <MarketCart
+            locale={locale}
             items={cart.items}
-            onQuantityChange={(id, quantity) => {
-              const previous = cart.items.find(({ listing_id }) => listing_id === id);
-              if (previous && previous.qty_kg !== quantity) attempts.invalidate(shop.id);
-              cart.setQuantity(id, quantity);
+            onQuantityChange={(id, quantity, slug) => {
+              attempts.invalidate(shop.id);
+              cart.setQuantity(id, quantity, slug);
             }}
-            onRemove={(id) => { attempts.invalidate(shop.id); cart.remove(id); }}
+            onRemove={(id, slug) => { attempts.invalidate(shop.id); cart.remove(id, slug); }}
             onCheckout={() => { setCartOpen(false); setView({ type: 'checkout' }); }}
             onClose={() => setCartOpen(false)}
           />
