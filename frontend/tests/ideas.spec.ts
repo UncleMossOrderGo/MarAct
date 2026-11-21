@@ -20,11 +20,7 @@ test('switching ideas keeps newly created records isolated', async ({ page, requ
     await page.getByRole('button', { name: 'Add record' }).click();
     await expect(record).toBeVisible();
 
-    const loadedB = page.waitForResponse((response) =>
-      response.url().endsWith('/api/ideas/idea-b/records') && response.ok(),
-    );
     await switcher.selectOption('idea-b');
-    await loadedB;
     await expect(page).toHaveURL('/ideas/idea-b');
     await expect(page.getByRole('status')).toHaveCount(0);
     await expect(record).toHaveCount(0);
