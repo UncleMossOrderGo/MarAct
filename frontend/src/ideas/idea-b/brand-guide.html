@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MarAct — คู่มือแบรนด์และ UI</title>
+  <link rel="stylesheet" href="brand-tokens.css">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--maract-background); color: var(--maract-text); font: 1rem/1.6 var(--maract-font); }
+    main { max-width: 74rem; margin: auto; padding: 1rem clamp(1rem, 4vw, 2rem) 3rem; }
+    a { color: var(--maract-primary); }
+    :focus-visible { outline: 2px solid var(--maract-focus); outline-offset: 3px; }
+    h1, h2, h3, p { margin: 0; }
+    h1 { font-size: clamp(2rem, 5vw, 3.5rem); line-height: 1.18; }
+    h2 { margin-bottom: .4rem; font-size: 1.4rem; }
+    h3 { margin-bottom: .25rem; font-size: 1rem; }
+    p + p { margin-top: .55rem; }
+    .muted { color: var(--maract-muted); }
+    .masthead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; padding-block: .65rem; }
+    .wordmark { font-size: 1.25rem; font-weight: 800; letter-spacing: -.04em; }
+    .masthead nav { display: flex; flex-wrap: wrap; gap: .25rem 1rem; }
+    .masthead a { display: inline-grid; min-height: var(--maract-target); align-items: center; font-size: .9rem; text-underline-offset: .23rem; }
+    .hero { padding: clamp(1.25rem, 4vw, 3rem); border-radius: var(--maract-card-radius); background: var(--maract-primary); color: #fff; }
+    .hero p { max-width: 57ch; margin-top: .75rem; }
+    .hero a { margin-top: 1rem; }
+    .section { margin-top: 1.25rem; padding: clamp(1rem, 3vw, 1.6rem); background: var(--maract-surface); border: 1px solid var(--maract-border); border-radius: var(--maract-card-radius); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); gap: .85rem; margin-top: 1rem; }
+    .sample { min-width: 0; padding: 1rem; border: 1px solid var(--maract-border); border-radius: var(--maract-card-radius); }
+    .palette { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 10.5rem), 1fr)); gap: .75rem; margin-top: 1rem; }
+    .swatch { margin: 0; overflow: hidden; border: 1px solid var(--maract-border); border-radius: var(--maract-card-radius); }
+    .swatch span { display: block; min-height: 4.25rem; background: var(--swatch); }
+    .swatch figcaption { padding: .7rem .8rem; font-size: .85rem; }
+    .swatch code { display: block; color: var(--maract-muted); }
+    .mark { display: inline-block; padding: .6rem 1rem; border-radius: var(--maract-control-radius); background: var(--maract-background); color: var(--maract-primary); }
+    .mark.dark { background: var(--maract-primary); color: #fff; }
+    .demo-row { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin-top: .65rem; }
+    .btn { display: inline-flex; align-items: center; min-height: var(--maract-target); padding: .42rem .85rem; border: 1px solid transparent; border-radius: var(--maract-control-radius); font-weight: 700; font-size: .9rem; text-decoration: none; }
+    .primary { background: var(--maract-primary); color: #fff; }
+    .accent { background: var(--maract-harvest); color: #142218; }
+    .secondary { border-color: var(--maract-control-border); color: var(--maract-primary); }
+    .tag { display: inline-block; padding: .25rem .7rem; border-radius: 2rem; font-size: .82rem; font-weight: 650; }
+    .success { background: var(--maract-success-surface); color: var(--maract-success-text); }
+    .attention { background: var(--maract-attention-surface); color: var(--maract-attention-text); }
+    .neutral { background: var(--maract-background); color: var(--maract-muted); border: 1px solid var(--maract-border); }
+    .numbers { font-variant-numeric: tabular-nums; font-weight: 750; }
+    .type-sample { font-size: 1.35rem; font-weight: 700; line-height: 1.3; }
+    .field { display: grid; gap: .25rem; margin-top: .65rem; }
+    .field input { min-height: var(--maract-target); width: 100%; padding: .45rem .75rem; border: 1px solid var(--maract-control-border); border-radius: var(--maract-control-radius); background: var(--maract-background); color: var(--maract-text); font: inherit; }
+    .quote-summary { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .65rem; margin-top: .7rem; padding: .7rem; background: var(--maract-success-surface); border-radius: var(--maract-control-radius); }
+    .quote-summary small, .quote-summary strong { display: block; }
+    footer { margin-top: 1.5rem; font-size: .85rem; color: var(--maract-muted); }
+  </style>
+</head>
+<body class="maract-guide">
+  <main>
+    <div class="masthead">
+      <span class="wordmark" lang="en">MarAct</span>
+      <nav aria-label="สารบัญ">
+        <a href="#voice">ตัวตนและภาษา</a>
+        <a href="#palette">สีและตัวอักษร</a>
+        <a href="#components">คอมโพเนนต์</a>
+      </nav>
+    </div>
+
+    <header class="hero">
+      <h1>คู่มือแบรนด์และ UI</h1>
+      <p>สำหรับหน้าจัดซื้อผลไม้ของ MarAct Idea B ผู้ประกอบการควรอ่านต้นทุนรวม วันส่ง และข้อจำกัดของข้อมูลได้ในจังหวะเดียว</p>
+      <a class="btn accent" href="brand-tokens.css" target="_blank" rel="noopener">เปิดไฟล์ CSS tokens</a>
+    </header>
+
+    <section class="section" id="voice">
+      <h2>ตัวตนและภาษา</h2>
+      <div class="grid">
+        <div class="sample">
+          <h3>สำหรับผู้ซื้อธุรกิจ</h3>
+          <p>ใช้กับร้านอาหาร คาเฟ่ และผู้แปรรูปที่ต้องเทียบฟาร์มตามงบ ปริมาณ และกำหนดส่ง</p>
+        </div>
+        <div class="sample">
+          <h3>ภาษาของหน้าจอ</h3>
+          <p>เริ่มด้วยภาษาไทย ใช้หน่วย กก. และบาท ภาษาอังกฤษใช้ <span lang="en">kg</span> และ <span lang="en">THB</span> ใช้คำกริยาที่บอกผลของการกด เช่น “เปรียบเทียบฟาร์ม”</p>
+        </div>
+        <div class="sample">
+          <h3>ข้อเท็จจริงที่ผู้ซื้อใช้ได้</h3>
+          <p>ระบุเมื่อเป็นข้อมูลเดโม ใช้ “ยังไม่ทราบค่าขนส่ง” เมื่อค่าใช้จ่ายยังไม่ครบ และระบุช่วงเวลาของสัญญาณตลาด</p>
+        </div>
+      </div>
+      <div class="demo-row">
+        <span class="wordmark mark" lang="en">MarAct</span>
+        <span class="wordmark mark dark" lang="en">MarAct</span>
+      </div>
+      <p class="muted">ใช้ชื่อ MarAct เป็นตัวอักษรบนพื้นเรียบสีอ่อนหรือสีเข้ม เพื่อให้อ่านได้ทั้งสองแบบ</p>
+    </section>
+
+    <section class="section" id="palette">
+      <h2>สีและตัวอักษร</h2>
+      <p class="muted">โทนเขียวสวนผลไม้ พื้นอ่อน และอำพันสำหรับจุดสำคัญ อิงจากคู่มือสวนสด</p>
+      <div class="palette">
+        <figure class="swatch"><span style="--swatch: var(--maract-orchard)"></span><figcaption><strong>เขียวสวน</strong><code>#1B4332</code>ปุ่มหลักและหัวเรื่อง</figcaption></figure>
+        <figure class="swatch"><span style="--swatch: var(--maract-leaf)"></span><figcaption><strong>เขียวใบไม้</strong><code>#2E8B57</code>เส้นโฟกัสและสถานะ</figcaption></figure>
+        <figure class="swatch"><span style="--swatch: var(--maract-harvest)"></span><figcaption><strong>อำพัน</strong><code>#F59E0B</code>ทางเข้าหลักและจุดที่ควรสังเกต</figcaption></figure>
+        <figure class="swatch"><span style="--swatch: var(--maract-mist)"></span><figcaption><strong>ขาวหมอก</strong><code>#F8FAF8</code>พื้นหลังหน้าจอ</figcaption></figure>
+        <figure class="swatch"><span style="--swatch: var(--maract-soil)"></span><figcaption><strong>เทาเข้ม</strong><code>#1F2937</code>ข้อความหลัก</figcaption></figure>
+      </div>
+      <div class="grid">
+        <div class="sample">
+          <h3 lang="en">Noto Sans Thai</h3>
+          <p class="type-sample">เปรียบเทียบฟาร์มก่อนสั่งซื้อ</p>
+          <p class="muted">ใช้กับเนื้อหาภาษาไทย เว้นระยะบรรทัดให้สระและวรรณยุกต์อ่านได้ชัด</p>
+        </div>
+        <div class="sample">
+          <h3 lang="en">Plus Jakarta Sans</h3>
+          <p class="type-sample numbers" lang="en">฿4,360.00 · 100 kg</p>
+          <p class="muted">ใช้กับภาษาอังกฤษและตัวเลข จัดหลักตัวเลขให้เทียบราคาได้ง่าย</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="components">
+      <h2>คอมโพเนนต์</h2>
+      <div class="grid">
+        <div class="sample">
+          <h3>ปุ่ม</h3>
+          <p class="muted">ปุ่มหลักใช้สีเขียว ปุ่มรองใช้พื้นอ่อน ขนาดพื้นที่กดขั้นต่ำ 44 พิกเซล</p>
+          <div class="demo-row"><span class="btn primary">เปรียบเทียบฟาร์ม</span><span class="btn secondary">ดูแหล่งข้อมูล</span></div>
+        </div>
+        <div class="sample">
+          <h3>ป้ายสถานะ</h3>
+          <p class="muted">ให้ข้อความบอกความหมายชัด ใช้สีช่วยแยกสถานะ</p>
+          <div class="demo-row"><span class="tag success">ฟาร์มที่เคยซื้อ</span><span class="tag attention">ราคายังไม่ครบ</span><span class="tag neutral">ข้อมูลเดโม</span></div>
+        </div>
+        <div class="sample">
+          <h3>ช่องกรอก</h3>
+          <p class="muted">วางชื่อและหน่วยเหนือช่อง พร้อมกรอบโฟกัสเมื่อใช้คีย์บอร์ด</p>
+          <label class="field">ปริมาณ (กก.) <input type="number" min="1" value="100"></label>
+        </div>
+        <div class="sample">
+          <h3>การ์ดเปรียบเทียบ</h3>
+          <p class="muted">ยกยอดรวมและวันส่งขึ้นก่อน ใช้รัศมีการ์ด 16 พิกเซล ช่องกรอกและปุ่ม 12 พิกเซล</p>
+          <div class="quote-summary">
+            <div><small>ยอดรวมโดยประมาณ</small><strong class="numbers">฿4,360.00</strong></div>
+            <div><small>ส่งได้เร็วสุด</small><strong>24 พ.ย. 2569</strong></div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <footer>MarAct Idea B · ตัวอย่างราคาและวันส่งใช้ประกอบคู่มือ</footer>
+  </main>
+</body>
+</html>

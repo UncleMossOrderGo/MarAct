@@ -1,0 +1,338 @@
+@import "./brand-tokens.css";
+
+body:has(.buyer-intelligence) {
+  background: var(--maract-background);
+}
+
+#root:has(.buyer-intelligence) > header {
+  padding-inline: max(1rem, calc((100% - 74rem) / 2));
+  border-color: #e0e6db;
+  color: var(--maract-primary);
+}
+
+#root:has(.buyer-intelligence) > header strong {
+  font-size: 1.2rem;
+  letter-spacing: -.04em;
+}
+
+main:has(> .buyer-intelligence) {
+  max-width: 74rem;
+  margin-block: 1.5rem 3rem;
+}
+
+.buyer-intelligence {
+  --forest: var(--maract-primary);
+  --ink: var(--maract-text);
+  --muted: var(--maract-muted);
+  --line: var(--maract-border);
+  --accent: var(--maract-harvest);
+  --paper: var(--maract-background);
+  display: grid;
+  gap: 1.25rem;
+  color: var(--ink);
+  font-family: var(--maract-font);
+  line-height: 1.5;
+}
+
+.buyer-intelligence :is(h1, h2, h3, h4, p) { margin-block: 0; }
+.buyer-intelligence a { color: inherit; }
+.buyer-intelligence :focus-visible { outline: 2px solid var(--maract-focus); outline-offset: 3px; }
+.buyer-intelligence :is(button:not(:disabled), summary) { cursor: pointer; }
+.buyer-intelligence [role="alert"] { margin-top: .8rem; }
+
+.buyer-intelligence__hero {
+  isolation: isolate;
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.25rem;
+  background: #112c20;
+  color: #f8fbf4;
+}
+
+.buyer-intelligence__hero-image,
+.buyer-intelligence__hero::after {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+}
+
+.buyer-intelligence__hero-image {
+  inset-inline-start: auto;
+  width: 64%;
+  height: 100%;
+  object-fit: cover;
+  object-position: right 61%;
+}
+
+.buyer-intelligence__hero::after {
+  content: "";
+  background: linear-gradient(90deg, #112c20 31%, #112c20e8 44%, #112c204d 64%, transparent 81%);
+}
+
+.buyer-intelligence__hero-content {
+  padding: clamp(1.5rem, 4vw, 2.75rem);
+  max-width: 33rem;
+}
+
+.buyer-intelligence__demo,
+.buyer-intelligence__badge {
+  display: inline-block;
+  width: fit-content;
+  padding: .25rem .6rem;
+  border-radius: 2rem;
+  background: var(--maract-success-surface);
+  color: var(--maract-success-text);
+  font-size: .78rem;
+  font-weight: 650;
+}
+
+.buyer-intelligence__demo {
+  background: #ffffff18;
+  border: 1px solid #ffffff42;
+  color: #e8f0dc;
+  letter-spacing: .025em;
+}
+
+.buyer-intelligence__hero h1 {
+  margin-top: .6rem;
+  font-size: clamp(2.25rem, 5vw, 4rem);
+  font-weight: 680;
+  letter-spacing: -.06em;
+  line-height: .99;
+}
+
+.buyer-intelligence__hero p { margin-top: 1rem; max-width: 42ch; color: #e0e9db; }
+.buyer-intelligence__hero nav { display: flex; flex-wrap: wrap; gap: .5rem 1rem; align-items: center; margin-top: 1.35rem; }
+.buyer-intelligence__hero a {
+  box-sizing: border-box;
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  padding: .55rem .75rem;
+  border-radius: .55rem;
+  font-size: .88rem;
+  font-weight: 650;
+  text-decoration: none;
+}
+.buyer-intelligence__hero a:first-child { background: var(--accent); color: #142218; }
+.buyer-intelligence__hero a:hover { box-shadow: 0 0 0 1px #e4edce; }
+.buyer-intelligence__hero a span { margin-inline-start: .25rem; }
+.buyer-intelligence__hero :focus-visible { outline-color: var(--accent); }
+
+.buyer-intelligence__workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1.42fr) minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.buyer-intelligence__panel,
+.buyer-intelligence__records section {
+  min-width: 0;
+  padding: clamp(1rem, 2.3vw, 1.65rem);
+  border-color: var(--line);
+  border-radius: var(--maract-card-radius);
+  background: var(--maract-surface);
+  box-shadow: 0 3px 10px #193d2b08;
+}
+
+.buyer-intelligence__panel-heading { margin-bottom: 1.15rem; }
+.buyer-intelligence__panel-heading h2 {
+  margin: 0;
+  font-size: clamp(1.25rem, 2.3vw, 1.55rem);
+  letter-spacing: -.035em;
+  line-height: 1.2;
+}
+
+.buyer-intelligence__panel-heading p,
+.buyer-intelligence__hint,
+.buyer-intelligence__period,
+.buyer-intelligence__reason {
+  margin-top: .35rem;
+  font-size: .88rem;
+  color: var(--muted);
+}
+
+.buyer-intelligence__form { display: grid; gap: 1rem; }
+.buyer-intelligence__form button { justify-self: start; }
+.buyer-intelligence__priorities { border: 1px solid var(--line); border-radius: .65rem; }
+.buyer-intelligence__priorities summary { padding: .7rem .85rem; font-size: .9rem; font-weight: 650; }
+.buyer-intelligence__form fieldset { min-width: 0; margin: 0; padding: 0 .85rem .85rem; border: 0; }
+.buyer-intelligence__form fieldset .buyer-intelligence__hint { margin-bottom: .65rem; }
+.buyer-intelligence__form fieldset [role="alert"] { margin: 0 0 .65rem; }
+.buyer-intelligence__inputs { display: grid; gap: .75rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.buyer-intelligence__inputs label { display: grid; min-width: 0; gap: .3rem; font-size: .88rem; font-weight: 600; }
+.buyer-intelligence__inputs :is(input, select),
+.buyer-intelligence__brief textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: var(--maract-target);
+  border: 1px solid var(--maract-control-border);
+  border-radius: var(--maract-control-radius);
+  color: var(--ink);
+  background: var(--paper);
+  font-weight: 400;
+}
+
+.buyer-intelligence__form input[type="date"] { display: block; }
+.buyer-intelligence__date-preview { display: block; margin-top: .15rem; color: var(--muted); font-size: .78rem; }
+.buyer-intelligence button {
+  min-height: var(--maract-target);
+  padding-inline: .8rem;
+  border-radius: var(--maract-control-radius);
+  border-color: #c4d3c4;
+  background: #f0f5eb;
+  color: var(--forest);
+  font-size: .9rem;
+  font-weight: 650;
+}
+.buyer-intelligence button:not(:disabled):hover { background: #e5efdf; }
+.buyer-intelligence button.buyer-intelligence__primary { background: var(--forest); border-color: var(--forest); color: white; }
+.buyer-intelligence button.buyer-intelligence__primary:not(:disabled):hover { background: var(--maract-primary-hover); }
+.buyer-intelligence__primary span { margin-inline-start: .4rem; }
+
+.buyer-intelligence__brief {
+  margin-bottom: 1rem;
+  padding-inline: .8rem;
+  border: 1px solid #d8e4d5;
+  border-radius: .65rem;
+  background: #f1f6ed;
+}
+.buyer-intelligence__brief[open] { padding-bottom: .8rem; }
+.buyer-intelligence__brief summary,
+.buyer-intelligence__sources summary { padding-block: .7rem; font-size: .9rem; font-weight: 650; }
+.buyer-intelligence__brief form { gap: .5rem; }
+.buyer-intelligence__brief textarea { padding: .55rem .7rem; font: inherit; resize: vertical; }
+.buyer-intelligence__brief p { margin-top: .55rem; }
+.buyer-intelligence__explain { margin-top: .8rem; }
+
+.buyer-intelligence__results { margin-top: 1.35rem; padding-top: 1.25rem; border-top: 1px solid var(--line); }
+.buyer-intelligence__result-heading,
+.buyer-intelligence__farm-title { display: flex; gap: .5rem; flex-wrap: wrap; align-items: baseline; justify-content: space-between; }
+.buyer-intelligence__results > p { margin-top: .4rem; color: var(--muted); }
+.buyer-intelligence__results .buyer-intelligence__stale {
+  margin-top: .75rem;
+  padding: .55rem .7rem;
+  border-radius: .5rem;
+  background: var(--maract-attention-surface);
+  color: var(--maract-attention-text);
+  font-size: .9rem;
+}
+.buyer-intelligence__results > button { margin-top: .75rem; }
+.buyer-intelligence__farm { margin-top: .8rem; padding: 1rem; border: 1px solid var(--line); border-radius: var(--maract-card-radius); }
+.buyer-intelligence__farm-title h4 { font-size: 1.06rem; }
+.buyer-intelligence__farm-title .buyer-intelligence__badge { margin-top: .25rem; }
+.buyer-intelligence__match-score { color: var(--muted); font-size: .83rem; font-weight: 600; }
+.buyer-intelligence__landed {
+  display: grid;
+  gap: .5rem 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: .8rem;
+  padding: .7rem .85rem;
+  border-radius: .55rem;
+  background: #f1f5ed;
+}
+.buyer-intelligence__landed span { display: block; font-size: .78rem; color: var(--muted); }
+.buyer-intelligence__landed strong { display: block; color: var(--forest); font-size: 1.08rem; font-variant-numeric: tabular-nums; }
+.buyer-intelligence__landed[data-incomplete="true"] { background: var(--maract-attention-surface); }
+.buyer-intelligence__landed[data-incomplete="true"] strong { color: var(--maract-attention-text); }
+.buyer-intelligence__quote { display: grid; gap: .5rem .75rem; grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr)); }
+.buyer-intelligence__quote dt { color: var(--muted); font-size: .78rem; }
+.buyer-intelligence__quote dd { margin: .1rem 0 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+.buyer-intelligence__farm p + p { margin-top: .45rem; font-size: .88rem; }
+.buyer-intelligence__farm small { display: block; margin-top: .6rem; color: var(--muted); }
+
+.buyer-intelligence__market-summary {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: .75rem 1rem;
+  align-items: center;
+  padding: .85rem 1rem;
+  border-radius: .7rem;
+  background: var(--maract-success-surface);
+  color: var(--forest);
+}
+.buyer-intelligence__market-summary p { color: var(--muted); font-size: .78rem; }
+.buyer-intelligence__trend-title { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .55rem; margin-top: .22rem; }
+.buyer-intelligence__trend-title > strong { font-size: 1.17rem; }
+.buyer-intelligence__trend-score strong { display: block; font-size: 1.45rem; line-height: 1.1; }
+.buyer-intelligence__trend-score span { display: block; margin-top: .18rem; color: var(--muted); font-size: .72rem; line-height: 1.18; }
+.buyer-intelligence__period { margin-block: .65rem; }
+.buyer-intelligence__table { overflow-x: auto; }
+.buyer-intelligence__table table { width: 100%; border-collapse: collapse; font-size: .84rem; }
+.buyer-intelligence__table :is(th, td) {
+  padding: .55rem .35rem;
+  border-bottom: 1px solid var(--line);
+  text-align: start;
+  font-variant-numeric: tabular-nums;
+}
+.buyer-intelligence__table thead th { color: var(--muted); font-size: .77rem; }
+.buyer-intelligence__positive-change { color: var(--maract-success-text); font-weight: 700; }
+.buyer-intelligence__considerations { margin-top: 1rem; padding-inline-start: .75rem; border-inline-start: 3px solid var(--maract-leaf); }
+.buyer-intelligence__considerations h3 { font-size: .95rem; }
+.buyer-intelligence__considerations p,
+.buyer-intelligence__sources p { margin-top: .42rem; color: var(--muted); font-size: .85rem; }
+.buyer-intelligence__sources { margin-top: .95rem; }
+
+.buyer-intelligence__records section { box-shadow: none; }
+.buyer-intelligence__records h1 { font-size: 1.15rem; }
+.buyer-intelligence__records form { margin-top: .55rem; }
+.buyer-intelligence__records .form-row { align-items: center; }
+
+.buyer-intelligence[lang="th"] :is(h1, h2) { letter-spacing: normal; line-height: 1.25; }
+.buyer-intelligence__hero-top {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem 1rem;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 26rem;
+}
+.buyer-intelligence__language {
+  display: inline-flex;
+  gap: .25rem;
+  padding: .25rem;
+  border: 1px solid #ffffff42;
+  border-radius: .75rem;
+  background: #112c20;
+}
+.buyer-intelligence .buyer-intelligence__language button {
+  min-height: 2.75rem;
+  padding: .25rem .65rem;
+  background: transparent;
+  border-color: transparent;
+  color: #f8fbf4;
+}
+.buyer-intelligence .buyer-intelligence__language button[aria-pressed="true"],
+.buyer-intelligence .buyer-intelligence__language button:hover {
+  background: var(--accent);
+  color: var(--forest);
+}
+
+@media (min-width: 64rem) {
+  .buyer-intelligence__form fieldset .buyer-intelligence__inputs { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+@media (max-width: 51rem) {
+  .buyer-intelligence__workspace { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 34rem) {
+  main:has(> .buyer-intelligence) { margin-top: .85rem; }
+  .buyer-intelligence { gap: .75rem; }
+  .buyer-intelligence__workspace { gap: .75rem; }
+  .buyer-intelligence__hero-image {
+    inset: 0;
+    width: 100%;
+    object-position: right 57%;
+  }
+  .buyer-intelligence__hero::after {
+    background: linear-gradient(90deg, #112c20 4%, #112c20eb 45%, #112c207d 100%);
+  }
+  .buyer-intelligence__hero nav { gap: .5rem; }
+  .buyer-intelligence__hero a { padding: .5rem; }
+  .buyer-intelligence__inputs :is(input, select) { font-size: 1rem; }
+  .buyer-intelligence__form > .buyer-intelligence__primary { justify-self: stretch; }
+}
