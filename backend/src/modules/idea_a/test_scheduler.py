@@ -1,5 +1,5 @@
 import logging
-from datetime import UTC, datetime, time
+from datetime import UTC, datetime, time, timedelta
 from threading import Event, Thread, current_thread
 
 import pytest
@@ -12,14 +12,14 @@ from backend.src.modules.idea_a.scheduler import (
 )
 
 
-def test_check_runs_in_bangkok_at_15_30_once_per_day() -> None:
+def test_check_runs_in_bangkok_at_06_00_once_per_day() -> None:
     calls: list[datetime] = []
     check = DailyCheck(calls.append)
-    first = datetime(2026, 11, 21, 8, 30, tzinfo=UTC)
-    second = datetime(2026, 11, 22, 8, 30, tzinfo=UTC)
+    first = datetime(2026, 11, 20, 23, 0, tzinfo=UTC)
+    second = datetime(2026, 11, 21, 23, 0, tzinfo=UTC)
 
-    check.tick(first.replace(minute=29, second=59))
-    check.tick(first.replace(minute=31))
+    check.tick(first - timedelta(seconds=1))
+    check.tick(first + timedelta(minutes=1))
     assert calls == []
 
     check.tick(first)
@@ -32,8 +32,8 @@ def test_check_runs_in_bangkok_at_15_30_once_per_day() -> None:
 
 def test_failed_check_is_logged_and_next_day_still_runs(caplog: LogCaptureFixture) -> None:
     calls: list[datetime] = []
-    first = datetime(2026, 11, 21, 8, 30, tzinfo=UTC)
-    second = datetime(2026, 11, 22, 8, 30, tzinfo=UTC)
+    first = datetime(2026, 11, 20, 23, 0, tzinfo=UTC)
+    second = datetime(2026, 11, 21, 23, 0, tzinfo=UTC)
 
     def run(now: datetime) -> None:
         calls.append(now)
@@ -59,7 +59,7 @@ def test_failed_check_is_logged_and_next_day_still_runs(caplog: LogCaptureFixtur
 def test_worker_uses_injected_clock_and_joins_on_exit() -> None:
     fired = Event()
     calls: list[tuple[datetime, Thread]] = []
-    scheduled_time = datetime(2026, 11, 21, 8, 30, tzinfo=UTC)
+    scheduled_time = datetime(2026, 11, 20, 23, 0, tzinfo=UTC)
 
     def run(now: datetime) -> None:
         calls.append((now, current_thread()))
@@ -77,7 +77,7 @@ def test_worker_uses_injected_clock_and_joins_on_exit() -> None:
 def test_configured_bangkok_time_is_used() -> None:
     calls: list[datetime] = []
     check = DailyCheck(calls.append, at=parse_schedule_time("09:05"))
-    check.tick(datetime(2026, 11, 21, 8, 30, tzinfo=UTC))
+    check.tick(datetime(2026, 11, 20, 23, 0, tzinfo=UTC))
     scheduled = datetime(2026, 11, 21, 2, 5, tzinfo=UTC)
     check.tick(scheduled)
     check.tick(scheduled.replace(second=59))

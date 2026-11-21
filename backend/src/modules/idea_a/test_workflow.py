@@ -155,5 +155,5 @@ def test_scheduled_run_matches_manual_plan(workflow):
     _, service, _, _ = workflow
     manual = prepare(workflow)
     scheduled = []
-    DailyCheck(lambda now: scheduled.append(service.run(now).plan)).tick(NOW)
+    DailyCheck(lambda now: scheduled.append(service.run(now).plan), at=NOW.time()).tick(NOW)
     assert scheduled == [manual]

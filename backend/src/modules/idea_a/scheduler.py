@@ -6,7 +6,7 @@ from threading import Event, Thread
 from zoneinfo import ZoneInfo
 
 BANGKOK = ZoneInfo("Asia/Bangkok")
-CHECK_TIME = time(15, 30)
+CHECK_TIME = time(6)
 logger = logging.getLogger(__name__)
 
 
