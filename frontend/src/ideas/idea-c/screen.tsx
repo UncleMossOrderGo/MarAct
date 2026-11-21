@@ -1,10 +1,7 @@
 import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import "./style.css";
 
-const orchardPhoto = new URL(
-  "./assets/cover-suan-lung-som.webp",
-  import.meta.url,
-).href;
 const mangoPhoto = new URL(
   "./assets/product-mango-namdokmai-a.webp",
   import.meta.url,
@@ -16,7 +13,7 @@ type Lot = {
   name: string;
   grade: string | null;
   uses: string;
-  kg: string | null;
+  kg: number | string | null;
   unit: string;
   price: number;
   minimum: number;
@@ -45,7 +42,70 @@ type Order = Offer & {
   expires: string;
   events: { action: string; note: string; at: string }[];
 };
-type Cart = { lot: Lot; units: number; requested_kg: number | null }[];
+type CartLot = Pick<
+  Lot,
+  | "id"
+  | "farm"
+  | "name"
+  | "unit"
+  | "kg"
+  | "minimum"
+  | "stock"
+  | "price"
+  | "freight"
+>;
+type Cart = { lot: CartLot; units: number; requested_kg: number | null }[];
+function minimumUnits({ lot, requested_kg }: Cart[number]) {
+  return Math.max(
+    lot.minimum,
+    requested_kg && lot.kg ? Math.ceil(requested_kg / Number(lot.kg)) : 0,
+  );
+}
+const cartKey = "maract.idea-c.cart.v1";
+type SavedCart = {
+  cart: Cart;
+  later: string[];
+  postcode: string;
+  arrival: string;
+};
+
+function readCart(): SavedCart {
+  try {
+    const saved = JSON.parse(
+      sessionStorage.getItem(cartKey) ?? "null",
+    ) as SavedCart | null;
+    if (
+      saved &&
+      Array.isArray(saved.cart) &&
+      saved.cart.every(
+        (i) =>
+          i?.lot &&
+          [i.lot.id, i.lot.name, i.lot.farm, i.lot.unit].every(
+            (v) => typeof v === "string",
+          ) &&
+          [
+            i.units,
+            i.lot.price,
+            i.lot.freight,
+            i.lot.minimum,
+            i.lot.stock,
+          ].every(Number.isFinite) &&
+          (i.requested_kg === null || Number.isFinite(i.requested_kg)) &&
+          (i.lot.kg === null ||
+            typeof i.lot.kg === "string" ||
+            Number.isFinite(i.lot.kg)),
+      ) &&
+      Array.isArray(saved.later) &&
+      saved.later.every((id) => typeof id === "string") &&
+      typeof saved.postcode === "string" &&
+      typeof saved.arrival === "string"
+    )
+      return saved;
+  } catch {
+    /* Storage can be unavailable in private browsing. */
+  }
+  return { cart: [], later: [], postcode: "", arrival: "" };
+}
 const labels: Record<string, string> = {
   pending: "รอสวนยืนยัน",
   expired: "หมดเวลายืนยัน",
@@ -74,6 +134,12 @@ const labels: Record<string, string> = {
   refund: "การคืนเงิน",
 };
 const money = (n: number) => n.toLocaleString("th-TH") + " บาท";
+const deliveryDate = new Intl.DateTimeFormat("th-TH", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  timeZone: "UTC",
+});
 async function api<T>(path: string, body?: unknown): Promise<T> {
   const res = await fetch(
     "/api/ideas/idea-c/" + path,
@@ -95,11 +161,33 @@ async function api<T>(path: string, body?: unknown): Promise<T> {
 }
 
 export function IdeaC() {
+  const [saved] = useState(readCart);
+  const route = useLocation();
+  const navigate = useNavigate();
+  const tab =
+    route.hash === "#cart"
+      ? "cart"
+      : route.hash === "#orders"
+        ? "orders"
+        : "market";
+  function setTab(next: string) {
+    navigate({
+      pathname: route.pathname,
+      search: route.search,
+      hash: next === "market" ? "" : "#" + next,
+    });
+    window.scrollTo(0, 0);
+  }
   const [params] = useState(() => new URLSearchParams(location.search));
   const [q, setQ] = useState(params.get("q") ?? "");
   const [kg, setKg] = useState(params.get("kg") ?? "");
-  const [postcode, setPostcode] = useState(params.get("postcode") ?? "");
-  const [arrival, setArrival] = useState(params.get("arrival") ?? "");
+  const resumingCart = tab === "cart" && saved.cart.length > 0;
+  const [postcode, setPostcode] = useState(
+    resumingCart ? saved.postcode : (params.get("postcode") ?? saved.postcode),
+  );
+  const [arrival, setArrival] = useState(
+    resumingCart ? saved.arrival : (params.get("arrival") ?? saved.arrival),
+  );
   const [preference, setPreference] = useState(params.get("preference") ?? "");
   const [sort, setSort] = useState(
     ["cost", "date"].includes(params.get("sort") ?? "")
@@ -107,9 +195,10 @@ export function IdeaC() {
       : "match",
   );
   const [lots, setLots] = useState<Lot[]>([]);
-  const [tab, setTab] = useState("market");
-  const [cart, setCart] = useState<Cart>([]);
-  const [later, setLater] = useState<string[]>([]);
+  const [cart, setCart] = useState<Cart>(saved.cart);
+  const [later, setLater] = useState<string[]>(saved.later);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [checkoutFarm, setCheckoutFarm] = useState("");
   const [buyer, setBuyer] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
@@ -128,15 +217,31 @@ export function IdeaC() {
   const [revision, refresh] = useState(0);
   const [notes, setNotes] = useState<Record<string, string>>({});
   useEffect(() => {
+    try {
+      if (cart.length)
+        sessionStorage.setItem(
+          cartKey,
+          JSON.stringify({ cart, later, postcode, arrival }),
+        );
+      else sessionStorage.removeItem(cartKey);
+    } catch {
+      /* The in-memory basket still works when storage is unavailable. */
+    }
+  }, [cart, later, postcode, arrival]);
+  const query = new URLSearchParams({ q, sort, preference });
+  if (kg) query.set("kg", kg);
+  if (postcode.length === 5) query.set("postcode", postcode);
+  if (arrival) query.set("arrival", arrival);
+  const queryString = query.toString();
+  const [loadedQuery, setLoadedQuery] = useState("");
+  const partialPostcode = postcode.length > 0 && postcode.length !== 5;
+  useEffect(() => {
     let current = true;
-    const query = new URLSearchParams({ q, sort, preference });
-    if (kg) query.set("kg", kg);
-    if (postcode.length === 5) query.set("postcode", postcode);
-    if (arrival) query.set("arrival", arrival);
-    api<Lot[]>("lots?" + query)
+    api<Lot[]>("lots?" + queryString)
       .then((data) => {
         if (current) {
           setLots(data);
+          setLoadedQuery(queryString);
           setCatalogError("");
         }
       })
@@ -149,7 +254,7 @@ export function IdeaC() {
     return () => {
       current = false;
     };
-  }, [q, kg, postcode, arrival, sort, preference, revision]);
+  }, [queryString, revision]);
   async function loadOrders() {
     const data = await api<{ buyer: string; orders: Order[] }>("orders");
     setBuyer(data.buyer);
@@ -171,10 +276,18 @@ export function IdeaC() {
   }
   function edit(next: Cart) {
     setCart(next);
+    setLater((ids) => ids.filter((id) => next.some((i) => i.lot.id === id)));
     setReview(null);
   }
   function add(lot: Lot) {
     const found = cart.find((i) => i.lot.id === lot.id);
+    if (
+      loadedQuery !== queryString ||
+      partialPostcode ||
+      lot.misses.length ||
+      (found?.units ?? 0) + lot.units > lot.stock
+    )
+      return;
     edit(
       found
         ? cart.map((i) =>
@@ -216,6 +329,49 @@ export function IdeaC() {
         />
       </label>
     </div>
+  );
+  const farmGroups = [...new Set(cart.map((i) => i.lot.farm))].map((farm) => {
+    const group = cart.filter((i) => i.lot.farm === farm);
+    const selected = group.filter((i) => !later.includes(i.lot.id));
+    const freight = Math.max(0, ...selected.map((i) => i.lot.freight));
+    const total = selected.reduce(
+      (sum, i) => sum + i.units * i.lot.price,
+      freight,
+    );
+    return { farm, group, selected, total };
+  });
+  const accountForm = (
+    <section className="shop-account">
+      <h2>บัญชีผู้ประกอบการ</h2>
+      <p className="market-hint">ใช้ครั้งแรก เลือก “สร้างบัญชีร้าน”</p>
+      <label>
+        ชื่อร้าน
+        <input value={name} onChange={(e) => setName(e.target.value)} />
+      </label>
+      <label>
+        รหัสผ่าน (อย่างน้อย 8 ตัว)
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+      </label>
+      {[false, true].map((register) => (
+        <button
+          key={String(register)}
+          disabled={busy || !name || password.length < 8}
+          onClick={() =>
+            void run(async () => {
+              await api("session", { name, password, register });
+              setPassword("");
+              await loadOrders();
+            })
+          }
+        >
+          {register ? "สร้างบัญชีร้าน" : "เข้าสู่ระบบ"}
+        </button>
+      ))}
+    </section>
   );
   return (
     <fieldset className="market" lang="th" disabled={busy}>
@@ -278,40 +434,32 @@ export function IdeaC() {
             />
           </section>
           <div className="catalog-layout" id="market-catalog">
-            <section className="market-filters" aria-label="เงื่อนไขการเลือกผลผลิต">
-              <h2>เงื่อนไขการซื้อ</h2>
-              <div className="market-fields">
-                <label>
-                  จำนวนที่ต้องการ (กก.)
-                  <input
-                    type="number"
-                    min="1"
-                    value={kg}
-                    onChange={(e) => setKg(e.target.value)}
-                  />
-                </label>
-                <label>
-                  ความสนใจของร้าน
-                  <input
-                    value={preference}
-                    onChange={(e) => setPreference(e.target.value)}
-                    placeholder="เช่น เบเกอรี"
-                  />
-                </label>
-              </div>
-              {fields}
-              <img
-                className="filter-orchard"
-                src={orchardPhoto}
-                alt=""
-                loading="lazy"
-              />
-            </section>
             <div className="catalog-results">
               <div className="market-heading">
                 <h2 id="market-results" tabIndex={-1}>
                   ล็อตผลผลิต <span className="market-count">{lots.length}</span>
                 </h2>
+                <button
+                  className="filter-toggle"
+                  type="button"
+                  aria-expanded={filtersOpen}
+                  aria-controls="market-conditions"
+                  onClick={() => setFiltersOpen(!filtersOpen)}
+                >
+                  เงื่อนไขการซื้อ
+                </button>
+                <span className="condition-summary">
+                  {[
+                    kg && kg + " กก.",
+                    postcode,
+                    arrival &&
+                      Number.isFinite(Date.parse(arrival)) &&
+                      deliveryDate.format(new Date(arrival)),
+                    preference,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ") || "ยังไม่ระบุจำนวนและปลายทาง"}
+                </span>
                 <label>
                   เรียงตาม{" "}
                   <select
@@ -324,137 +472,150 @@ export function IdeaC() {
                   </select>
                 </label>
               </div>
+              <section
+                id="market-conditions"
+                hidden={!filtersOpen}
+                className="market-filters"
+                aria-label="เงื่อนไขการเลือกผลผลิต"
+              >
+                <div className="market-fields">
+                  <label>
+                    จำนวนที่ต้องการ (กก.)
+                    <input
+                      type="number"
+                      min="1"
+                      value={kg}
+                      onChange={(e) => setKg(e.target.value)}
+                    />
+                  </label>
+                  <label>
+                    ความสนใจของร้าน
+                    <input
+                      value={preference}
+                      onChange={(e) => setPreference(e.target.value)}
+                      placeholder="เช่น เบเกอรี"
+                    />
+                  </label>
+                </div>
+                {fields}
+              </section>
               {catalogError && <p role="alert">{catalogError}</p>}
-              {!lots.length && !catalogError && (
+              {!lots.length && !catalogError && loadedQuery !== queryString && (
+                <p role="status">กำลังค้นหาล็อตผลผลิต</p>
+              )}
+              {!lots.length && !catalogError && loadedQuery === queryString && (
                 <p>ไม่มีล็อตตรงกับคำค้น ลองเปลี่ยนชนิดผลไม้หรือเมนู</p>
               )}
               <div className="market-grid">
-                {lots.map((l) => (
-                  <article key={l.id} className="market-product">
-                    <div className="market-product-head">
-                      <div className="market-product-title">
-                        <small>{l.farm}</small>
+                {lots.map((l) => {
+                  const inCart =
+                    cart.find((i) => i.lot.id === l.id)?.units ?? 0;
+                  const checking = loadedQuery !== queryString;
+                  const reason = checking
+                    ? "กำลังตรวจเงื่อนไข"
+                    : partialPostcode
+                      ? "กรอกรหัสไปรษณีย์ให้ครบ 5 หลัก"
+                      : l.misses.join(" · ") ||
+                        (inCart + l.units > l.stock
+                          ? "จำนวนรวมในตะกร้าเกินสต็อก"
+                          : "");
+                  return (
+                    <article key={l.id} className="market-product">
+                      <div className="lot-identity">
                         <h3>{l.name}</h3>
-                      </div>
-                    </div>
-                    <div className="market-product-body">
-                      <strong className="market-price">
-                        {money(l.price)} / {l.unit}
-                      </strong>
-                      <dl className="lot-terms">
-                        <div>
-                          <dt>ขั้นต่ำ</dt>
-                          <dd>
-                            {l.minimum} {l.unit}
-                          </dd>
-                        </div>
-                        <div>
-                          <dt>คงเหลือ</dt>
-                          <dd>
-                            {l.stock} {l.unit}
-                          </dd>
-                        </div>
-                        <div>
-                          <dt>รับได้ตั้งแต่</dt>
-                          <dd>
-                            <time dateTime={l.earliest}>
-                              {new Intl.DateTimeFormat("th-TH", {
-                                day: "numeric",
-                                month: "short",
-                                year: "numeric",
-                                timeZone: "UTC",
-                              }).format(new Date(l.earliest))}
-                            </time>
-                          </dd>
-                        </div>
-                        <div>
-                          <dt>ค่าส่ง</dt>
-                          <dd>{money(l.freight)}</dd>
-                        </div>
-                      </dl>
-                      <details>
-                        <summary>รายละเอียดผลผลิต</summary>
+                        <strong>{l.farm}</strong>
                         <p>{l.grade ?? "สวนยังไม่ระบุเกรด"}</p>
                         <p>{l.uses}</p>
+                      </div>
+                      <div className="lot-comparison">
+                        <strong className="market-price">
+                          {l.kg
+                            ? money(l.price / Number(l.kg)) + " / กก."
+                            : money(l.price) + " / " + l.unit}
+                        </strong>
+                        {l.unit !== "กก." && l.kg && (
+                          <p>
+                            {money(l.price)} / {l.unit} ({l.kg} กก.)
+                          </p>
+                        )}
                         <p>
-                          {l.kg ? l.kg + " กก./" + l.unit : "สวนยังไม่ระบุน้ำหนัก"}
+                          ขั้นต่ำ {l.minimum} {l.unit} · เหลือ {l.stock} {l.unit}
                         </p>
-                      </details>
-                      <p>
-                        {l.misses.join(" · ") ||
-                          (postcode.length === 5 && arrival
-                            ? "ส่งถึงตามวันที่เลือก"
-                            : "ระบุพื้นที่และวันรับเพื่อตรวจรอบส่ง")}
-                        {l.preferred ? " · ตรงความสนใจของร้าน" : ""}
-                      </p>
+                        <p>
+                          รับได้ตั้งแต่{" "}
+                          <time dateTime={l.earliest}>
+                            {deliveryDate.format(new Date(l.earliest))}
+                          </time>
+                        </p>
+                        {l.preferred && <p>ตรงความสนใจของร้าน</p>}
+                      </div>
                       <div className="market-product-foot">
                         <strong>
                           <small>
-                            รวมค่าส่ง · {l.units} {l.unit}{" "}
+                            {l.requested_kg ? "ยอดสำหรับ" : "ยอดขั้นต่ำสำหรับ"}{" "}
+                            {l.units} {l.unit}
                             {l.kg && l.unit !== "กก."
-                              ? "(" + Number(l.kg) * l.units + " กก.)"
+                              ? " (" + Number(l.kg) * l.units + " กก.)"
                               : ""}
                           </small>
                           {money(l.total)}
-                        </strong>{" "}
-                        <button
-                          disabled={
-                            l.stock < l.units ||
-                            l.requested_kg !== (kg ? Number(kg) : null) ||
-                            (l.requested_kg !== null && !l.kg)
+                        </strong>
+                        <small>รวมค่าส่ง {money(l.freight)}</small>
+                        <p
+                          className={
+                            reason ? "delivery-blocked" : "delivery-status"
                           }
-                          onClick={() => add(l)}
                         >
+                          {reason ||
+                            (postcode && arrival
+                              ? "ส่งถึงตามวันที่เลือก"
+                              : postcode
+                                ? "อยู่ในพื้นที่จัดส่ง"
+                                : "ยังไม่ระบุพื้นที่จัดส่ง")}
+                        </p>
+                        {reason && !checking && (
+                          <button
+                            type="button"
+                            className="edit-conditions"
+                            onClick={() => {
+                              setFiltersOpen(true);
+                              requestAnimationFrame(() => {
+                                const selector =
+                                  partialPostcode ||
+                                  l.misses.includes("อยู่นอกพื้นที่จัดส่ง")
+                                    ? "input[inputmode=numeric]"
+                                    : l.misses.includes("รอบส่งไม่ตรงกับวันรับ")
+                                      ? "input[type=date]"
+                                      : "input[type=number]";
+                                document
+                                  .querySelector<HTMLInputElement>(
+                                    "#market-conditions " + selector,
+                                  )
+                                  ?.focus();
+                              });
+                            }}
+                          >
+                            แก้เงื่อนไขการซื้อ
+                          </button>
+                        )}
+                        <button disabled={!!reason} onClick={() => add(l)}>
                           เพิ่มลงตะกร้า
                         </button>
-                        {cart.some((i) => i.lot.id === l.id) && (
+                        {inCart > 0 && (
                           <small role="status">
-                            ในตะกร้า {cart.find((i) => i.lot.id === l.id)?.units}{" "}
-                            {l.unit}
+                            ในตะกร้า {inCart} {l.unit}
                           </small>
                         )}
                       </div>
-                    </div>
-                  </article>
-                ))}
+                    </article>
+                  );
+                })}
               </div>
             </div>
           </div>
         </>
       )}
-      {tab !== "market" && !buyer && (
-        <section className="shop-account">
-          <h2>บัญชีผู้ประกอบการ</h2>
-          <p className="market-hint">ใช้ครั้งแรก เลือก “สร้างบัญชีร้าน”</p>
-          <label>
-            ชื่อร้าน
-            <input value={name} onChange={(e) => setName(e.target.value)} />
-          </label>
-          <label>
-            รหัสผ่าน (อย่างน้อย 8 ตัว)
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </label>
-          {[false, true].map((register) => (
-            <button
-              key={String(register)}
-              disabled={busy || !name || password.length < 8}
-              onClick={() =>
-                void run(async () => {
-                  await api("session", { name, password, register });
-                  setPassword("");
-                  await loadOrders();
-                })
-              }
-            >
-              {register ? "สร้างบัญชีร้าน" : "เข้าสู่ระบบ"}
-            </button>
-          ))}
-        </section>
-      )}
+      {tab === "orders" && !buyer && accountForm}
       {tab === "cart" && (
         <>
           <h1>ตะกร้าของร้าน</h1>
@@ -462,24 +623,24 @@ export function IdeaC() {
             <p>ตะกร้ายังว่างอยู่</p>
           ) : (
             <>
-              {fields}
-              <label>
-                ที่อยู่จัดส่ง
-                <input
-                  value={address}
-                  maxLength={200}
-                  onChange={(e) => {
-                    setAddress(e.target.value);
-                    setReview(null);
-                  }}
-                />
-              </label>
-              {[...new Set(cart.map((i) => i.lot.farm))].map((farm) => {
-                const group = cart.filter((i) => i.lot.farm === farm);
-                const selected = group.filter((i) => !later.includes(i.lot.id));
+              {farmGroups.length > 1 && (
+                <p>
+                  <strong>
+                    ยอดรวมทุกสวน{" "}
+                    {money(farmGroups.reduce((sum, g) => sum + g.total, 0))}
+                  </strong>
+                </p>
+              )}
+              {farmGroups.map(({ farm, group, selected, total }) => {
                 const missing = [
                   !buyer && "เข้าสู่ระบบ",
                   !selected.length && "เลือกล็อตสำหรับรอบส่ง",
+                  selected.some(
+                    (i) =>
+                      !Number.isInteger(i.units) ||
+                      i.units < minimumUnits(i) ||
+                      i.units > i.lot.stock,
+                  ) && "แก้จำนวนให้ตรงกับน้ำหนักที่ต้องการและสต็อกของสวน",
                   postcode.length !== 5 && "กรอกรหัสไปรษณีย์ 5 หลัก",
                   !arrival && "เลือกวันรับ",
                   !address.trim() && "กรอกที่อยู่จัดส่ง",
@@ -489,15 +650,18 @@ export function IdeaC() {
                   units: i.units,
                   requested_kg: i.requested_kg,
                 }));
-                const before = selected.reduce(
-                  (n, i) => n + i.units * i.lot.price,
-                  Math.max(0, ...selected.map((i) => i.lot.freight)),
-                );
                 return (
-                  <article key={farm}>
-                    <h3>{farm}</h3>
+                  <article className="cart-group" key={farm}>
+                    <div className="cart-group-heading">
+                      <h3>{farm}</h3>
+                      <strong>รวมค่าส่ง {money(total)}</strong>
+                    </div>
                     {group.map((i) => (
-                      <div key={i.lot.id}>
+                      <div className="cart-line" key={i.lot.id}>
+                        <strong>{i.lot.name}</strong>
+                        <p>
+                          {i.units} {i.lot.unit} × {money(i.lot.price)}
+                        </p>
                         <label>
                           <input
                             type="checkbox"
@@ -514,20 +678,16 @@ export function IdeaC() {
                           รวมในรอบส่งนี้
                         </label>
                         <label>
-                          {i.lot.name} ({i.lot.unit})
+                          จำนวน ({i.lot.unit})
                           {i.requested_kg && i.lot.kg && (
                             <small>
-                              ขั้นต่ำ{" "}
-                              {Math.max(
-                                i.lot.minimum,
-                                Math.ceil(i.requested_kg / Number(i.lot.kg)),
-                              )}{" "}
-                              {i.lot.unit} สำหรับ {i.requested_kg} กก.
+                              ขั้นต่ำ {minimumUnits(i)} {i.lot.unit} สำหรับ{" "}
+                              {i.requested_kg} กก.
                             </small>
                           )}
                           <input
                             type="number"
-                            min={i.lot.minimum}
+                            min={minimumUnits(i)}
                             max={i.lot.stock}
                             value={i.units}
                             onChange={(e) =>
@@ -548,34 +708,62 @@ export function IdeaC() {
                         </button>
                       </div>
                     ))}
-                    <p>ยอดในตะกร้ารวมค่าส่ง {money(before)}</p>
-                    {missing.length > 0 && (
-                      <p className="market-hint">
-                        ก่อนตรวจยอด กรุณา{missing.join(" · ")}
-                      </p>
-                    )}
-                    <button
-                      disabled={busy || missing.length > 0}
-                      onClick={() =>
-                        void run(async () => {
+                    {checkoutFarm !== farm ? (
+                      <button
+                        type="button"
+                        disabled={!selected.length}
+                        onClick={() => {
+                          setCheckoutFarm(farm);
                           setReview(null);
-                          const offer = await api<Offer>("quote", {
-                            lines,
-                            postcode,
-                            arrival,
-                          });
-                          setReview({
-                            id: crypto.randomUUID(),
-                            offer,
-                            address,
-                            postcode,
-                            arrival,
-                          });
-                        })
-                      }
-                    >
-                      ตรวจยอดและรอบส่ง
-                    </button>
+                        }}
+                      >
+                        ระบุข้อมูลเพื่อจอง
+                      </button>
+                    ) : (
+                      <section className="checkout-fields">
+                        <h3>ข้อมูลรับสินค้า</h3>
+                        {fields}
+                        <label>
+                          ที่อยู่จัดส่ง
+                          <input
+                            value={address}
+                            maxLength={200}
+                            onChange={(e) => {
+                              setAddress(e.target.value);
+                              setReview(null);
+                            }}
+                          />
+                        </label>
+                        {!buyer && accountForm}
+                        {missing.length > 0 && (
+                          <p className="market-hint">
+                            ก่อนตรวจยอด กรุณา{missing.join(" · ")}
+                          </p>
+                        )}
+                        <button
+                          disabled={busy || missing.length > 0}
+                          onClick={() =>
+                            void run(async () => {
+                              setReview(null);
+                              const offer = await api<Offer>("quote", {
+                                lines,
+                                postcode,
+                                arrival,
+                              });
+                              setReview({
+                                id: crypto.randomUUID(),
+                                offer,
+                                address,
+                                postcode,
+                                arrival,
+                              });
+                            })
+                          }
+                        >
+                          ตรวจยอดและรอบส่ง
+                        </button>
+                      </section>
+                    )}
                     {review?.offer.farm === farm && (
                       <div>
                         <h3>ตรวจสอบก่อนสั่ง</h3>
@@ -636,6 +824,8 @@ export function IdeaC() {
                 setBuyer("");
                 setAddress("");
                 setCart([]);
+                setLater([]);
+                setCheckoutFarm("");
                 setNotes({});
                 setReview(null);
               })
