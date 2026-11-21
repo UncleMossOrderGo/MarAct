@@ -14,6 +14,19 @@ from backend.src.modules.idea_b.personalization import (
     bangkok_today,
     recommend,
 )
+from backend.src.modules.idea_b.shopping_copilot.cart import preview
+from backend.src.modules.idea_b.shopping_copilot.catalog import search
+from backend.src.modules.idea_b.shopping_copilot.chat import chat
+from backend.src.modules.idea_b.shopping_copilot.opportunities import opportunities
+from backend.src.modules.idea_b.shopping_copilot.schemas import (
+    CartPreview,
+    CartRequest,
+    ChatRequest,
+    ChatResponse,
+    Opportunities,
+    SearchRequest,
+    SearchResult,
+)
 from backend.src.modules.idea_b.trends import FruitTrend, fruit_trend
 from backend.src.shared.records import records_router
 
@@ -24,11 +37,30 @@ router = records_router(
 
 
 @router.post("/recommendations")
-def recommendations(body: RecommendationRequest, explain: bool = False, lang: Language = "en") -> Recommendations:
+def recommendations(
+    body: RecommendationRequest | SearchRequest, explain: bool = False, lang: Language = "en",
+) -> Recommendations | SearchResult:
+    if isinstance(body, SearchRequest):
+        return search(body, bangkok_today(), lang)
     result = recommend(body, bangkok_today(), lang)
     if explain:
         explain_recommendations(result)
     return result
+
+
+@router.post("/copilot/chat")
+def shopping_chat(body: ChatRequest, lang: Language = "th") -> ChatResponse:
+    return chat(body, bangkok_today(), lang)
+
+
+@router.post("/smart-cart/preview")
+def smart_cart_preview(body: CartRequest, lang: Language = "th") -> CartPreview:
+    return preview(body, bangkok_today(), lang)
+
+
+@router.get("/trends/opportunities")
+def trend_opportunities(buyer_id: str = "buyer_demo_1", lang: Language = "th") -> Opportunities:
+    return opportunities(buyer_id, bangkok_today(), lang)
 
 
 class TrendWithContext(FruitTrend):

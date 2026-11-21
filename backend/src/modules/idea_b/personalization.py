@@ -9,6 +9,7 @@ from pydantic_core import PydanticCustomError
 from backend.src.modules.idea_b.language import Language, localized, thai_date
 
 Fruit = Literal["mango", "pineapple"]
+CatalogFruit = Literal["mango", "pineapple", "banana", "orange"]
 Quantity = Annotated[Decimal, Field(gt=0, max_digits=7, decimal_places=2)]
 Budget = Annotated[Decimal, Field(gt=0, max_digits=10, decimal_places=2)]
 Weight = Annotated[Decimal, Field(ge=0, le=100, decimal_places=4)]
@@ -108,7 +109,7 @@ class Farm:
     farm_id: str
     name: str
     name_th: str
-    fruit: Fruit
+    fruit: CatalogFruit
     minimum_kg: int
     stock_kg: int
     lead_days: int
@@ -132,6 +133,12 @@ FARMS = (
          25, 420, 2, 2_500, 24_000, 0, 86, 80),
     Farm("sriracha-growers", "Si Racha Growers", "กลุ่มเกษตรกรศรีราชา", "pineapple",
          50, 250, 1, 2_950, 21_000, 0, 92, 90),
+    Farm("sriracha-growers", "Si Racha Growers", "กลุ่มเกษตรกรศรีราชา", "banana",
+         15, 200, 1, 2_200, None, 0, 90, 85),
+    Farm("orchard-korat", "Korat Family Orchard", "สวนครอบครัวโคราช", "banana",
+         30, 350, 2, 1_850, None, 0, 84, 81),
+    Farm("chanthaburi-orchard", "Chanthaburi Orchard", "สวนผลไม้จันทบุรี", "orange",
+         20, 200, 2, 3_500, None, 0, 87, 88),
 )
 
 

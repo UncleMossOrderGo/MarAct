@@ -1,6 +1,6 @@
 @import "./brand-tokens.css";
 
-body:has(.buyer-intelligence) {
+body:has(.buyer-intelligence:not(.copilot-chat)) {
   background: var(--maract-background);
 }
 
@@ -15,7 +15,7 @@ body:has(.buyer-intelligence) {
   letter-spacing: -.04em;
 }
 
-main:has(> .buyer-intelligence) {
+main:has(> .buyer-intelligence:not(.copilot-chat)) {
   max-width: 74rem;
   margin-block: 1.5rem 3rem;
 }
@@ -320,7 +320,7 @@ main:has(> .buyer-intelligence) {
 }
 
 @media (max-width: 34rem) {
-  main:has(> .buyer-intelligence) { margin-top: .85rem; }
+  main:has(> .buyer-intelligence:not(.copilot-chat)) { margin-top: .85rem; }
   .buyer-intelligence { gap: .75rem; }
   .buyer-intelligence__workspace { gap: .75rem; }
   .buyer-intelligence__hero-image {

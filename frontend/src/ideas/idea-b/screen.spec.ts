@@ -4,7 +4,7 @@ test('Idea B displays its own records and selected idea', async ({ page }) => {
   await page.route('**/api/ideas/idea-b/records', (route) =>
     route.fulfill({ json: [{ id: 1, title: 'Idea B fixture' }] }),
   );
-  await page.goto('/ideas/idea-b');
+  await page.goto('/ideas/idea-b/workspace');
   await page.getByRole('button', { name: 'English' }).click();
   await expect(page.getByRole('heading', { name: 'Fruit procurement' })).toBeVisible();
   await expect(page.getByRole('combobox', { name: 'Idea' })).toHaveValue('idea-b');
@@ -17,7 +17,7 @@ test('Idea B displays its own records and selected idea', async ({ page }) => {
 
 test('buyer compares farms, changes priorities and checks interest for the selected fruit', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 844 });
-  await page.goto('/ideas/idea-b');
+  await page.goto('/ideas/idea-b/workspace');
   await page.getByRole('button', { name: 'English' }).click();
   const suppliers = page.getByRole('region', { name: 'Compare fruit suppliers' });
   const trends = page.getByRole('region', { name: 'Fruit trend intelligence' });
@@ -71,25 +71,25 @@ test('an interpreted brief fills the form only after the buyer applies it', asyn
       },
     }),
   );
-  await page.goto('/ideas/idea-b');
+  await page.goto('/ideas/idea-b/workspace');
   await page.getByRole('button', { name: 'English' }).click();
   await page.getByText('Draft an order with AI', { exact: true }).click();
   await page.getByLabel('Describe what you need').fill('85 kg pineapple, low price, organic');
   await page.getByRole('button', { name: 'Draft order' }).click();
   await expect(page.getByText('Organic certification', { exact: true })).toBeVisible();
-  await expect(page.getByLabel('Quantity (kg)')).toHaveValue('100');
+  await expect(page.getByLabel('Quantity (kg)', { exact: true })).toHaveValue('100');
   await expect(page.getByRole('button', { name: 'Fill comparison form' })).toBeDisabled();
   await page.getByRole('checkbox', { name: 'Compare using the supported requirements only' }).check();
   await page.getByRole('button', { name: 'Fill comparison form' }).click();
-  await expect(page.getByLabel('Quantity (kg)')).toHaveValue('85');
+  await expect(page.getByLabel('Quantity (kg)', { exact: true })).toHaveValue('85');
   await expect(page.getByRole('combobox', { name: 'Fruit' })).toHaveValue('pineapple');
   await expect(page.getByRole('heading', { name: 'Supplier matches' })).toHaveCount(0);
 });
 
 test('Thai is the default and switching to English keeps the order and localizes its results', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 844 });
-  await page.goto('/ideas/idea-b');
-  await expect(page.getByRole('heading', { name: 'จัดซื้อผลไม้' })).toBeVisible();
+  await page.goto('/ideas/idea-b/workspace');
+  await expect(page.getByRole('heading', { name: 'จัดซื้อผลไม้', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'ไทย' })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByText('ความสนใจเพิ่มขึ้น', { exact: true })).toBeVisible();
 
@@ -100,7 +100,7 @@ test('Thai is the default and switching to English keeps the order and localizes
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
 
   await page.getByRole('button', { name: 'English' }).click();
-  await expect(page.getByRole('spinbutton', { name: 'Quantity (kg)' })).toHaveValue('85');
+  await expect(page.getByRole('spinbutton', { name: 'Quantity (kg)', exact: true })).toHaveValue('85');
   await expect(page.getByRole('article').first()).toContainText('Sunrise Mango Farm');
   await expect(page.getByText('Rising interest', { exact: true })).toBeVisible();
   await page.reload();

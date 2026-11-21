@@ -1,0 +1,10 @@
+# Idea B Shopping Copilot
+
+The fixture adapter in `catalog.py` uses the existing Idea B farm catalog. It adds stable listing IDs as `farm_id:fruit` and two public, artificial buyer profiles. An authenticated buyer identity, live listings, real purchase history and cart persistence are future integration points. The current endpoints use `demo_fixture` data.
+
+- `POST /api/ideas/idea-b/recommendations` accepts the new `fruit_query` search contract as well as the existing `fruit` request. Search filters stock, minimum quantity, delivery and optional product budget. Personalized ranking uses price 30%, preferred farm 35%, preferred fruit 20% and typical-volume/budget fit 15%. Explicit cheapest sorting uses unit product price independently of preferences.
+- `POST /api/ideas/idea-b/smart-cart/preview` groups aliases for the same fruit and selects one listing per fruit. The heuristic visits requested fruits in order and reserves the cheapest feasible balance when possible. Budget is for products. Delivery fees are outside the budget. Unknown and combined-farm shipping remain unknown. A partial preview identifies each unfulfilled request.
+- `POST /api/ideas/idea-b/copilot/chat` uses OpenAI Responses function calling with validated, read-only tools and at most two model calls per turn. On failure a limited Thai/English parser handles common shopping requests. The client can send back the structured `search_context` as `previous_search` for follow-ups. `conversation_id` is a correlation label, never authentication.
+- `GET /api/ideas/idea-b/trends/opportunities` joins the existing synthetic trend windows to buyer preferences and fixture inventory. Trend replies in chat automatically attach cited context for up to two fruits through MCP and report each lookup in `tool_calls`. Direct consumers can still query `GET /trends?web_search=true`. Web context does not change the demo trend scores.
+
+The frontend accepts a preview only in the current page. It does not call a cart mutation, reservation or checkout endpoint.

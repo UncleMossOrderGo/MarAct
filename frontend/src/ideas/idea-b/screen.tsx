@@ -3,6 +3,8 @@ import { RecordsScreen } from '../../shared/RecordsScreen';
 import type { Fruit } from './api';
 import { copy } from './language';
 import type { Language } from './language';
+import { ShoppingCopilot } from './shopping-copilot/ShoppingCopilot';
+import { ChatPage } from './shopping-copilot/ChatPage';
 import { SupplierComparison } from './supplier-comparison';
 import { TrendDashboard } from './trend-dashboard';
 import './styles.css';
@@ -32,6 +34,10 @@ export function IdeaB() {
     }
   }
 
+  if (!window.location.pathname.endsWith('/workspace')) {
+    return <ChatPage lang={lang} onLanguageChange={changeLanguage} />;
+  }
+
   return (
     <div className="buyer-intelligence" lang={lang}>
       <div className="buyer-intelligence__hero">
@@ -52,6 +58,7 @@ export function IdeaB() {
           </nav>
         </div>
       </div>
+      <ShoppingCopilot lang={lang} />
       <div className="buyer-intelligence__workspace">
         <SupplierComparison fruit={fruit} onFruitChange={setFruit} lang={lang} />
         <TrendDashboard key={`${fruit}:${lang}`} fruit={fruit} lang={lang} />
