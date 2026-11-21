@@ -18,7 +18,7 @@ ROOT = "/api/ideas/idea-c"
 def test_copilot_uses_catalog_quotes_and_never_orders(shop, monkeypatch):
     client, key, _ = shop
     monkeypatch.setenv("MARACT_PUBLIC_DEMO", "1")
-    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.setenv("OPENAI_API_KEY", "")
     delivery = {"postcode": "10100", "arrival": str(today() + timedelta(days=2))}
     endpoint = ROOT + "/copilot/chat"
     cart = client.post(endpoint, json={"message": f"จัดตะกร้า {key} 20 กก. งบ 960", **delivery}).json()
@@ -36,10 +36,16 @@ def test_copilot_uses_catalog_quotes_and_never_orders(shop, monkeypatch):
 
 def test_copilot_trends_match_market_lots(shop, monkeypatch):
     client, key, _ = shop
-    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.setenv("OPENAI_API_KEY", "")
     browser_lot(key + "-trend", name="มะม่วงตลาดทดสอบ")
     try:
         result = client.post(ROOT + "/copilot/chat", json={"message": "แนวโน้มมะม่วง"}).json()
+        broad = client.post(ROOT + "/copilot/chat", json={
+            "message": "ผลไม้อะไรกำลังเป็นเทรนด์ในช่วงนี้ครับ",
+            "previous": {"query": key, "kg": 20},
+            "history": [{"question": "หา 20 กก.", "answer": "พบล็อตที่ตรงกับคำขอครับ"}],
+        }).json()
+        assert any(t["fruit_id"] == "mango" for t in broad["trends"])
         (trend,) = result["trends"]
         assert key + "-trend" in trend["matching_listing_ids"]
         assert trend["signal_type"] == "search_interest"
@@ -50,7 +56,7 @@ def test_copilot_trends_match_market_lots(shop, monkeypatch):
 
 def test_buyer_profile_and_smoothie_conversation(shop, monkeypatch):
     client, key, _ = shop
-    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.setenv("OPENAI_API_KEY", "")
     profile = {"business": "ร้านน้ำมะม่วงปั่น", "postcode": "10100"}
     assert client.post(ROOT + "/buyer/profile", json=profile).json() == profile
     assert client.get(ROOT + "/orders").json()["profile"] == profile

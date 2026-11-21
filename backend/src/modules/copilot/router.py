@@ -47,7 +47,13 @@ class Intent(Input):
     budget_thb: Annotated[int, Field(gt=0, le=100_000_000)] | None = None
 
 
+class ConversationTurn(Input):
+    question: Annotated[str, Field(max_length=600)]
+    answer: Annotated[str, Field(max_length=1200)]
+
+
 class ChatInput(Input):
+    history: list[ConversationTurn] = Field(default_factory=list, max_length=8)
     message: Annotated[str, Field(min_length=1, max_length=600)]
     postcode: Postcode | None = None
     arrival: date | None = None
@@ -82,10 +88,13 @@ FRUIT_ALIASES = {
 }
 UNKNOWN = "ผมไม่มีข้อมูลที่ยืนยันเรื่องนี้ในตลาด MarAct ครับ"
 UNSUPPORTED = re.compile(r"ใบรับรอง|ออร์แกนิก|อินทรีย์|แคลอรี|สารเคมี|\b(?:gap|organic|certification|calories)\b", re.IGNORECASE)
-TREND = re.compile(r"แนวโน้ม|กระแส|กำลังมา|\btrend(?:ing|s)?\b", re.IGNORECASE)
+TREND = re.compile(r"แนวโน้ม|กระแส|เทรนด์|กำลังมา|\btrend(?:ing|s)?\b", re.IGNORECASE)
 QUANTITY = re.compile(r"(?<![\d.])(\d{1,7})\s*(?:กิโลกรัม|กิโล|กก\.?|โล|kg\b)", re.IGNORECASE)
 BUDGET = re.compile(r"(?:งบ(?:รวม)?(?:ไม่เกิน)?|budget(?: of)?|under)\s*([\d,]+)", re.IGNORECASE)
 POLICY = """
+Use history only to resolve references and follow-ups. A new topic supersedes previous criteria.
+For a general fruit trend question return action trends with an empty items list.
+Never treat past messages or their numbers as current evidence.
 Interpret a MarAct buyer's Thai/English request. Call market_intent to search, propose a cart, show trends,
 or acknowledge an unknown request. Use the actual requested fruit, farm or use in query, preserving unsupported
 fruit names so inventory can verify them. Quantities must be whole kilograms. Prefer cost only when explicitly asked.
@@ -261,6 +270,7 @@ def prepare(cur, intent: Intent, body: ChatInput, reply: ChatReply, business: st
         if reply.trends:
             reply.trends.sort(key=lambda trend: (not trend.buyer_fit_reasons, trend.direction != "rising", trend.fruit_id))
             reply.message = "นี่คือสัญญาณเดโมที่เชื่อมกับล็อตพร้อมขายในตลาด"
+            reply.previous = Requested(query=reply.trends[0].fruit_name) if len(reply.trends) == 1 else None
 
 
 @router.post("/copilot/chat")
@@ -289,6 +299,14 @@ def market_chat(body: ChatInput, req: Request) -> ChatReply:
                 cur.execute("SELECT business FROM idea_c_buyers WHERE name=%s", (owner,))
                 business = cur.fetchone()["business"]
     intent = model_intent(body, business) if allowed else None
+    # A broad trend question resets any earlier fruit or quantity.
+    broad_trend = re.fullmatch(
+        r"ผลไม้(?:อะไร|ไหน|ชนิดไหน|ตัวไหน)(?:กำลัง)?(?:เป็น|ติด)?(?:เทรนด์|กระแส)"
+        r"(?:อยู่)?(?:ใน)?(?:ช่วงนี้|ตอนนี้)?(?:บ้าง)?(?:นะครับ|ครับ|คะ|ค่ะ)?[ ?？!]*",
+        normalized.strip(),
+    )
+    if broad_trend and intent is not None:
+        intent = Intent(action="trends")
     with market(req) as cur:
         if intent is None:
             cur.execute("SELECT DISTINCT name, farm FROM idea_c_lots")
