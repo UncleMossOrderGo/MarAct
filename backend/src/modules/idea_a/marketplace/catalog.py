@@ -1,6 +1,7 @@
 from datetime import date, timedelta
 from decimal import Decimal
 from typing import Annotated, Protocol
+from unicodedata import normalize
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, ConfigDict, PlainSerializer
@@ -175,3 +176,71 @@ def catalog_router(catalog: CatalogReader) -> APIRouter:
         return {"listings": catalog.listings(fruit_id)}
 
     return router
+
+
+class IngredientListingResponse(BaseModel):
+    id: str
+    ingredient_id: str
+    name_en: str
+    name_th: str
+    category: str
+    unit: str
+    image_key: str | None
+    seller_id: str
+    seller_name: str
+    price_per_kg_thb: Money
+    stock_kg: int
+
+
+def ingredient_listings(
+    engine: Engine, ingredient_id: str | None, query: str | None, category: str | None
+) -> tuple[IngredientListingResponse, ...]:
+    normalized = " ".join(normalize("NFKC", query or "").casefold().split())
+    statement = (
+        select(models.Listing, models.Ingredient, models.Seller)
+        .join(models.Ingredient, models.Ingredient.id == models.Listing.ingredient_id)
+        .join(models.Seller, models.Seller.id == models.Listing.seller_id)
+        .where(models.Listing.active.is_(True))
+        .order_by(
+            models.Ingredient.id, models.Listing.price_per_kg_thb, models.Listing.id
+        )
+    )
+    if ingredient_id is not None:
+        statement = statement.where(models.Ingredient.id == ingredient_id)
+    if category is not None:
+        statement = statement.where(models.Ingredient.category == category)
+
+    with Session(engine) as session:
+        if (
+            ingredient_id is not None
+            and session.get(models.Ingredient, ingredient_id) is None
+        ):
+            raise HTTPException(
+                404,
+                detail={"code": "ingredient_not_found", "ingredient_id": ingredient_id},
+            )
+        return tuple(
+            IngredientListingResponse(
+                id=listing.id,
+                ingredient_id=ingredient.id,
+                name_en=ingredient.name_en,
+                name_th=ingredient.name_th,
+                category=ingredient.category,
+                unit=ingredient.unit,
+                image_key=ingredient.image_key,
+                seller_id=seller.id,
+                seller_name=seller.name,
+                price_per_kg_thb=listing.price_per_kg_thb,
+                stock_kg=listing.stock_kg,
+            )
+            for listing, ingredient, seller in session.execute(statement)
+            if not normalized
+            or any(
+                normalized in " ".join(normalize("NFKC", name).casefold().split())
+                for name in (
+                    ingredient.name_en,
+                    ingredient.name_th,
+                    *ingredient.aliases,
+                )
+            )
+        )
