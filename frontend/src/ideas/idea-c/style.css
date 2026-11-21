@@ -1,74 +1,311 @@
-.market {
-  min-width: 0;
-  padding: 0;
-  margin: 0;
-  border: 0;
-  color: #233b30;
-  font-family: system-ui, sans-serif;
+﻿/* Buyer workspace uses the orchard palette and masthead proportions from Pui's farm studio. */
+body:has(.market) {
+  background: #fafaf5;
 }
-.market h1 {
-  font-size: clamp(2rem, 5vw, 3rem);
-  letter-spacing: -0.045em;
-  margin-bottom: 0.7rem;
+body:has(.market) > #root > header {
+  padding-inline: max(4%, calc((100% - 1160px) / 2));
+  border-color: #d9dfd3;
+}
+body:has(.market) > #root > header strong {
+  font:
+    750 32px/1 Georgia,
+    serif;
+  letter-spacing: -1.8px;
+  color: #214c36;
+}
+main:has(> .market) {
+  width: min(1160px, 92%);
+  max-width: none;
+  margin: 0 auto;
+  padding: 0;
+}
+.market {
+  --pine: #214c36;
+  --ink: #172f25;
+  --muted: #53665a;
+  --line: #d9dfd3;
+  --leaf: #dcf19c;
+  border: 0;
+  padding: 0 0 4rem;
+  margin: 0;
+  min-width: 0;
+  color: var(--ink);
+  font:
+    16px/1.6 "Noto Sans Thai",
+    "Leelawadee UI",
+    system-ui,
+    sans-serif;
+  overflow-wrap: anywhere;
+}
+.market *,
+.market *::before {
+  box-sizing: border-box;
 }
 .market nav,
 .market-heading,
-.market-fields {
+.market-product-foot {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
   flex-wrap: wrap;
+  gap: 10px;
 }
 .market nav {
-  border-bottom: 1px solid #b5c8bb;
-  padding-bottom: 1rem;
-  margin-bottom: 1.5rem;
+  padding: 14px 0;
+  margin-bottom: 8px;
 }
-.market nav button {
-  background: transparent;
-  color: #224b3c;
+.market h1,
+.market h2,
+.market h3 {
+  line-height: 1.3;
+  letter-spacing: -0.025em;
 }
-.market nav button[aria-pressed="true"] {
-  background: #214c3b;
-  color: white;
+.market h1 {
+  font-size: clamp(32px, 4vw, 54px);
+  margin: 24px 0 18px;
 }
-.market section,
-.market article {
-  padding: 1.2rem;
-  background: #fff;
-  border: 1px solid #cfdbce;
-  border-radius: 0.75rem;
-  margin: 0.8rem 0;
+.market h2 {
+  font-size: clamp(21px, 2vw, 30px);
+  margin: 0;
 }
-.market article {
-  border-left: 4px solid #89a970;
-}
-.market article small {
-  color: #526c5a;
-}
-.market h3,
-.market section h2 {
-  margin: 0.25rem 0 0.65rem;
+.market h3 {
+  margin: 0;
+  font-size: 22px;
 }
 .market p {
-  margin: 0.65rem 0;
+  margin: 8px 0;
+}
+.market :is(button, input, select) {
+  font: inherit;
+  border-radius: 9px;
+  min-height: 44px;
+}
+.market button {
+  background: var(--pine);
+  color: white;
+  padding: 8px 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.market button:hover:enabled {
+  background: #173b2a;
+}
+.market button:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+.market nav button {
+  color: var(--muted);
+  background: transparent;
+}
+.market nav button[aria-pressed="true"],
+.market nav button:hover:enabled {
+  background: #eaf1de;
+  color: var(--pine);
+}
+.market :is(input, select, button):focus-visible {
+  outline: 3px solid #aa681d;
+  outline-offset: 3px;
 }
 .market label {
   display: grid;
-  gap: 0.25rem;
-  margin: 0.4rem 0;
+  gap: 5px;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 7px 0;
 }
-.market-fields label {
-  flex: 1 1 12rem;
+.market input:not([type="checkbox"]),
+.market select {
+  width: 100%;
+  color: var(--ink);
+  border: 1px solid #98ad9b;
+  padding: 9px 12px;
+  font-size: 16px;
 }
-.market button {
-  cursor: pointer;
-  margin: 0.2rem 0.25rem 0.2rem 0;
+.market label:has(input[type="checkbox"]) {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.market input[type="checkbox"] {
+  flex: none;
+  min-height: 0;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--pine);
+}
+.market section,
+.market article {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: clamp(16px, 2vw, 28px);
+  margin: 14px 0;
+}
+.market section.market-hero {
+  display: grid;
+  grid-template-columns: 44% 56%;
+  overflow: hidden;
+  padding: 0;
+  margin: 0;
+  background: #193f30;
+  color: white;
+  border: 0;
+  border-radius: 20px;
+}
+.market-story {
+  padding: clamp(24px, 4vw, 52px);
+  display: grid;
+  align-content: center;
+  gap: 14px;
+}
+.market-story h1 {
+  font-size: clamp(42px, 4.8vw, 70px);
+  line-height: 1.15;
+  margin: 0;
+}
+.market-story label {
+  color: #e5eedc;
+}
+.market-orchard {
+  width: 100%;
+  height: 100%;
+  min-height: 285px;
+  max-height: 365px;
+  object-fit: cover;
+}
+.market-fields,
+.market-filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.market .market-filters {
+  padding-block: 14px;
 }
 .market-heading {
   justify-content: space-between;
-  margin-top: 1.25rem;
+  margin: 28px 0 12px;
 }
-.market-heading h2 {
+.market-heading label {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+.market-count {
+  display: inline-block;
+  vertical-align: middle;
+  font: 600 14px/23px system-ui;
+  border: 1px solid var(--line);
+  padding: 0 10px;
+  border-radius: 20px;
+}
+.market-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+.market article.market-product {
+  padding: 0;
   margin: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.market-product-head {
+  position: relative;
+  background: #e8eedf;
+}
+.market-product-head img {
+  display: block;
+  width: 100%;
+  height: 152px;
+  object-fit: cover;
+}
+.market-product-title {
+  padding: 16px 18px;
+}
+.market-product-title small {
+  color: var(--muted);
+}
+.market-product-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 14px 18px 18px;
+}
+.market-product-body p {
+  color: var(--muted);
+  font-size: 14px;
+  margin: 4px 0;
+}
+.market-price {
+  color: var(--pine);
+  font-size: 22px;
+}
+.market-product-foot {
+  margin-top: auto;
+  padding-top: 14px;
+}
+.market-product-foot strong {
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+  width: 100%;
+}
+.market-product-foot button {
+  width: 100%;
+}
+.market section:not(.market-hero, .market-filters),
+.market > article {
+  max-width: 780px;
+}
+.market > article button,
+.market > section button {
+  margin: 4px 6px 4px 0;
+}
+.market [role="alert"] {
+  background: #fff1d4;
+  padding: 12px 16px;
+  border-radius: 9px;
+  color: #694912;
+}
+@media (max-width: 900px) {
+  .market-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .market-filters {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+}
+@media (max-width: 620px) {
+  .market section.market-hero,
+  .market-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .market-orchard {
+    grid-row: 1;
+    height: 145px;
+    min-height: 0;
+  }
+  .market-story h1 br {
+    display: none;
+  }
+  .market-story {
+    padding: 22px;
+    gap: 8px;
+  }
+  .market nav {
+    gap: 2px;
+    justify-content: space-between;
+  }
+  .market nav button {
+    padding-inline: 7px;
+    font-size: 14px;
+  }
+  .market-fields {
+    gap: 8px;
+  }
+  .market-heading {
+    gap: 2px;
+  }
 }

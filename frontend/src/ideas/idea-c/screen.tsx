@@ -1,6 +1,15 @@
 import { useEffect, useState } from "react";
 import "./style.css";
 
+const orchardPhoto = new URL(
+  "./assets/cover-suan-lung-som.webp",
+  import.meta.url,
+).href;
+const mangoPhoto = new URL(
+  "./assets/product-mango-namdokmai-a.webp",
+  import.meta.url,
+).href;
+
 type Lot = {
   id: string;
   farm: string;
@@ -210,7 +219,6 @@ export function IdeaC() {
   );
   return (
     <fieldset className="market" disabled={busy}>
-      <h1>ตลาดผลไม้จากสวน</h1>
       <nav aria-label="Marketplace">
         {[
           ["market", "เลือกผลผลิต"],
@@ -233,16 +241,25 @@ export function IdeaC() {
       {error && <p role="alert">{error}</p>}
       {tab === "market" && (
         <>
-          <section>
-            <h2>ค้นหาผลผลิตให้ร้านของคุณ</h2>
-            <label>
-              ผลไม้ สวน หรือเมนู
-              <input
-                value={q}
-                placeholder="เช่น มะม่วง หรือ สมูทตี"
-                onChange={(e) => setQ(e.target.value)}
-              />
-            </label>
+          <section className="market-hero">
+            <div className="market-story">
+              <h1>
+                ตลาดผลไม้
+                <br />
+                จากสวน
+              </h1>
+              <label>
+                ผลไม้ สวน หรือเมนู
+                <input
+                  value={q}
+                  placeholder="เช่น มะม่วง หรือ สมูทตี"
+                  onChange={(e) => setQ(e.target.value)}
+                />
+              </label>
+            </div>
+            <img className="market-orchard" src={orchardPhoto} alt="" />
+          </section>
+          <section className="market-filters" aria-label="เงื่อนไขการเลือกผลผลิต">
             <div className="market-fields">
               <label>
                 จำนวนที่ต้องการ (กก.)
@@ -265,7 +282,9 @@ export function IdeaC() {
             {fields}
           </section>
           <div className="market-heading">
-            <h2>ล็อตผลผลิต</h2>
+            <h2>
+              ล็อตผลผลิต <span className="market-count">{lots.length}</span>
+            </h2>
             <label>
               เรียงตาม{" "}
               <select value={sort} onChange={(e) => setSort(e.target.value)}>
@@ -279,47 +298,64 @@ export function IdeaC() {
           {!lots.length && !catalogError && (
             <p>ไม่มีล็อตตรงกับคำค้น ลองเปลี่ยนชนิดผลไม้หรือเมนู</p>
           )}
-          {lots.map((l) => (
-            <article key={l.id}>
-              <small>{l.farm}</small>
-              <h3>{l.name}</h3>
-              <p>
-                {l.grade ?? "สวนยังไม่ระบุเกรด"} · {l.uses}
-              </p>
-              <strong>
-                {money(l.price)} / {l.unit}
-              </strong>
-              <p>
-                ขั้นต่ำ {l.minimum} {l.unit} · เหลือ {l.stock} {l.unit} ·{" "}
-                {l.kg ? l.kg + " กก./" + l.unit : "สวนยังไม่ระบุน้ำหนัก"}
-              </p>
-              <p>
-                รับได้เร็วสุด {l.earliest} · ค่าส่ง {money(l.freight)}
-              </p>
-              <p>
-                {l.misses.join(" · ") ||
-                  (postcode.length === 5 && arrival
-                    ? "ส่งถึงตามวันที่เลือก"
-                    : "ระบุพื้นที่และวันรับเพื่อตรวจรอบส่ง")}
-                {l.preferred ? " · ตรงความสนใจของร้าน" : ""}
-              </p>
-              <strong>
-                {l.units} {l.unit}{" "}
-                {l.kg ? "(" + Number(l.kg) * l.units + " กก.)" : ""} รวม{" "}
-                {money(l.total)}
-              </strong>{" "}
-              <button
-                disabled={
-                  l.stock < l.units ||
-                  l.requested_kg !== (kg ? Number(kg) : null) ||
-                  (l.requested_kg !== null && !l.kg)
-                }
-                onClick={() => add(l)}
-              >
-                เพิ่มลงตะกร้า
-              </button>
-            </article>
-          ))}
+          <div className="market-grid">
+            {lots.map((l) => (
+              <article key={l.id} className="market-product">
+                <div className="market-product-head">
+                  {l.name.includes("มะม่วงน้ำดอกไม้") && (
+                    <img
+                      src={mangoPhoto}
+                      loading="lazy"
+                      alt="ภาพประกอบมะม่วงน้ำดอกไม้"
+                    />
+                  )}
+                  <div className="market-product-title">
+                    <small>{l.farm}</small>
+                    <h3>{l.name}</h3>
+                  </div>
+                </div>
+                <div className="market-product-body">
+                  <p>
+                    {l.grade ?? "สวนยังไม่ระบุเกรด"} · {l.uses}
+                  </p>
+                  <strong className="market-price">
+                    {money(l.price)} / {l.unit}
+                  </strong>
+                  <p>
+                    ขั้นต่ำ {l.minimum} {l.unit} · เหลือ {l.stock} {l.unit} ·{" "}
+                    {l.kg ? l.kg + " กก./" + l.unit : "สวนยังไม่ระบุน้ำหนัก"}
+                  </p>
+                  <p>
+                    รับได้เร็วสุด {l.earliest} · ค่าส่ง {money(l.freight)}
+                  </p>
+                  <p>
+                    {l.misses.join(" · ") ||
+                      (postcode.length === 5 && arrival
+                        ? "ส่งถึงตามวันที่เลือก"
+                        : "ระบุพื้นที่และวันรับเพื่อตรวจรอบส่ง")}
+                    {l.preferred ? " · ตรงความสนใจของร้าน" : ""}
+                  </p>
+                  <div className="market-product-foot">
+                    <strong>
+                      {l.units} {l.unit}{" "}
+                      {l.kg ? "(" + Number(l.kg) * l.units + " กก.)" : ""} รวม{" "}
+                      {money(l.total)}
+                    </strong>{" "}
+                    <button
+                      disabled={
+                        l.stock < l.units ||
+                        l.requested_kg !== (kg ? Number(kg) : null) ||
+                        (l.requested_kg !== null && !l.kg)
+                      }
+                      onClick={() => add(l)}
+                    >
+                      เพิ่มลงตะกร้า
+                    </button>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
         </>
       )}
       {tab !== "market" && !buyer && (
@@ -356,7 +392,7 @@ export function IdeaC() {
       )}
       {tab === "cart" && (
         <>
-          <h2>ตะกร้าของร้าน</h2>
+          <h1>ตะกร้าของร้าน</h1>
           {!cart.length ? (
             <p>ตะกร้ายังว่างอยู่</p>
           ) : (
@@ -511,7 +547,7 @@ export function IdeaC() {
       )}
       {tab === "orders" && buyer && (
         <>
-          <h2>คำสั่งซื้อของ {buyer}</h2>
+          <h1>คำสั่งซื้อของ {buyer}</h1>
           <button
             onClick={() =>
               void run(async () => {
