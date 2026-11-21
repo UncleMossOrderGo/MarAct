@@ -1,0 +1,134 @@
+.market-cart {
+  box-sizing: border-box;
+  position: fixed;
+  inset: 0 0 0 auto;
+  width: min(100%, 32rem);
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: clamp(16px, 4vw, 32px);
+  overflow-y: auto;
+  border: 0;
+  border-inline-start: 1px solid var(--market-border, #dce5dc);
+  background: #fff;
+  color: var(--market-ink, #171a17);
+}
+
+.market-cart::backdrop {
+  background: rgb(16 23 17 / 32%);
+}
+
+.market-cart__header,
+.market-cart__total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.market-cart h2,
+.market-cart h3,
+.market-cart p,
+.market-cart dd {
+  margin: 0;
+}
+
+.market-cart > p {
+  margin-block: 16px;
+}
+
+.market-cart h3 {
+  font-size: 1rem;
+}
+
+.market-cart p {
+  color: var(--market-muted, #536253);
+}
+
+.market-cart button {
+  padding: 8px 12px;
+  border: 1px solid var(--market-border, #dce5dc);
+  border-radius: var(--market-radius, 8px);
+  background: #fff;
+  color: inherit;
+  font: inherit;
+}
+
+.market-cart button:not(:disabled) {
+  cursor: pointer;
+}
+
+.market-cart button:focus-visible {
+  outline: 2px solid var(--market-green, #217425);
+  outline-offset: 2px;
+}
+
+.market-cart__items {
+  margin-block: 20px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.market-cart__item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  gap: 12px;
+  padding-block: 16px;
+  border: 0;
+  border-block-start: 1px solid var(--market-border, #dce5dc);
+}
+
+.market-cart__item img {
+  object-fit: cover;
+  border-radius: var(--market-radius, 8px);
+}
+
+.market-cart__description {
+  flex: 1 1 10rem;
+  min-width: 0;
+}
+
+.market-cart__controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.market-cart__quantity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.market-cart__quantity output {
+  min-width: 3em;
+  text-align: center;
+}
+
+.market-cart__prices {
+  flex: 1 1 auto;
+  text-align: end;
+}
+
+.market-cart__total {
+  padding-block: 16px;
+  border-block-start: 1px solid var(--market-border, #dce5dc);
+  font-weight: 600;
+}
+
+.market-cart .market-cart__checkout {
+  width: 100%;
+  background: var(--market-green, #217425);
+  border-color: transparent;
+  color: #fff;
+}
+
+@media (max-width: 600px) {
+  .market-cart {
+    width: 100%;
+    border-inline-start: 0;
+  }
+}
