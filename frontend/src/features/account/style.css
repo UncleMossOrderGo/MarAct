@@ -1,0 +1,28 @@
+main.account-page {
+  margin: 0; padding: 24px; max-width: none; min-height: 100dvh; box-sizing: border-box;
+  display: grid; place-items: center; font-family: var(--market-font); color: var(--market-ink);
+  background: linear-gradient(155deg, var(--market-green-soft), #fff 66%);
+}
+.account-card {
+  width: min(100%, 440px); padding: clamp(22px, 5vw, 40px); box-sizing: border-box;
+  border: 1px solid var(--market-border); border-radius: 20px; background: var(--market-paper);
+  box-shadow: 0 18px 70px #18442112;
+}
+.account-brand {display: inline-block; margin-bottom: 24px; font-size: 24px; text-decoration: none;}
+.account-card h1 {font-size: clamp(26px, 5vw, 32px); line-height: 1.25; margin: 0 0 22px;}
+.account-card form, .account-roles, .account-card label {display: grid; gap: 12px;}
+.account-card label {gap: 6px; font-size: 14px; font-weight: 650;}
+.account-card :is(button, input) {font: inherit;}
+.account-card input {width: 100%; min-height: 44px; box-sizing: border-box; border: 1px solid #a2afa4; border-radius: var(--market-button-radius);}
+.account-card button {cursor: pointer;}
+.account-card .account-primary, .account-roles a {display: flex; align-items: center; justify-content: space-between; gap: 12px;}
+.account-primary {min-height: 48px; padding: 10px 16px; color: white; background: var(--market-green); border: 0; border-radius: var(--market-button-radius);}
+.account-card small, .account-caption {color: var(--market-muted);}
+.account-caption {margin: 0 0 6px; overflow-wrap: anywhere;}
+.account-card .account-link {padding: 10px 0; display: block; margin-top: 12px; border: 0; color: var(--market-green); background: transparent;}
+.account-guest {display: inline-flex; gap: 4px; align-items: center; color: var(--market-muted); margin-top: 12px;}
+.account-roles a {padding: 16px; text-decoration: none; color: var(--market-green); border: 1px solid var(--market-border); border-radius: var(--market-radius);}
+.account-roles a:hover {background: var(--market-green-soft); border-color: var(--market-green);}
+.account-roles span {display: grid; flex: 1;}
+.account-roles strong {color: var(--market-ink);}
+.account-card :focus-visible {outline: 3px solid var(--market-green); outline-offset: 3px;}

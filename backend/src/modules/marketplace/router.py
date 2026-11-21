@@ -65,6 +65,37 @@ def buyer(cur, req):
     return row["buyer"]
 
 
+FARM_PATHS = ("/api/farmer", "/api/ideas/idea-d")
+
+
+def set_farmer_session(cur, req, response, token):
+    # A separately scoped bearer lets the farm API verify the shared login.
+    value = hmac.digest(token.encode(), b"maract/farmer-session", "sha256").hex()
+    cur.execute("UPDATE idea_c_sessions SET farmer_digest=%s WHERE digest=%s AND farmer_digest IS NULL",
+                (hashlib.sha256(value.encode()).hexdigest(), hashlib.sha256(token.encode()).hexdigest()))
+    for path in FARM_PATHS:
+        response.set_cookie("market_farmer", value, httponly=True, samesite="strict",
+                            secure=req.url.scheme == "https" or os.getenv("MARACT_PUBLIC_DEMO") == "1",
+                            max_age=86400, path=path)
+
+
+@router.get("/session")
+def current_session(req: Request, response: Response):
+    response.headers["Cache-Control"] = "no-store"
+    token = req.cookies.get("market_session")
+    if not token:
+        return {"buyer": None}
+    with market(req) as cur:
+        try:
+            name = buyer(cur, req)
+        except HTTPException as error:
+            if error.status_code == 401:
+                return {"buyer": None}
+            raise
+        set_farmer_session(cur, req, response, token)
+        return {"buyer": name}
+
+
 class Account(BaseModel):
     name: Short
     password: Annotated[str, Field(min_length=8, max_length=128)]
@@ -88,9 +119,13 @@ def session(body: Account, req: Request, response: Response):
             or not hmac.compare_digest(bytes(row["digest"]), digest)
         ):
             raise HTTPException(403, "ชื่อร้านหรือรหัสผ่านไม่ถูกต้อง หรือชื่อร้านนี้มีผู้ใช้แล้ว")
+        prior = req.cookies.get("market_session")
+        if prior:
+            cur.execute("DELETE FROM idea_c_sessions WHERE digest=%s",
+                        (hashlib.sha256(prior.encode()).hexdigest(),))
         token = secrets.token_urlsafe(32)
         cur.execute(
-            "INSERT INTO idea_c_sessions VALUES (%s,%s,now()+interval '1 day')",
+            "INSERT INTO idea_c_sessions(digest,buyer,expires) VALUES (%s,%s,now()+interval '1 day')",
             (hashlib.sha256(token.encode()).hexdigest(), body.name),
         )
         response.set_cookie(
@@ -102,6 +137,7 @@ def session(body: Account, req: Request, response: Response):
             max_age=86400,
             path="/api/ideas/idea-c",
         )
+        set_farmer_session(cur, req, response, token)
         return {"buyer": body.name}
 
 
@@ -111,6 +147,9 @@ def logout(req: Request, response: Response):
     with market(req) as cur:
         cur.execute("DELETE FROM idea_c_sessions WHERE digest=%s", (digest,))
     response.delete_cookie("market_session", path="/api/ideas/idea-c")
+    for path in FARM_PATHS:
+        response.delete_cookie("market_farmer", path=path)
+        response.delete_cookie("maract_farm_owner", path=path)
     return {"ok": True}
 
 

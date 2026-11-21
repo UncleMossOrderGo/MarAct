@@ -5,6 +5,7 @@ import { demoIdeas, ideaPath, ideas } from '../legacy/registry';
 import { Marketplace } from '../features/marketplace/screen';
 import './styles.css';
 
+const AccountPage = lazy(() => import('../features/account/screen').then(module => ({ default: module.AccountPage })));
 const ShopWorkspace = lazy(() => import('../features/shop/screen').then(module => ({ default: module.ShopWorkspace })));
 const FarmerStudio = lazy(() => import('../features/farmer/screen').then(module => ({ default: module.FarmerStudio })));
 
@@ -42,7 +43,8 @@ createRoot(document.getElementById('root')!).render(
   <BrowserRouter>
     <Routes>
       <Route path="/" element={<MarketRedirect />} />
-      <Route path="/market" element={<><header><strong>MarAct</strong></header><main><Marketplace /></main></>} />
+      <Route path="/market/login" element={<Suspense fallback={<p role="status">กำลังโหลด…</p>}><AccountPage /></Suspense>} />
+      <Route path="/market" element={<main><Marketplace /></main>} />
       <Route path="/market/shop" element={<main><Suspense fallback={<p role="status">กำลังโหลด…</p>}><ShopWorkspace /></Suspense></main>} />
       <Route path="/market/shop/seller" element={<main><Suspense fallback={<p role="status">กำลังโหลด…</p>}><ShopWorkspace /></Suspense></main>} />
       <Route path="/market/farm" element={<main><Suspense fallback={<p role="status">กำลังโหลด…</p>}><FarmerStudio /></Suspense></main>} />

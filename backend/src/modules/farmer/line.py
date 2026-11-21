@@ -62,10 +62,24 @@ def open_linked_farm(body: PairCode, response: Response):
         row = db.execute("SELECT farm_id FROM browser_pair WHERE code=? AND expires>?", (farm.digest(body.code.strip()), time.time())).fetchone()
         if not row:
             raise HTTPException(422, "รหัสไม่ถูกต้องหรือหมดอายุ พิมพ์ เชื่อมเว็บ ใน LINE เพื่อรับรหัสใหม่")
-        cookie = secrets.token_urlsafe(32)
-        db.execute("INSERT INTO owner(session,farm_id) VALUES (?,?)", (farm.digest(cookie), row[0]))
+        account = farm.account_name.get()
+        if account:
+            other = db.execute("SELECT account FROM account_farms WHERE farm_id=?", row).fetchone()
+            if other and other[0] != account:
+                raise HTTPException(409, "สวนนี้เชื่อมกับบัญชีอื่นแล้ว")
+            if row[0] != farm.farm_id.get():
+                current = farm.read(db)
+                if (current["listings"] or current["draft"]["history"] or current["draft"]["photos"]
+                        or current["draft"]["fields"] != farm.blank()["fields"]
+                        or current["revision"] or db.execute("SELECT 1 FROM line_owner WHERE farm_id=?",
+                                                              (farm.farm_id.get(),)).fetchone()):
+                    raise HTTPException(409, "บัญชีนี้มีข้อมูลสวนแล้ว")
+                db.execute("UPDATE account_farms SET farm_id=? WHERE account=?", (row[0], account))
+        else:
+            cookie = secrets.token_urlsafe(32)
+            db.execute("INSERT INTO owner(session,farm_id) VALUES (?,?)", (farm.digest(cookie), row[0]))
+            farm.set_cookie(response, cookie)
         db.execute("DELETE FROM browser_pair WHERE farm_id=?", row)
-        farm.set_cookie(response, cookie)
     return {"linked": True}
 
 

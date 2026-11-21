@@ -38,12 +38,35 @@ line_user: ContextVar[str] = ContextVar("line_user", default="")
 line_event: ContextVar[str] = ContextVar("line_event", default="")
 
 
+account_name: ContextVar[str | None] = ContextVar("account_name", default=None)
+
+
+def account_farm(db, name: str) -> int:
+    row = db.execute("SELECT farm_id FROM account_farms WHERE account=?", (name,)).fetchone()
+    if row:
+        return row[0]
+    identity = new_farm(db, name)
+    db.execute("INSERT INTO account_farms(account,farm_id) VALUES (?,?)", (name, identity))
+    return identity
+
+
 async def owner_session(request: Request, response: Response):
+    token = request.cookies.get("market_farmer")
+    name = None
+    if token:
+        with request.app.state.pool.connection() as conn:
+            account = conn.execute("SELECT buyer FROM idea_c_sessions WHERE farmer_digest=%s AND expires>now()",
+                                   (digest(token),)).fetchone()
+        if not account:
+            raise HTTPException(401, "กรุณาเข้าสู่ระบบอีกครั้ง")
+        name = account[0]
     cookie = request.cookies.get("maract_farm_owner", "")
     with closing(connect()) as db, db:
         db.execute("BEGIN IMMEDIATE")
         owner = db.execute("SELECT farm_id FROM owner WHERE session=?", (digest(cookie),)).fetchone()
-        if owner:
+        if name:
+            identity = account_farm(db, name)
+        elif owner:
             identity = owner[0]
         else:
             if request.method != "GET":
@@ -54,11 +77,13 @@ async def owner_session(request: Request, response: Response):
             cookie = secrets.token_urlsafe(32)
             db.execute("INSERT INTO owner(session,farm_id) VALUES (?,?)", (digest(cookie),identity))
             set_cookie(response, cookie)
+    account_marker = account_name.set(name)
     marker = farm_id.set(identity)
     try:
         yield
     finally:
         farm_id.reset(marker)
+        account_name.reset(account_marker)
 
 
 def set_cookie(response, value):
@@ -101,7 +126,7 @@ def initial():
 def connect():
     ROOT.mkdir(parents=True, exist_ok=True)
     db = sqlite3.connect(ROOT / "farm.sqlite", timeout=10)
-    if db.execute("PRAGMA user_version").fetchone()[0] == 1:
+    if db.execute("PRAGMA user_version").fetchone()[0] >= 2:
         return db
     db.execute("BEGIN IMMEDIATE")
     db.execute("CREATE TABLE IF NOT EXISTS farm (id INTEGER PRIMARY KEY, state TEXT NOT NULL)")
@@ -114,7 +139,8 @@ def connect():
         id TEXT PRIMARY KEY, payload TEXT, status TEXT DEFAULT 'pending', lease REAL DEFAULT 0,
         attempts INTEGER DEFAULT 0, received REAL NOT NULL, response TEXT)""")
     db.execute("CREATE INDEX IF NOT EXISTS line_work ON line_inbox(status, received)")
-    db.execute("PRAGMA user_version=1")
+    db.execute("CREATE TABLE IF NOT EXISTS account_farms(account TEXT PRIMARY KEY, farm_id INTEGER UNIQUE NOT NULL)")
+    db.execute("PRAGMA user_version=2")
     db.commit()
     return db
 

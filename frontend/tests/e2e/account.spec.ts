@@ -1,0 +1,32 @@
+import { randomUUID } from 'node:crypto';
+import { expect, test } from '@playwright/test';
+
+test('one account switches workspaces and retains its private farm across sign-ins', async ({ page }) => {
+  const name = 'ร้าน-' + randomUUID();
+  const password = randomUUID();
+  const login = '/market/login';
+  await page.goto(login);
+  await page.getByRole('button', { name: /ยังไม่มีบัญชี/ }).click();
+  await page.getByLabel('ชื่อบัญชี').fill(name);
+  await page.getByLabel('รหัสผ่าน', { exact: true }).fill(password);
+  await page.getByRole('button', { name: 'สร้างบัญชี', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'เลือกบทบาท' })).toBeVisible();
+  await page.getByRole('link', { name: /เกษตรกร/ }).click();
+  await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
+  await page.goto(login);
+  await page.getByRole('link', { name: /ผู้ซื้อ/ }).click();
+  await expect(page).toHaveURL('/market');
+  const orders = await page.request.get('/api/ideas/idea-c/orders');
+  expect((await orders.json()).buyer).toBe(name);
+  await page.goto(login);
+  await page.getByRole('button', { name: 'ออกจากระบบ' }).click();
+  await expect(page.getByRole('heading', { name: 'เข้าสู่ระบบ MarAct' })).toBeVisible();
+  expect((await page.request.get('/api/ideas/idea-c/orders')).status()).toBe(401);
+  const anonymousFarm = await page.request.get('/api/farmer/workspace');
+  expect((await anonymousFarm.json()).profile.name).not.toBe(name);
+  await page.getByLabel('ชื่อบัญชี').fill(name);
+  await page.getByLabel('รหัสผ่าน', { exact: true }).fill(password);
+  await page.getByRole('button', { name: 'เข้าสู่ระบบ', exact: true }).click();
+  await page.getByRole('link', { name: /เกษตรกร/ }).click();
+  await expect(page.getByRole('heading', { name, exact: true })).toBeVisible();
+});
