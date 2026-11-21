@@ -218,7 +218,7 @@ export function IdeaC() {
     </div>
   );
   return (
-    <fieldset className="market" disabled={busy}>
+    <fieldset className="market" lang="th" disabled={busy}>
       <nav aria-label="Marketplace">
         {[
           ["market", "เลือกผลผลิต"],
@@ -241,13 +241,23 @@ export function IdeaC() {
       {error && <p role="alert">{error}</p>}
       {tab === "market" && (
         <>
-          <section className="market-hero">
+          <section className="market-hero" data-enter>
             <div className="market-story">
               <h1>
-                ตลาดผลไม้
+                ผลไม้จากสวน
                 <br />
-                จากสวน
+                สำหรับร้านคุณ
               </h1>
+              <p>เลือกล็อตตามจำนวนและวันรับ เทียบราคาพร้อมค่าส่งจากแต่ละสวน</p>
+              <a className="catalog-link" href="#market-catalog">
+                เลือกดูผลผลิต <span aria-hidden="true">↓</span>
+              </a>
+            </div>
+            <img className="market-orchard" src={orchardPhoto} alt="" />
+          </section>
+          <div className="catalog-layout" id="market-catalog">
+            <section className="market-filters" aria-label="เงื่อนไขการเลือกผลผลิต">
+              <h2>ค้นหาผลผลิต</h2>
               <label>
                 ผลไม้ สวน หรือเมนู
                 <input
@@ -256,111 +266,126 @@ export function IdeaC() {
                   onChange={(e) => setQ(e.target.value)}
                 />
               </label>
+              <div className="market-fields">
+                <label>
+                  จำนวนที่ต้องการ (กก.)
+                  <input
+                    type="number"
+                    min="1"
+                    value={kg}
+                    onChange={(e) => setKg(e.target.value)}
+                  />
+                </label>
+                <label>
+                  ความสนใจของร้าน
+                  <input
+                    value={preference}
+                    onChange={(e) => setPreference(e.target.value)}
+                    placeholder="เช่น เบเกอรี"
+                  />
+                </label>
+              </div>
+              {fields}
+            </section>
+            <div className="catalog-results">
+              <div className="market-heading">
+                <h2>
+                  ล็อตผลผลิต <span className="market-count">{lots.length}</span>
+                </h2>
+                <label>
+                  เรียงตาม{" "}
+                  <select
+                    value={sort}
+                    onChange={(e) => setSort(e.target.value)}
+                  >
+                    <option value="match">แนะนำสำหรับร้าน</option>
+                    <option value="cost">ยอดรวม</option>
+                    <option value="date">วันที่รับเร็วที่สุด</option>
+                  </select>
+                </label>
+              </div>
+              {catalogError && <p role="alert">{catalogError}</p>}
+              {!lots.length && !catalogError && (
+                <p>ไม่มีล็อตตรงกับคำค้น ลองเปลี่ยนชนิดผลไม้หรือเมนู</p>
+              )}
+              <div className="market-grid">
+                {lots.map((l) => (
+                  <article key={l.id} className="market-product">
+                    <div className="market-product-head">
+                      {l.name.includes("มะม่วงน้ำดอกไม้") && (
+                        <img
+                          src={mangoPhoto}
+                          loading="lazy"
+                          alt="ภาพประกอบมะม่วงน้ำดอกไม้"
+                        />
+                      )}
+                      <div className="market-product-title">
+                        <small>{l.farm}</small>
+                        <h3>{l.name}</h3>
+                      </div>
+                    </div>
+                    <div className="market-product-body">
+                      <p>
+                        {l.grade ?? "สวนยังไม่ระบุเกรด"} · {l.uses}
+                      </p>
+                      <strong className="market-price">
+                        {money(l.price)} / {l.unit}
+                      </strong>
+                      <p>
+                        ขั้นต่ำ {l.minimum} {l.unit} · เหลือ {l.stock} {l.unit} ·{" "}
+                        {l.kg ? l.kg + " กก./" + l.unit : "สวนยังไม่ระบุน้ำหนัก"}
+                      </p>
+                      <p>
+                        รับได้เร็วสุด {l.earliest} · ค่าส่ง {money(l.freight)}
+                      </p>
+                      <p>
+                        {l.misses.join(" · ") ||
+                          (postcode.length === 5 && arrival
+                            ? "ส่งถึงตามวันที่เลือก"
+                            : "ระบุพื้นที่และวันรับเพื่อตรวจรอบส่ง")}
+                        {l.preferred ? " · ตรงความสนใจของร้าน" : ""}
+                      </p>
+                      <div className="market-product-foot">
+                        <strong>
+                          <small>
+                            รวมค่าส่ง · {l.units} {l.unit}{" "}
+                            {l.kg && l.unit !== "กก."
+                              ? "(" + Number(l.kg) * l.units + " กก.)"
+                              : ""}
+                          </small>
+                          {money(l.total)}
+                        </strong>{" "}
+                        <button
+                          disabled={
+                            l.stock < l.units ||
+                            l.requested_kg !== (kg ? Number(kg) : null) ||
+                            (l.requested_kg !== null && !l.kg)
+                          }
+                          onClick={() => add(l)}
+                        >
+                          เพิ่มลงตะกร้า
+                        </button>
+                        {cart.some((i) => i.lot.id === l.id) && (
+                          <small role="status">
+                            ในตะกร้า {cart.find((i) => i.lot.id === l.id)?.units}{" "}
+                            {l.unit}
+                          </small>
+                        )}
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
             </div>
-            <img className="market-orchard" src={orchardPhoto} alt="" />
-          </section>
-          <section className="market-filters" aria-label="เงื่อนไขการเลือกผลผลิต">
-            <div className="market-fields">
-              <label>
-                จำนวนที่ต้องการ (กก.)
-                <input
-                  type="number"
-                  min="1"
-                  value={kg}
-                  onChange={(e) => setKg(e.target.value)}
-                />
-              </label>
-              <label>
-                ความสนใจของร้าน
-                <input
-                  value={preference}
-                  onChange={(e) => setPreference(e.target.value)}
-                  placeholder="เช่น เบเกอรี"
-                />
-              </label>
-            </div>
-            {fields}
-          </section>
-          <div className="market-heading">
-            <h2>
-              ล็อตผลผลิต <span className="market-count">{lots.length}</span>
-            </h2>
-            <label>
-              เรียงตาม{" "}
-              <select value={sort} onChange={(e) => setSort(e.target.value)}>
-                <option value="match">แนะนำสำหรับร้าน</option>
-                <option value="cost">ยอดรวม</option>
-                <option value="date">วันที่รับเร็วที่สุด</option>
-              </select>
-            </label>
-          </div>
-          {catalogError && <p role="alert">{catalogError}</p>}
-          {!lots.length && !catalogError && (
-            <p>ไม่มีล็อตตรงกับคำค้น ลองเปลี่ยนชนิดผลไม้หรือเมนู</p>
-          )}
-          <div className="market-grid">
-            {lots.map((l) => (
-              <article key={l.id} className="market-product">
-                <div className="market-product-head">
-                  {l.name.includes("มะม่วงน้ำดอกไม้") && (
-                    <img
-                      src={mangoPhoto}
-                      loading="lazy"
-                      alt="ภาพประกอบมะม่วงน้ำดอกไม้"
-                    />
-                  )}
-                  <div className="market-product-title">
-                    <small>{l.farm}</small>
-                    <h3>{l.name}</h3>
-                  </div>
-                </div>
-                <div className="market-product-body">
-                  <p>
-                    {l.grade ?? "สวนยังไม่ระบุเกรด"} · {l.uses}
-                  </p>
-                  <strong className="market-price">
-                    {money(l.price)} / {l.unit}
-                  </strong>
-                  <p>
-                    ขั้นต่ำ {l.minimum} {l.unit} · เหลือ {l.stock} {l.unit} ·{" "}
-                    {l.kg ? l.kg + " กก./" + l.unit : "สวนยังไม่ระบุน้ำหนัก"}
-                  </p>
-                  <p>
-                    รับได้เร็วสุด {l.earliest} · ค่าส่ง {money(l.freight)}
-                  </p>
-                  <p>
-                    {l.misses.join(" · ") ||
-                      (postcode.length === 5 && arrival
-                        ? "ส่งถึงตามวันที่เลือก"
-                        : "ระบุพื้นที่และวันรับเพื่อตรวจรอบส่ง")}
-                    {l.preferred ? " · ตรงความสนใจของร้าน" : ""}
-                  </p>
-                  <div className="market-product-foot">
-                    <strong>
-                      {l.units} {l.unit}{" "}
-                      {l.kg ? "(" + Number(l.kg) * l.units + " กก.)" : ""} รวม{" "}
-                      {money(l.total)}
-                    </strong>{" "}
-                    <button
-                      disabled={
-                        l.stock < l.units ||
-                        l.requested_kg !== (kg ? Number(kg) : null) ||
-                        (l.requested_kg !== null && !l.kg)
-                      }
-                      onClick={() => add(l)}
-                    >
-                      เพิ่มลงตะกร้า
-                    </button>
-                  </div>
-                </div>
-              </article>
-            ))}
           </div>
         </>
       )}
       {tab !== "market" && !buyer && (
         <section>
           <h2>บัญชีผู้ประกอบการ</h2>
+          <p className="market-hint">
+            กรอกชื่อร้านและรหัสผ่านอย่างน้อย 8 ตัว หากใช้ครั้งแรกให้เลือก “สร้างบัญชีร้าน”
+          </p>
           <label>
             ชื่อร้าน
             <input value={name} onChange={(e) => setName(e.target.value)} />
@@ -412,6 +437,13 @@ export function IdeaC() {
               {[...new Set(cart.map((i) => i.lot.farm))].map((farm) => {
                 const group = cart.filter((i) => i.lot.farm === farm);
                 const selected = group.filter((i) => !later.includes(i.lot.id));
+                const missing = [
+                  !buyer && "เข้าสู่ระบบ",
+                  !selected.length && "เลือกล็อตสำหรับรอบส่ง",
+                  postcode.length !== 5 && "กรอกรหัสไปรษณีย์ 5 หลัก",
+                  !arrival && "เลือกวันรับ",
+                  !address.trim() && "กรอกที่อยู่จัดส่ง",
+                ].filter(Boolean);
                 const lines = selected.map((i) => ({
                   id: i.lot.id,
                   units: i.units,
@@ -443,6 +475,16 @@ export function IdeaC() {
                         </label>
                         <label>
                           {i.lot.name} ({i.lot.unit})
+                          {i.requested_kg && i.lot.kg && (
+                            <small>
+                              ขั้นต่ำ{" "}
+                              {Math.max(
+                                i.lot.minimum,
+                                Math.ceil(i.requested_kg / Number(i.lot.kg)),
+                              )}{" "}
+                              {i.lot.unit} สำหรับ {i.requested_kg} กก.
+                            </small>
+                          )}
                           <input
                             type="number"
                             min={i.lot.minimum}
@@ -467,15 +509,13 @@ export function IdeaC() {
                       </div>
                     ))}
                     <p>ยอดในตะกร้ารวมค่าส่ง {money(before)}</p>
+                    {missing.length > 0 && (
+                      <p className="market-hint">
+                        ก่อนตรวจยอด กรุณา{missing.join(" · ")}
+                      </p>
+                    )}
                     <button
-                      disabled={
-                        busy ||
-                        !selected.length ||
-                        !buyer ||
-                        postcode.length !== 5 ||
-                        !arrival ||
-                        !address.trim()
-                      }
+                      disabled={busy || missing.length > 0}
                       onClick={() =>
                         void run(async () => {
                           setReview(null);
