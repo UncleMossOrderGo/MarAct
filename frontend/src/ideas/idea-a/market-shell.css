@@ -106,6 +106,7 @@ main:has(> .market-shell) {
 }
 
 .market-mobile-brand,
+.market-nav-short-label,
 .market-app-header:has(+ main .market-shell--daily) .market-brand {
   display: none;
 }
@@ -235,6 +236,9 @@ main:has(> .market-shell) {
 }
 
 @media (max-width: 660px) {
+  .market-nav-wide-label { display: none; }
+  .market-nav-short-label { display: inline; }
+
   .market-mobile-brand {
     display: block;
     flex-basis: 100%;

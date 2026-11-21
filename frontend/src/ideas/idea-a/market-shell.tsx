@@ -25,6 +25,10 @@ const dailyNavigation = [
   ['orders', Package],
   ['settings', Settings],
 ] as const;
+const mobileDailyLabels: Record<MarketLocale, Record<typeof dailyNavigation[number][0], string>> = {
+  th: { today: 'เทรนด์', marketplace: 'ตลาด', orders: 'คำสั่งซื้อ', settings: 'ตั้งค่า' },
+  en: { today: 'Trends', marketplace: 'Market', orders: 'Orders', settings: 'Settings' },
+};
 
 export type MarketDestination = typeof legacyNavigation[number][0] | typeof dailyNavigation[number][0];
 
@@ -92,7 +96,7 @@ export function MarketShell({
   const daily = defaultShopId !== undefined;
   const copy = marketCopy[daily ? locale : 'en'];
   const navigation = daily
-    ? dailyNavigation.map(([id, Icon]) => [id, copy[id], Icon] as const)
+    ? dailyNavigation.map(([id, Icon]) => [id, copy[id], Icon, mobileDailyLabels[locale][id]] as const)
     : legacyNavigation;
 
   const signOut = onSignOut && <button type="button" onClick={onSignOut} disabled={signingOut}>
@@ -104,11 +108,15 @@ export function MarketShell({
         <div className="market-layout">
           <nav aria-label={copy.navigation} className="market-navigation">
             <MarketBrand />
-            {navigation.map(([id, label, Icon]) => (
+            {navigation.map(([id, label, Icon, shortLabel]) => (
               <button key={id} type="button" aria-current={destination === id ? 'page' : undefined}
+                aria-label={shortLabel ? label : undefined}
                 onClick={() => onNavigate(id)}>
                 <Icon size={20} aria-hidden="true" />
-                {label}
+                {shortLabel ? <>
+                  <span className="market-nav-wide-label">{label}</span>
+                  <span className="market-nav-short-label">{shortLabel}</span>
+                </> : label}
               </button>
             ))}
           </nav>

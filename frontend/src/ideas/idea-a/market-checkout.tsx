@@ -215,13 +215,13 @@ export function MarketOrderConfirmation({
         {(onKeepShopping || onBackToTrends) && <img src={marketplaceMascot} alt="" width={104} height={104} />}
         <h1>{copy.saved}</h1>
       </div>
-      <article className="market-order-panel"><MarketOrderDetails order={order} locale={locale} /></article>
       <button className="market-checkout-action" type="button" onClick={onViewOrders}>{copy.view}</button>
       {(onBackToTrends || onKeepShopping) && (
         <button className="market-checkout-back" type="button" onClick={onBackToTrends ?? onKeepShopping}>
           {onBackToTrends ? copy.trends : copy.keepShopping}
         </button>
       )}
+      <article className="market-order-panel"><MarketOrderDetails order={order} locale={locale} /></article>
     </section>
   );
 }
