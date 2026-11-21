@@ -1,3 +1,5 @@
+import os
+
 from backend.src.modules.idea_b.agent import (
     Brief,
     Interpretation,
@@ -43,14 +45,14 @@ def recommendations(
     if isinstance(body, SearchRequest):
         return search(body, bangkok_today(), lang)
     result = recommend(body, bangkok_today(), lang)
-    if explain:
+    if explain and os.getenv("MARACT_PUBLIC_DEMO") != "1":
         explain_recommendations(result)
     return result
 
 
 @router.post("/copilot/chat")
 def shopping_chat(body: ChatRequest, lang: Language = "th") -> ChatResponse:
-    return chat(body, bangkok_today(), lang)
+    return chat(body, bangkok_today(), lang, allow_external=os.getenv("MARACT_PUBLIC_DEMO") != "1")
 
 
 @router.post("/smart-cart/preview")
@@ -72,13 +74,16 @@ def trends(
     fruit: Fruit, explain: bool = False, lang: Language = "en", web_search: bool = False,
 ) -> FruitTrend | TrendWithContext:
     result = fruit_trend(fruit, lang)
-    if explain:
+    external = os.getenv("MARACT_PUBLIC_DEMO") != "1"
+    if explain and external:
         explain_trend(result, lang)
     if web_search:
-        return TrendWithContext(**result.model_dump(), market_context=market_context(fruit, lang))
+        return TrendWithContext(
+            **result.model_dump(), market_context=market_context(fruit, lang) if external else MarketContext(status="unavailable"),
+        )
     return result
 
 
 @router.post("/agent/interpret")
 def interpret_brief(body: Brief, lang: Language = "en") -> Interpretation:
-    return interpret(body, lang)
+    return interpret(body, lang, allow_external=os.getenv("MARACT_PUBLIC_DEMO") != "1")

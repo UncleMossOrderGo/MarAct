@@ -2,7 +2,7 @@
 
 Python backend dependencies live in `pyproject.toml` and `uv.lock`. The React frontend, its TypeScript config, and its npm dependencies live under `frontend/`.
 
-A modular monolith starter for comparing hackathon ideas in one app. The React and Vite frontend switches ideas by URL. One Python FastAPI backend runs both modules against PostgreSQL, with a separate set of tables for each idea.
+A single fruit marketplace backed by React, Vite, FastAPI, and PostgreSQL. The marketplace owns the catalog, quotes, cart, and checkout. Its shopping assistant reads the same lots and quote rules.
 
 ## Local setup
 
@@ -13,7 +13,7 @@ make init
 make dev
 ```
 
-Open [MarAct on port 5173](http://127.0.0.1:5173). The first visit opens Idea A. Use the idea dropdown to compare it with Idea B. The starter API listens on port 3000 and Vite proxies `/api` requests. Adjust `.env` if local ports conflict. Keep `DB_PORT` and the port in `DATABASE_URL` in sync.
+Open [MarAct on port 5173](http://127.0.0.1:5173). The first visit opens `/market`. Select **ผู้ช่วยจัดซื้อ** to open the shopping assistant. The API listens on port 3000 and Vite proxies `/api` requests. Adjust `.env` if local ports conflict. Keep `DB_PORT` and the port in `DATABASE_URL` in sync.
 
 | Command | Behavior |
 | --- | --- |
@@ -29,7 +29,22 @@ Open [MarAct on port 5173](http://127.0.0.1:5173). The first visit opens Idea A.
 
 Before the first browser test, run `cd frontend && npx playwright install chromium` from the repo root. The API and smoke tests use `DATABASE_URL`, so initialize the database first. Browser tests use port 5174 and API port 3001 by default. Keep these ports free, and set a distinct `DB_PORT` and `DATABASE_URL` when running database environments in parallel.
 
-## Add an idea
+## Marketplace handoff
+
+| Area | Where to work |
+| --- | --- |
+| Marketplace, shared cart, chat | [`frontend/src/features/marketplace/`](frontend/src/features/marketplace/) |
+| Lot ranking and quote rules | [`backend/src/modules/marketplace/catalog.py`](backend/src/modules/marketplace/catalog.py) |
+| Partner lots, buyer sessions and confirmed orders | [`backend/src/modules/marketplace/router.py`](backend/src/modules/marketplace/router.py) |
+| Chat intent, quotas, proposals and trend matching | [`backend/src/modules/marketplace/copilot.py`](backend/src/modules/marketplace/copilot.py) |
+
+`/ideas/idea-c` redirects to `/market` and preserves query parameters and the cart or orders hash. `/ideas/idea-b` opens Copilot in the marketplace. `/ideas/idea-b/chat`, `/ideas/idea-b/workspace`, and `/ideas/idea-a` remain accessible. Marketplace APIs retain `/api/ideas/idea-c` so existing consumers and buyer sessions continue to work.
+
+`POST /api/ideas/idea-c/copilot/chat` takes a Thai or English `message`, optional `postcode`, `arrival`, `preference`, and `previous` search criteria. It returns `message`, `source`, `lots`, `groups`, `trends`, `tool_calls`, `unfulfilled`, `previous`, and `delivery_confirmed`. Quantities are quoted in whole sales units. The cart budget is a product subtotal. A destination and date are needed to calculate totals with freight. Applying a proposal re-quotes the affected farm carts. The buyer confirms checkout separately.
+
+The agent uses live catalog data from the configured PostgreSQL database. Demo installations can load sample lots with `make seed IDEA=idea-c`. Trend metrics remain sample data. When available, MCP web sources appear as additional cited context. In public-demo mode, guests can use catalog answers and signed-in buyers can use external tools within the configured quotas.
+
+## Add a legacy demo
 
 1. Pick a stable lowercase ID such as `idea-c`. Create a screen and a `*.spec.ts` test under `frontend/src/ideas/idea-c/`.
 2. Register its label, status, and screen in [the idea registry](frontend/src/ideas/registry.ts). The screen URL is `/ideas/idea-c`.
@@ -37,7 +52,7 @@ Before the first browser test, run `cd frontend && npx playwright install chromi
 4. Coordinate the next migration number, add SQL under `backend/db/migrations/`, and prefix idea tables with `idea_c_`. Put repeatable fixtures under `backend/db/seeds/idea-c/` using stable unique seed keys.
 5. Run `make migrate`, `make seed IDEA=idea-c`, and `make test-idea IDEA=idea-c`. Record the addition in [CHANGELOG.md](CHANGELOG.md).
 
-A `draft` idea is available by direct link. A `demo` is also selectable. A `retired` idea’s page is unavailable. To promote an idea, set it to `demo`, update `defaultIdeaId`, keep the previous default at `demo`, and update the changelog. Preserve IDs and tables through promotion.
+A `draft` idea is available by direct link. A `demo` is also selectable from the legacy idea pages. A `retired` idea’s page is unavailable. Preserve IDs and tables through promotion.
 
 ## CI and deployment
 

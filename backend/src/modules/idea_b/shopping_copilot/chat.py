@@ -275,7 +275,7 @@ def model_turn(request: ChatRequest, response: ChatResponse, today: date, lang: 
     return handled
 
 
-def chat(request: ChatRequest, today: date, lang: Language) -> ChatResponse:
+def chat(request: ChatRequest, today: date, lang: Language, *, allow_external: bool = True) -> ChatResponse:
     known = bool(FRUIT_MENTION.search(request.message))
     response = ChatResponse(
         intent="clarification", conversation_id=request.conversation_id or str(uuid4()), source="deterministic",
@@ -292,13 +292,13 @@ def chat(request: ChatRequest, today: date, lang: Language) -> ChatResponse:
     actionable = known or any(pattern.search(request.message) for pattern in (PROFILE_REQUEST, TREND_REQUEST)) or bool(
         re.search(r"เหมือนที่ซื้อ|เหมือนเดิม|repeat.*(?:purchase|order)", request.message, re.IGNORECASE),
     )
-    if actionable and model_turn(request, response, today, lang):
+    if allow_external and actionable and model_turn(request, response, today, lang):
         response.source = "openai"
     else:
         try:
             local_turn(request, response, today, lang)
         except (ValueError, ArithmeticError):
             pass
-    if response.intent == "trend_discovery":
+    if allow_external and response.intent == "trend_discovery":
         response.tool_calls.extend(attach_market_sources(response.trend_opportunities, lang))
     return response

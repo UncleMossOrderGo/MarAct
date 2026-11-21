@@ -17,7 +17,7 @@ Strategy = Literal["lowest_product_price", "personalized_relevance"]
 Intent = Literal["search", "personalize", "smart_cart", "trend_discovery", "clarification"]
 ToolName = Literal[
     "search_listings", "get_buyer_profile", "build_smart_cart", "repeat_purchase",
-    "get_trend_opportunities", "search_fruit_market", "report_unknown",
+    "get_trend_opportunities", "search_fruit_market", "report_unknown", "market_intent",
 ]
 
 

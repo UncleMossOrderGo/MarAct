@@ -2,6 +2,35 @@ import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
 
+test("copilot proposes a real lot and moves it to the existing cart", async ({ page }) => {
+  const key = randomUUID();
+  const root = new URL("../../../../", import.meta.url);
+  const manageLot = (expression: string) => execFileSync("uv", ["run", "--locked", "python", "-c",
+    `from backend.src.modules.idea_c.test_market import browser_lot, cleanup; import sys; ${expression}(sys.argv[1])`, key,
+  ], { cwd: root });
+  manageLot("browser_lot");
+  try {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/market");
+    await page.getByRole("button", { name: "ผู้ช่วยจัดซื้อ" }).click();
+    const chat = page.getByRole("dialog");
+    await chat.getByLabel("รหัสไปรษณีย์").fill("10100");
+    await chat.getByLabel("วันที่ต้องการรับ").fill(new Date(Date.now() + 4 * 86400000).toISOString().slice(0, 10));
+    await chat.getByLabel("ข้อความถึงผู้ช่วย").fill(`หา ${key} 20 กก.`);
+    await chat.getByRole("button", { name: "ส่ง", exact: true }).click();
+    await expect(chat.getByText("ยอดส่งถึงเบื้องต้น ฿960")).toBeVisible();
+    await chat.getByText("เครื่องมือที่เรียก").click();
+    await expect(chat.getByText("search_listings · completed")).toBeVisible();
+    await expect(page.getByRole("button", { name: "ตะกร้า (0)", includeHidden: true })).toBeAttached();
+    await chat.getByRole("button", { name: "นำล็อตไปตะกร้า" }).click();
+    await expect(page).toHaveURL("/market#cart");
+    await expect(page.getByRole("button", { name: "ตะกร้า (1)" })).toBeVisible();
+    await expect(page.getByText("รวมค่าส่ง 960 บาท", { exact: true })).toBeVisible();
+  } finally {
+    manageLot("cleanup");
+  }
+});
+
 test("agent handoff through checkout and cancellation", async ({ page }) => {
   const buyer = randomUUID();
   const root = new URL("../../../../", import.meta.url);

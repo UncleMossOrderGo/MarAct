@@ -1,13 +1,14 @@
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
-import { defaultIdeaId, demoIdeas, ideaPath } from '../src/ideas/registry';
 
-test('root opens the configured default demo', async ({ page }) => {
+test('root opens the marketplace and old links keep search and cart state', async ({ page }) => {
   await page.goto('/');
-  await expect(page).toHaveURL(ideaPath(defaultIdeaId));
-  await expect(page.getByRole('combobox', { name: 'Idea' })).toHaveValue(defaultIdeaId);
-  await expect(page.getByRole('option')).toHaveText(demoIdeas.map(({ label }) => label));
+  await expect(page).toHaveURL('/market');
+  await expect(page.getByRole('navigation', { name: 'Marketplace' })).toBeVisible();
+  await page.goto('/ideas/idea-c?q=mango#cart');
+  await expect(page).toHaveURL('/market?q=mango#cart');
+  await expect(page.getByRole('button', { name: 'ตะกร้า (0)' })).toHaveAttribute('aria-pressed', 'true');
 });
 
 test('switching ideas keeps newly created records isolated', async ({ page, request }) => {
@@ -21,14 +22,14 @@ test('switching ideas keeps newly created records isolated', async ({ page, requ
     await expect(record).toBeVisible();
 
     await switcher.selectOption('idea-b');
-    await expect(page).toHaveURL('/ideas/idea-b');
-    await expect(page.getByRole('status')).toHaveCount(0);
+    await expect(page).toHaveURL('/market?copilot=1');
+    await expect(page.getByRole('dialog')).toBeVisible();
     await expect(record).toHaveCount(0);
     const records = await (await request.get('/api/ideas/idea-b/records')).json();
     expect(records.map((item: { title: string }) => item.title)).not.toContain(title);
 
     await page.reload();
-    await expect(switcher).toHaveValue('idea-b');
+    await expect(page.getByRole('dialog')).toBeVisible();
     await page.goBack();
     await expect(page).toHaveURL('/ideas/idea-a');
     await expect(switcher).toHaveValue('idea-a');

@@ -122,14 +122,14 @@ def structured_response(
     return None
 
 
-def interpret(brief: Brief, lang: Language = "en") -> Interpretation:
+def interpret(brief: Brief, lang: Language = "en", *, allow_external: bool = True) -> Interpretation:
     response_language = localized(lang, "English", "Thai")
     raw = structured_response(
         "buyer_order_draft", DRAFT_SCHEMA,
         f"{skill_instructions('buyer-brief')}\nToday in Bangkok is {bangkok_today().isoformat()}. "
         f"Write constraint descriptions in {response_language}.",
         brief.text,
-    )
+    ) if allow_external else None
     if raw is not None:
         try:
             draft = OrderDraft.model_validate(raw)

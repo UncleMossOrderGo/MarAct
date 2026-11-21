@@ -16,16 +16,11 @@ export const ideas: readonly Idea[] = [
   { id: 'idea-c', label: 'Idea C · Marketplace', status: 'demo', Screen: IdeaC },
 ];
 
-export const defaultIdeaId = 'idea-a';
 export const demoIdeas = ideas.filter((idea) => idea.status === 'demo');
 
 if (new Set(ideas.map(({ id }) => id)).size !== ideas.length) {
   throw new Error('Idea IDs must be unique.');
 }
-if (!demoIdeas.some(({ id }) => id === defaultIdeaId)) {
-  throw new Error('The default idea must be a demo.');
-}
-
 export function ideaPath(id: string) {
   return `/ideas/${id}`;
 }

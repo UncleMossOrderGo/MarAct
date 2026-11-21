@@ -9,9 +9,75 @@ from fastapi.testclient import TestClient
 
 from backend.src.app.main import app
 from backend.src.modules.idea_c.router import today
+from backend.src.modules.marketplace import copilot
 from backend.src.shared.db import database_url
 
 ROOT = "/api/ideas/idea-c"
+
+
+def test_copilot_uses_catalog_quotes_and_never_orders(shop, monkeypatch):
+    client, key, _ = shop
+    monkeypatch.setenv("MARACT_PUBLIC_DEMO", "1")
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    delivery = {"postcode": "10100", "arrival": str(today() + timedelta(days=2))}
+    endpoint = ROOT + "/copilot/chat"
+    cart = client.post(endpoint, json={"message": f"จัดตะกร้า {key} 20 กก. งบ 960", **delivery}).json()
+    (group,) = cart["groups"]
+    assert group["lines"][0]["units"] == 4
+    assert group["total"] == basket(client, key)["expected"]["total"] == 1060
+    assert cart["delivery_confirmed"]
+    assert client.get(ROOT + "/orders").json()["orders"] == []
+
+    under_budget = client.post(endpoint, json={"message": f"จัดตะกร้า {key} 20 กก. งบ 959", **delivery}).json()
+    assert under_budget["groups"] == [] and under_budget["unfulfilled"] == [key]
+    unknown = client.post(endpoint, json={"message": "แนวโน้มของแอปเปิลสีฟ้า"}).json()
+    assert unknown["message"] == copilot.UNKNOWN and unknown["trends"] == []
+
+
+def test_copilot_trends_match_market_lots(shop, monkeypatch):
+    client, key, _ = shop
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    browser_lot(key + "-trend", name="มะม่วงตลาดทดสอบ")
+    try:
+        result = client.post(ROOT + "/copilot/chat", json={"message": "แนวโน้มมะม่วง"}).json()
+        (trend,) = result["trends"]
+        assert key + "-trend" in trend["matching_listing_ids"]
+        assert trend["signal_type"] == "search_interest"
+        assert "เดโม" in trend["caveat"]
+    finally:
+        cleanup(key + "-trend")
+
+
+def test_demo_quotas_gate_model_by_session_and_buyer(shop, monkeypatch):
+    client, key, _ = shop
+    monkeypatch.setenv("MARACT_PUBLIC_DEMO", "1")
+    monkeypatch.setenv("OPENAI_API_KEY", "test")
+    monkeypatch.setenv("OPENAI_MODEL", "test")
+    monkeypatch.setenv("MARACT_AI_BUYER_PER_DAY", "1")
+    monkeypatch.setenv("MARACT_AI_IP_PER_MINUTE", "100000")
+    monkeypatch.setenv("MARACT_AI_GLOBAL_PER_DAY", "100000")
+    calls = []
+
+    def use_tool(payload, timeout):
+        calls.append(payload)
+        return {"output": [{"type": "function_call", "name": "market_intent", "arguments": json.dumps({
+            "action": "search", "items": [{"query": key, "kg": 20}],
+        })}]}
+
+    monkeypatch.setattr(copilot, "create_response", use_tool)
+    endpoint = ROOT + "/copilot/chat"
+    body = {"message": f"หา {key} 20 กก."}
+    token = client.cookies.get("market_session")
+    client.cookies.clear()
+    assert client.post(endpoint, json=body).json()["source"] == "deterministic"
+    assert token
+    client.cookies.set("market_session", token, path=ROOT)
+    first = client.post(endpoint, json=body).json()
+    assert first["source"] == "openai" and first["tool_calls"][0]["name"] == "market_intent"
+    assert first["lots"][0]["id"] == key
+    second = client.post(endpoint, json=body).json()
+    assert second["source"] == "deterministic" and second["lots"][0]["id"] == key
+    assert len(calls) == 1
 
 
 @pytest.fixture

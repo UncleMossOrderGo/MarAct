@@ -13,7 +13,7 @@ test('Idea B starts in chat and displays the tool trace under its reply', async 
     tool_calls: [{ name: 'search_listings', status: 'completed' }],
   } }));
   await page.setViewportSize({ width: 375, height: 844 });
-  await page.goto('/ideas/idea-b');
+  await page.goto('/ideas/idea-b/chat');
   await expect(page.getByRole('heading', { name: 'ผู้ช่วยจัดซื้อผลไม้' })).toBeVisible();
   await expect(page.getByRole('region', { name: 'เปรียบเทียบฟาร์ม' })).toHaveCount(0);
   await page.getByRole('button', { name: 'หามะม่วง 50 กก. ราคาถูกที่สุด' }).click();

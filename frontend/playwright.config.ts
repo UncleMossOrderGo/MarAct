@@ -18,7 +18,7 @@ export default defineConfig({
       command: 'uv run --locked python -m backend.src.app.server',
       cwd: fileURLToPath(new URL('..', import.meta.url)),
       url: `http://127.0.0.1:${apiPort}/api/health`,
-      env: { API_PORT: apiPort, API_HOST: '127.0.0.1' },
+      env: { API_PORT: apiPort, API_HOST: '127.0.0.1', OPENAI_API_KEY: '' },
     },
     {
       command: `npm run dev -- --port ${webPort}`,
