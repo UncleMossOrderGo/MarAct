@@ -5,9 +5,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def idea_ids() -> list[str]:
-    modules = ROOT / "backend/src/modules"
+    ideas = ROOT / "frontend/src/ideas"
     return sorted(
-        path.name.replace("_", "-")
-        for path in modules.iterdir()
-        if path.is_dir() and re.fullmatch(r"[a-z0-9]+(?:_[a-z0-9]+)*", path.name)
+        path.name
+        for path in ideas.iterdir()
+        if path.is_dir() and re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", path.name)
     )
