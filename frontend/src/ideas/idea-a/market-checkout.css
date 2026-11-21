@@ -1,0 +1,114 @@
+.market-checkout {
+  display: grid;
+  gap: 16px;
+  color: var(--market-ink, #102019);
+}
+
+.market-checkout h1,
+.market-checkout h2,
+.market-checkout p {
+  margin: 0;
+}
+
+.market-checkout h2 {
+  font-size: 1.125rem;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.market-checkout button {
+  justify-self: start;
+  cursor: pointer;
+}
+
+.market-checkout button:focus-visible {
+  outline: 2px solid var(--market-green, #1c732d);
+  outline-offset: 3px;
+}
+
+.market-checkout button:disabled {
+  cursor: default;
+}
+
+.market-checkout .market-checkout-back {
+  border: 1px solid var(--market-border, #dce5df);
+  background: transparent;
+  color: inherit;
+}
+
+.market-checkout .market-checkout-action {
+  width: 100%;
+  border-radius: var(--market-radius, 8px);
+  background: var(--market-green, #1c732d);
+  color: #fff;
+  font-weight: 600;
+}
+
+.market-order-panel {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--market-border, #dce5df);
+  border-radius: var(--market-radius, 8px);
+  background: #fff;
+}
+
+.market-order-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.market-order-heading time {
+  color: var(--market-muted, #546259);
+  font-size: .875rem;
+}
+
+.market-order-status {
+  padding: 2px 8px;
+  border-radius: 999px;
+  color: var(--market-green, #1c732d);
+  background: var(--market-green-soft, #e9f5e9);
+  font-size: .875rem;
+}
+
+.market-order-items {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.market-order-items li,
+.market-order-total {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--market-border, #dce5df);
+  padding-block: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.market-order-items li > div {
+  display: grid;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.market-order-items li > div span {
+  color: var(--market-muted, #546259);
+  font-size: .875rem;
+}
+
+.market-order-items li > span {
+  flex-shrink: 0;
+}
+
+.market-order-total {
+  padding-bottom: 0;
+  font-weight: 600;
+}
+
+.market-checkout .market-checkout-error {
+  color: #912b20;
+}
