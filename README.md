@@ -39,6 +39,21 @@ The demo command above enables one scheduler in the API process. It runs the sam
 
 Optionally set `OPENAI_API_KEY` in `.env` for generated risk explanations. The default model is `gpt-6-luna`. Set `OPENAI_MODEL` to override it. The dashboard uses built-in explanations when the provider is unavailable.
 
+## Marketplace demo configuration
+
+For the marketplace walkthrough, start one API instance with the scheduler enabled. Use seed trends and an empty API key to exercise the demo without provider calls.
+
+```sh
+make init
+OPENAI_API_KEY= IDEA_A_USE_SEED_TRENDS=true IDEA_A_SCHEDULER_ENABLED=1 make dev
+```
+
+Set `IDEA_A_SCHEDULE_TIME` to a 24-hour Bangkok time in `HH:MM` format. The default is `15:30`. Enable the scheduler on one instance only. Manual and scheduled refreshes use the same service. `IDEA_A_TREND_CACHE_HOURS` defaults to 24. Without a key, trend refresh uses seed cards and feed explanations use templates. CI clears the key, selects seed mode, and disables the scheduler.
+
+Before enabling live search, verify the configured model and domain-filter support with the adapter's stubbed Responses request. Check that the request includes the intended allow-list, then verify that every displayed citation matches returned search evidence. Use prompt steering if filters are unavailable.
+
+To measure the demo targets, warm the shop feed and record repeat feed request timings in the browser Network panel. Measure explanation time from the stream request until its first explanation event. Compare against the targets of 300 ms for cached feed and 3 s for explanations. For a live trial, use a dedicated API project, record the run count and token and search usage, and compare the project spend delta against the $5 PoC target.
+
 ## Add an idea
 
 1. Pick a stable lowercase ID such as `idea-c`. Create a screen and a `*.spec.ts` test under `frontend/src/ideas/idea-c/`.

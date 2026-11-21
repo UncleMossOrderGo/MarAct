@@ -1,6 +1,6 @@
 import os
 from collections.abc import AsyncIterator, Callable, Mapping, Sequence
-from contextlib import asynccontextmanager, nullcontext
+from contextlib import AbstractContextManager, asynccontextmanager, nullcontext
 from datetime import datetime
 from pathlib import Path
 
@@ -17,7 +17,7 @@ from backend.src.modules.idea_a.planner import BANGKOK, Recommendation
 from backend.src.modules.idea_a.repository import SqlAlchemyRepository
 from backend.src.modules.idea_a.restock_router import restock_router
 from backend.src.modules.idea_a.router import router as idea_a
-from backend.src.modules.idea_a.scheduler import scheduled_checks
+from backend.src.modules.idea_a.scheduler import parse_schedule_time, scheduled_checks
 from backend.src.modules.idea_a.workflow import PlanningService
 from backend.src.modules.idea_b.router import router as idea_b
 from backend.src.shared.db import database_url
@@ -44,7 +44,11 @@ def create_app(
             with ConnectionPool(database_url(), min_size=1, max_size=5, open=False) as pool:
                 app.state.pool = pool
                 enabled = schedule if schedule is not None else os.getenv("IDEA_A_SCHEDULER_ENABLED") == "1"
-                with scheduled_checks(service.run, clock=clock) if enabled else nullcontext():
+                worker: AbstractContextManager[None] = nullcontext()
+                if enabled:
+                    at = parse_schedule_time(os.getenv("IDEA_A_SCHEDULE_TIME", "15:30"))
+                    worker = scheduled_checks(service.run, clock=clock, at=at)
+                with worker:
                     yield
         finally:
             engine.dispose()

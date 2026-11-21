@@ -1,10 +1,15 @@
 import logging
-from datetime import UTC, datetime
+from datetime import UTC, datetime, time
 from threading import Event, Thread, current_thread
 
+import pytest
 from pytest import LogCaptureFixture
 
-from backend.src.modules.idea_a.scheduler import DailyCheck, scheduled_checks
+from backend.src.modules.idea_a.scheduler import (
+    DailyCheck,
+    parse_schedule_time,
+    scheduled_checks,
+)
 
 
 def test_check_runs_in_bangkok_at_15_30_once_per_day() -> None:
@@ -45,7 +50,7 @@ def test_failed_check_is_logged_and_next_day_still_runs(caplog: LogCaptureFixtur
         (
             "backend.src.modules.idea_a.scheduler",
             logging.ERROR,
-            "Idea A scheduled stock check failed for 2026-11-21",
+            "Idea A scheduled refresh failed for 2026-11-21",
         ),
     ]
     assert caplog.records[0].exc_info is not None
@@ -67,3 +72,20 @@ def test_worker_uses_injected_clock_and_joins_on_exit() -> None:
     assert now == scheduled_time
     assert thread is not current_thread()
     assert not thread.is_alive()
+
+
+def test_configured_bangkok_time_is_used() -> None:
+    calls: list[datetime] = []
+    check = DailyCheck(calls.append, at=parse_schedule_time("09:05"))
+    check.tick(datetime(2026, 11, 21, 8, 30, tzinfo=UTC))
+    scheduled = datetime(2026, 11, 21, 2, 5, tzinfo=UTC)
+    check.tick(scheduled)
+    check.tick(scheduled.replace(second=59))
+    assert calls == [scheduled]
+    assert parse_schedule_time("15:30") == time(15, 30)
+
+
+@pytest.mark.parametrize("value", ["", "9:05", "24:00", "09:05:00", "09:05+07:00"])
+def test_invalid_schedule_time_is_rejected(value: str) -> None:
+    with pytest.raises(ValueError, match="HH:MM"):
+        parse_schedule_time(value)
