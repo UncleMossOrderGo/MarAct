@@ -1,0 +1,12 @@
+.buyer-account { max-width: 950px; margin: auto; padding: clamp(22px,5vw,52px) 4vw 20px; }
+.buyer-intro { color:#204532; border-bottom:1px solid #ced8c8; padding-bottom:18px; margin-bottom:18px; }
+.market .buyer-intro h1 { font:500 clamp(31px,4vw,48px)/1.35 'Market Serif',serif; margin:5px 0; }
+.buyer-columns {display:grid;grid-template-columns:1.1fr .9fr;gap:18px;align-items:start;}
+.buyer-profile,.buyer-assist,.market .buyer-account .shop-account { padding:clamp(18px,3vw,28px);border:1px solid #ccd8c7;border-radius:14px;background:#fffefa;}
+.buyer-assist {background:#edf2e6;}
+.market .buyer-assist h2,.market .buyer-profile h2 {font:650 22px/1.4 var(--shop-font);}
+.market .buyer-assist button {display:flex;align-items:center;gap:8px;margin-top:10px;}
+.market .buyer-assist p {margin-top:8px;}
+.market .buyer-assist .buyer-logout {background:transparent;color:#285039;text-decoration:underline;}
+.buyer-account [role=status] {color:#265136;}
+@media(max-width:640px){.buyer-columns{grid-template-columns:1fr;}}

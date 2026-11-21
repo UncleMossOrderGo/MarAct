@@ -72,7 +72,7 @@ def session(body: Account, req: Request, response: Response):
         digest = hashlib.scrypt(body.password.encode(), salt=salt, n=16384, r=8, p=1)
         if body.create_account and not row:
             cur.execute(
-                "INSERT INTO idea_c_buyers VALUES (%s,%s,%s)", (body.name, salt, digest)
+                "INSERT INTO idea_c_buyers(name,salt,digest) VALUES (%s,%s,%s)", (body.name, salt, digest)
             )
         elif (
             body.create_account
@@ -95,6 +95,20 @@ def session(body: Account, req: Request, response: Response):
             path="/api/ideas/idea-c",
         )
         return {"buyer": body.name}
+
+
+class BuyerProfile(BaseModel):
+    business: Annotated[str, Field(max_length=160)] = ""
+    postcode: Postcode | Literal[""] = ""
+
+
+@router.post("/buyer/profile")
+def save_buyer_profile(body: BuyerProfile, req: Request):
+    with market(req) as cur:
+        owner = buyer(cur, req)
+        cur.execute("UPDATE idea_c_buyers SET business=%s, postcode=%s WHERE name=%s",
+                    (body.business.strip(), body.postcode, owner))
+        return {"business": body.business.strip(), "postcode": body.postcode}
 
 
 @router.post("/logout")
@@ -272,7 +286,9 @@ def orders(req: Request):
         cur.execute(
             "SELECT * FROM idea_c_orders WHERE buyer=%s ORDER BY created DESC", (owner,)
         )
-        return {"buyer": owner, "orders": cur.fetchall()}
+        history = cur.fetchall()
+        cur.execute("SELECT business, postcode FROM idea_c_buyers WHERE name=%s", (owner,))
+        return {"buyer": owner, "orders": history, "profile": cur.fetchone()}
 
 
 class Event(BaseModel):

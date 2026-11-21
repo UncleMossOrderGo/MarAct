@@ -1,3 +1,6 @@
+import { randomUUID } from 'node:crypto';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
@@ -18,7 +21,7 @@ export default defineConfig({
       command: 'uv run --locked python -m backend.src.app.server',
       cwd: fileURLToPath(new URL('..', import.meta.url)),
       url: `http://127.0.0.1:${apiPort}/api/health`,
-      env: { API_PORT: apiPort, API_HOST: '127.0.0.1', OPENAI_API_KEY: '' },
+      env: { API_PORT: apiPort, API_HOST: '127.0.0.1', OPENAI_API_KEY: '', FARMER_DATA_DIR: join(tmpdir(), 'maract-e2e-' + randomUUID()) },
     },
     {
       command: `npm run dev -- --port ${webPort}`,

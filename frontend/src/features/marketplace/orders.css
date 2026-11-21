@@ -1,0 +1,67 @@
+.shop-orders { max-width: 1150px; margin: 0 auto; padding: clamp(24px,4vw,52px) 4vw 10px; }
+.orders-title { display: flex; align-items: center; flex-wrap: wrap; justify-content: space-between; gap: 12px 20px; padding-bottom: 22px; border-bottom: 1px solid #cbd4c3; }
+.market .orders-title h1 { color: #1c402c; font: 500 clamp(33px,4vw,56px)/1.35 'Market Serif',serif; }
+.market .orders-title p { display: flex; align-items: center; gap: 8px; margin-top: 5px; color: #526254; }
+.order-login-link,.orders-tools button,.orders-empty button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.order-login-link { min-height: 44px; color: #254f36; font-weight: 650; text-decoration-thickness: 1px; text-underline-offset: 4px; }
+.orders-tools { display: flex; gap: 7px; flex-wrap: wrap; }
+.market .orders-tools button,.market .slip-actions button { background: #fffef8; color: #285039; border: 1px solid #b8c7b4; border-radius: 8px; }
+.market :is(.orders-tools,.slip-actions) button:hover:enabled { background: #e6eddf; }
+.orders-layout { display: grid; gap: clamp(18px,3vw,36px); margin-top: 24px; align-items: start; }
+.orders-layout.with-account { grid-template-columns: minmax(0,1.65fr) minmax(260px,1fr); }
+.orders-list { min-width: 0; }
+.orders-list-heading { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.market .orders-list-heading h2 { font: 650 22px/1.4 var(--shop-font); }
+.orders-list-heading > span { padding: 3px 9px; border: 1px solid #d4ccaa; border-radius: 20px; background: #f7f1d9; color: #65582f; font-size: 12px; }
+.market .order-slip { padding: 0; border: 1px solid #d0d8c9; border-radius: 14px; background: #fffefa; margin-bottom: 14px; overflow: hidden; }
+.slip-top,.slip-lines,.slip-progress,.slip-total,.slip-details,.slip-actions,.slip-notice { padding-inline: clamp(14px,2vw,24px); }
+.slip-top { padding-block: 13px 11px; background: #f0f3e8; border-bottom: 1px solid #d8dfcf; }
+.slip-top > small,.slip-total small,.slip-line small { color: #536450; font-size: 13px; }
+.market .slip-top h3 { margin-top: 3px; display: flex; flex-wrap: wrap; gap: 5px 12px; align-items: center; font: 650 19px/1.5 var(--shop-font); }
+.slip-top h3 > span:first-child,.slip-state,.slip-total small { display: inline-flex; align-items: center; gap: 6px; }
+.slip-state { margin-left: auto; border-radius: 99px; padding: 3px 10px; background: #e2e7de; color: #344a37; font: 600 13px/1.55 var(--shop-font); }
+.slip-state[data-state="pending"] { background: #f9e8bc; color: #714718; }
+.slip-state[data-state="shipped"] { background: #dce9f1; color: #2f5369; }
+.slip-state:is([data-state="accepted"],[data-state="received"]) { background: #dcebcf; color: #355433; }
+.order-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.slip-line { display: flex; align-items: center; gap: 13px; padding-block: 15px; }
+.slip-line + .slip-line { border-top: 1px solid #e3e8dc; }
+.slip-line .compact-photo { flex: none; width: 66px; height: 60px; margin: 0; border-radius: 8px; overflow: hidden; }
+.slip-line .lot-no-photo { height: 100%; }
+.slip-line small { display: block; }
+.slip-line b { margin-left: auto; white-space: nowrap; }
+.slip-progress { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); list-style: none; margin: 0 0 14px; }
+.slip-progress li { position: relative; z-index: 0; display: grid; justify-items: center; gap: 3px; padding: 0; border: 0; color: #5e695b; font-size: 12px; text-align: center; }
+.slip-progress li::before { content: ''; position: absolute; top: 7px; left: -50%; right: 50%; height: 2px; z-index: -1; background: #d1d8cb; }
+.slip-progress li:first-child::before { display: none; }
+.slip-progress i { width: 16px; height: 16px; background: #fffefa; border: 2px solid #b8c4b3; border-radius: 50%; display: grid; place-items: center; }
+.slip-progress li[data-done="true"]::before,.slip-progress li[data-done="true"] i { background: #54754c; border-color: #54754c; color: white; }
+.slip-progress li[aria-current="step"] { color: #274a33; font-weight: 700; }
+.slip-total { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px dashed #c7d0bf; padding-block: 9px; }
+.slip-total > div { display: grid; }
+.slip-total > div:last-child { text-align: right; }
+.slip-total > div:last-child small { justify-content: end; }
+.slip-total b { font-size: 23px; line-height: 1.45; }
+.slip-details { border-top: 1px solid #e4e8df; }
+.slip-details summary { display: flex; align-items: center; justify-content: space-between; min-height: 44px; cursor: pointer; font-weight: 600; font-size: 14px; }
+.slip-details[open] svg { transform: rotate(180deg); }
+.slip-details > div { padding-bottom: 12px; color: #546554; font-size: 14px; }
+.slip-notice,.slip-actions { margin-bottom: 12px; }
+.slip-actions { padding-bottom: 12px; }
+.slip-actions button { margin: 4px 6px 0 0; }
+.order-account { border: 1px solid #ccd5c3; border-radius: 14px; overflow: hidden; background: white; }
+.order-account-photo { height: clamp(112px,12vw,152px); background: #e4ebdc url('./assets/cover-suan-lung-som.webp') center 54% / cover; }
+.market .order-account .shop-account { display: grid; grid-template-columns: 1fr; gap: 10px; padding: clamp(16px,2vw,26px); border: 0; border-radius: 0; background: #fffefa; }
+.market .order-account .shop-account h2 { font: 650 22px/1.4 var(--shop-font); }
+.market .order-account .shop-account :is(p,label,button) { margin: 0; }
+.market .order-account .shop-account button { border-radius: 8px; }
+.orders-empty { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 18px; border: 1px solid #d2dcc8; border-radius: 12px; background: #edf2e4; margin-top: 16px; }
+.orders-empty button { margin-left: auto; }
+@media(max-width: 760px) {
+  .orders-layout.with-account { grid-template-columns: 1fr; }
+  .shop-orders { padding-inline: max(14px,4vw); }
+  .order-account-photo { height: 100px; }
+}
+@media(min-width: 761px) {
+  .orders-layout:not(.with-account) .orders-list { max-width: 800px; width: 100%; }
+}

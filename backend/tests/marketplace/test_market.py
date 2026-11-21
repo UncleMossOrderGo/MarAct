@@ -48,6 +48,22 @@ def test_copilot_trends_match_market_lots(shop, monkeypatch):
         cleanup(key + "-trend")
 
 
+def test_buyer_profile_and_smoothie_conversation(shop, monkeypatch):
+    client, key, _ = shop
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    profile = {"business": "ร้านน้ำมะม่วงปั่น", "postcode": "10100"}
+    assert client.post(ROOT + "/buyer/profile", json=profile).json() == profile
+    assert client.get(ROOT + "/orders").json()["profile"] == profile
+    turns = ROOT + "/copilot/chat"
+    first = client.post(turns, json={"message": f"อยากเปิดร้านน้ำปั่น หา {key} ขอ {key}"}).json()
+    assert first["lots"][0]["id"] == key and "รอบแรก" in first["message"]
+    second = client.post(turns, json={"message": "เริ่มที่ 20 กก. ราคาถูกที่สุด", "postcode": "10100",
+                                     "previous": first["previous"]}).json()
+    assert second["previous"] == {"query": key, "kg": 20}
+    client.cookies.clear()
+    assert client.post(ROOT + "/buyer/profile", json=profile).status_code == 401
+
+
 def test_demo_quotas_gate_model_by_session_and_buyer(shop, monkeypatch):
     client, key, _ = shop
     monkeypatch.setenv("MARACT_PUBLIC_DEMO", "1")
