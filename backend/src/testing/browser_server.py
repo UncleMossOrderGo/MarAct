@@ -37,6 +37,7 @@ def main() -> None:
             os.environ["DATABASE_URL"] = isolated_url
             os.environ.update(
                 MARACT_FARM_DATA_DIR=farm_data,
+                MARACT_FARM_DELIVERY='{"กรุงเทพฯ":{"postcodes":["10"],"transit":1,"freight":60,"window_days":7}}',
                 IDEA_D_DATA_DIR=farm_data,
                 LINE_CHANNEL_ACCESS_TOKEN="",
                 LINE_CHANNEL_SECRET="",
