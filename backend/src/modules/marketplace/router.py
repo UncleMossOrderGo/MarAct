@@ -66,35 +66,39 @@ class Account(BaseModel):
 @router.post("/session")
 def session(body: Account, req: Request, response: Response):
     with market(req) as cur:
-        cur.execute("SELECT * FROM idea_c_buyers WHERE name=%s", (body.name,))
-        row = cur.fetchone()
-        salt = secrets.token_bytes(16) if not row else bytes(row["salt"])
-        digest = hashlib.scrypt(body.password.encode(), salt=salt, n=16384, r=8, p=1)
-        if body.create_account and not row:
-            cur.execute(
-                "INSERT INTO idea_c_buyers(name,salt,digest) VALUES (%s,%s,%s)", (body.name, salt, digest)
-            )
-        elif (
-            body.create_account
-            or not row
-            or not hmac.compare_digest(bytes(row["digest"]), digest)
-        ):
-            raise HTTPException(403, "ชื่อร้านหรือรหัสผ่านไม่ถูกต้อง หรือชื่อร้านนี้มีผู้ใช้แล้ว")
-        token = secrets.token_urlsafe(32)
+        return buyer_session(cur, body, req, response)
+
+
+def buyer_session(cur, body, req, response):
+    cur.execute("SELECT * FROM idea_c_buyers WHERE name=%s", (body.name,))
+    row = cur.fetchone()
+    salt = secrets.token_bytes(16) if not row else bytes(row["salt"])
+    digest = hashlib.scrypt(body.password.encode(), salt=salt, n=16384, r=8, p=1)
+    if body.create_account and not row:
         cur.execute(
-            "INSERT INTO idea_c_sessions VALUES (%s,%s,now()+interval '1 day')",
-            (hashlib.sha256(token.encode()).hexdigest(), body.name),
+            "INSERT INTO idea_c_buyers(name,salt,digest) VALUES (%s,%s,%s)", (body.name, salt, digest)
         )
-        response.set_cookie(
-            "market_session",
-            token,
-            httponly=True,
-            samesite="strict",
-            secure=req.url.scheme == "https" or os.getenv("MARACT_PUBLIC_DEMO") == "1",
-            max_age=86400,
-            path="/api/ideas/idea-c",
-        )
-        return {"buyer": body.name}
+    elif (
+        body.create_account
+        or not row
+        or not hmac.compare_digest(bytes(row["digest"]), digest)
+    ):
+        raise HTTPException(403, "ชื่อร้านหรือรหัสผ่านไม่ถูกต้อง หรือชื่อร้านนี้มีผู้ใช้แล้ว")
+    token = secrets.token_urlsafe(32)
+    cur.execute(
+        "INSERT INTO idea_c_sessions VALUES (%s,%s,now()+interval '1 day')",
+        (hashlib.sha256(token.encode()).hexdigest(), body.name),
+    )
+    response.set_cookie(
+        "market_session",
+        token,
+        httponly=True,
+        samesite="strict",
+        secure=req.url.scheme == "https" or os.getenv("MARACT_PUBLIC_DEMO") == "1",
+        max_age=86400,
+        path="/api/ideas/idea-c",
+    )
+    return {"buyer": body.name}
 
 
 class BuyerProfile(BaseModel):

@@ -24,7 +24,7 @@ export function FarmerLogin() {
     setBusy(true); setError('');
     try {
       const isLine = mode === 'line';
-      const response = await fetch(FARMER_API + '/' + (isLine ? 'line/open' : 'session'), {
+      const response = await fetch(FARMER_API + '/' + (isLine ? 'line/open' : 'profile-session'), {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(isLine ? { code: code.trim() } : { name: name.trim(), password, register: mode === 'register' }),
       });
@@ -41,7 +41,7 @@ export function FarmerLogin() {
   const title = mode === 'register' ? 'สร้างบัญชีสวน' : mode === 'line' ? 'เปิดสวนด้วย LINE' : 'เข้าสู่ระบบสวน';
   return <div className="login-page"><div className="login-orchard" aria-hidden="true"/>
     <section className="login-form"><Sprout size={30} aria-hidden="true"/><h1>{title}</h1>
-      <p>{mode === 'line' ? 'พิมพ์ “เชื่อมเว็บ” ในแชต LINE ของ MarAct แล้วนำรหัสที่ได้รับมากรอก' : mode === 'register' ? 'สร้างสวนใหม่เพื่อเริ่มลงขายผลผลิต' : 'เข้าสู่โปรไฟล์สวนเพื่อดูผลผลิตและแก้ร่างที่คุยไว้กับผู้ช่วย'}</p>
+      <p>{mode === 'line' ? 'พิมพ์ “เชื่อมเว็บ” ในแชต LINE ของ MarAct แล้วนำรหัสที่ได้รับมากรอก' : mode === 'register' ? 'ใช้บัญชีเดียวเพื่อซื้อผลไม้และจัดการสวน' : 'เข้าสู่โปรไฟล์สวนเพื่อดูผลผลิตและแก้ร่างที่คุยไว้กับผู้ช่วย'}</p>
       <form onSubmit={submit}><fieldset disabled={busy}>
         {mode === 'line' ? <label>รหัสจาก LINE<input required maxLength={100} autoComplete="one-time-code" value={code} onChange={e => setCode(e.target.value)} /></label> : <>
           <label>ชื่อบัญชีสวน<input required maxLength={100} autoComplete="username" value={name} onChange={e => setName(e.target.value)} /></label>

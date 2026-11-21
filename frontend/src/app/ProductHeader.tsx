@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { ShoppingBasket, Store, Sprout, TrendingUp, ReceiptText, UserRound } from 'lucide-react';
+import { ShoppingBasket, Store, Sprout, TrendingUp, ReceiptText } from 'lucide-react';
 const mascot = new URL('../shared/brand/maract-mascot.webp', import.meta.url).href;
 
 type MarketNav = {
@@ -15,7 +15,6 @@ export function ProductHeader({ market }: { market?: MarketNav }) {
       <Link to="/trends" aria-current={pathname.endsWith('/trends') ? 'page' : undefined}><TrendingUp size={16}/>เทรนด์ผลไม้</Link>
       {market ? <button aria-pressed={market.tab === 'cart'} onClick={() => market.select('cart')}><ShoppingBasket size={17}/>ตะกร้า ({market.count})</button> : <Link to="/market#cart"><ShoppingBasket size={17}/>ตะกร้า</Link>}
       {market ? <button aria-pressed={market.tab === 'orders'} onClick={() => market.select('orders')}><ReceiptText size={16}/>คำสั่งซื้อ</button> : <Link to="/market#orders"><ReceiptText size={16}/>คำสั่งซื้อ</Link>}
-      <Link to="/market#buyer" aria-current={market?.tab === 'buyer' ? 'page' : undefined}><UserRound size={16}/>บัญชีผู้ซื้อ</Link>
     </nav>
     <Link className="site-grower" to="/farmer" aria-current={pathname === '/farmer' ? 'page' : undefined}><Sprout size={17}/>สวนของฉัน</Link>
   </header>;

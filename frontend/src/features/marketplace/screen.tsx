@@ -358,6 +358,8 @@ export function Marketplace() {
   );
   function logout() {
     return run(async () => {
+      const response = await fetch("/api/ideas/idea-d/logout", {method:"POST"});
+      if (!response.ok) throw Error("ออกจากระบบสวนไม่สำเร็จ");
       await api("logout", {});
       loadedBuyer.current = "";
       setProfile({business: "", postcode: ""}); setPostcode(""); setArrival(""); setBuyer(""); setName("");
@@ -386,7 +388,8 @@ export function Marketplace() {
           disabled={busy || !name || password.length < 8}
           onClick={() =>
             void run(async () => {
-              await api("session", { name, password, register });
+              const response = await fetch("/api/ideas/idea-d/profile-session", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({name,password,register})});
+              if (!response.ok) throw Error((await response.json()).detail);
               setPassword("");
               await loadOrders();
             })

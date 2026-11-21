@@ -100,6 +100,8 @@ export function FarmerStudio(){
   async function logout(){
     setBusy(true);setError('')
     try {
+      const buyerLogout=await fetch('/api/ideas/idea-c/logout',{method:'POST'})
+      if(!buyerLogout.ok)throw Error()
       const res=await fetch(api+'/logout',{method:'POST'})
       if(!res.ok)throw Error()
       navigate('/login',{replace:true})
@@ -131,6 +133,7 @@ export function FarmerStudio(){
         <div className="farm-story">
           <p className="region"><MapPin size={16}/>{farm.profile.location||'โปรไฟล์เกษตรกร'}</p>
           <h1>{farm.profile.name}</h1>
+          <a className="harvest-link" href="/market#buyer">ข้อมูลร้านและการจัดซื้อ</a>
           <p className="farm-about">{farm.profile.about}</p>
           <a className="harvest-link" href="#harvest">ดูผลผลิตจากสวน <ArrowDown size={17}/></a>
         </div>
