@@ -1,6 +1,6 @@
 import os
-from collections.abc import Callable
-from datetime import datetime
+from collections.abc import Callable, Sequence
+from datetime import date, datetime
 from decimal import Decimal
 from typing import cast
 
@@ -14,10 +14,11 @@ from backend.db.seeds.idea_a_marketplace import (
 )
 
 from .category_fit import CategoryInsight, CategoryMatcher
-from .daily_discovery import DailyTrend, OpenAIDailyDiscovery
+from .daily_discovery import DailyTrend, IngredientCatalogItem, OpenAIDailyDiscovery
 from .daily_job import DailyJob, Enrichment
 from .daily_publication import SqlPublicationStore
 from .ingredient_extraction import IngredientExtractor, IngredientMatch
+from .trend_images import attach_source_images
 
 TREND = TypeAdapter(DailyTrend)
 
@@ -60,9 +61,14 @@ def build_daily_job(engine: Engine, clock: Callable[[], datetime]) -> DailyJob:
         extract = IngredientExtractor.from_env(seeds=extract_seeds)
         match = CategoryMatcher.from_env(seeds=fixture.categories)
 
+    def discover_with_images(
+        day: date, catalog: Sequence[IngredientCatalogItem]
+    ) -> tuple[DailyTrend, ...]:
+        return attach_source_images(discover(day, catalog)) if discover is not None else ()
+
     return DailyJob(
-        SqlPublicationStore(engine, seed_enrichment),
-        discover or (lambda _day, _catalog: ()),
+        SqlPublicationStore(engine, seed_enrichment, single_shop=True, notify=True),
+        discover_with_images,
         extract,
         match,
         clock=clock,

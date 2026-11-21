@@ -6,6 +6,7 @@ import pytest
 from openai import OpenAI
 
 from .daily_discovery import (
+    SOCIAL_DOMAINS,
     DailyDiscoveryFailure,
     IngredientCatalogItem,
     OpenAIDailyDiscovery,
@@ -82,7 +83,7 @@ def test_request_and_normalization_ground_sparse_evidence():
     (body,) = requests
     assert body["include"] == ["web_search_call.action.sources"]
     assert body["tools"][0]["user_location"]["country"] == "TH"
-    assert "filters" not in body["tools"][0]
+    assert body["tools"][0]["filters"]["allowed_domains"] == list(SOCIAL_DOMAINS)
     facts = json.loads(body["input"])
     assert facts["current_bangkok_date"] == "2026-11-21"
     assert facts["from_date"] == "2026-11-15"
@@ -151,3 +152,43 @@ def test_daily_discovery_failure_reasons(scenario, reason):
         pytest.raises(DailyDiscoveryFailure, match=reason),
     ):
         OpenAIDailyDiscovery(client)(DAY, CATALOG)
+
+
+def test_supported_social_posts_rank_first_and_are_cited_first():
+    video = "https://www.tiktok.com/@local/video/123456789"
+    profile = "https://www.instagram.com/local/"
+    candidates = [
+        trend_candidate("profile", (profile, None)),
+        trend_candidate("press-only", (OTHER_SOURCE, None)),
+        trend_candidate("food-video", (SOURCE, None), (video, None)),
+    ]
+    response = _response(candidates).json()
+    response["output"][0]["action"]["sources"].extend(
+        {"type": "url", "url": url} for url in (video, profile)
+    )
+
+    with OpenAI(
+        api_key="test",
+        http_client=httpx.Client(
+            transport=httpx.MockTransport(lambda _: httpx.Response(200, json=response))
+        ),
+    ) as client:
+        (trend,) = OpenAIDailyDiscovery(client, cap=1)(DAY, CATALOG)
+
+    assert trend.slug == "food-video"
+    assert [source.url for source in trend.sources] == [video, SOURCE]
+
+def test_empty_social_pass_broadens_once_for_corroborated_food_coverage():
+    requests = []
+
+    def transport(request):
+        requests.append(json.loads(request.content))
+        if len(requests) == 1:
+            return _response([])
+        return _response([trend_candidate("milk-tea", (SOURCE, None))])
+
+    with OpenAI(api_key="test", http_client=httpx.Client(transport=httpx.MockTransport(transport))) as client:
+        assert OpenAIDailyDiscovery(client)(DAY, CATALOG)[0].slug == "milk-tea"
+    first, second = requests
+    assert "instagram.com" in first["tools"][0]["filters"]["allowed_domains"]
+    assert "filters" not in second["tools"][0]

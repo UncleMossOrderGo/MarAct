@@ -30,7 +30,7 @@
   max-height: 420px;
   aspect-ratio: 1;
   border-radius: var(--market-radius, 10px);
-  object-fit: cover;
+  object-fit: contain;
 }
 
 @media (min-width: 820px) {

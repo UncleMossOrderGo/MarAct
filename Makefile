@@ -1,4 +1,7 @@
-.PHONY: init dev dev-api start migrate seed test-idea test-api check quality build doctor db .env
+.PHONY: init dev dev-demo dev-live dev-api start migrate seed test-idea test-api check quality build doctor db .env
+
+LIVE_WEB_PORT ?= 5175
+LIVE_API_PORT ?= 3002
 
 export IDEA
 
@@ -11,6 +14,12 @@ init: .env
 
 dev: db
 	npm --prefix frontend run dev:all
+
+dev-demo:
+	OPENAI_API_KEY= IDEA_A_USE_SEED_TRENDS=true IDEA_A_DEMO_TRIGGER_ENABLED=1 $(MAKE) dev
+
+dev-live:
+	MARACT_WEB_PORT=$(LIVE_WEB_PORT) API_PORT=$(LIVE_API_PORT) IDEA_A_SCHEDULER_ENABLED=1 IDEA_A_USE_SEED_TRENDS=false IDEA_A_DEMO_TRIGGER_ENABLED=1 $(MAKE) dev
 
 dev-api: .env
 	uv run --locked python -m backend.src.app.server --reload

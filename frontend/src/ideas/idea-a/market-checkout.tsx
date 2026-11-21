@@ -27,6 +27,13 @@ export type SavedMarketOrder = {
   status: string;
   total_thb: string;
   created_at: string;
+  seller_id?: string | null;
+  seller_name?: string | null;
+  checkout_group_id?: string | null;
+  payment_ref?: string | null;
+  paid_at?: string | null;
+  confirmed_at?: string | null;
+  orders?: SavedMarketOrder[] | null;
   items: readonly (MarketCheckoutLine & {
     ingredient_id?: string;
     fruit_id?: string;

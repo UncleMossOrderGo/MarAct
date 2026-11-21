@@ -27,6 +27,8 @@ test('reviews 1440px Bakery, catalog, orders, settings and daily refresh', async
   await installDailyUxFixture(page);
   await page.goto('/ideas/idea-a');
   await expect(page.getByText('เจลาโตพิสตาชิโอ', { exact: true }).first()).toBeVisible();
+  expect(await page.locator('.market-shell--daily').evaluate((shell) => shell.clientWidth)).toBe(1440);
+  await expect(page.getByRole('combobox', { name: 'ร้านที่ใช้งาน' })).toHaveCount(0);
   await capture(page, testInfo, 'desktop-today-th');
   await english(page);
   const run = page.getByRole('button', { name: /run daily job/i });
@@ -37,6 +39,11 @@ test('reviews 1440px Bakery, catalog, orders, settings and daily refresh', async
   await expect(page.getByText('Pistachio Gelato', { exact: true }).first()).toBeVisible();
   await capture(page, testInfo, 'desktop-refresh');
   await expect(page.getByRole('status').filter({ hasText: 'Trends updated.' })).toBeVisible();
+  await page.getByRole('spinbutton', { name: /pistachio paste quantity/i }).fill('5');
+  await page.getByRole('button', { name: 'Add All to Cart' }).click();
+  const desktopCart = page.getByRole('dialog', { name: /your cart/i });
+  await expect(desktopCart.getByText(/5,495\.00/)).toBeVisible();
+  await desktopCart.getByRole('button', { name: /close/i }).click();
   await nav(page, /marketplace/i).click();
   await expect(page.getByText('Pistachio Paste', { exact: true }).first()).toBeVisible();
   await capture(page, testInfo, 'desktop-marketplace');
@@ -68,13 +75,12 @@ test('reviews the 390px trend-to-order path and 360px overflow', async ({ page }
   await capture(page, testInfo, 'mobile-today-th-360');
   await page.setViewportSize({ width: 390, height: 844 });
   await english(page);
-  await page.getByText('Pistachio Gelato', { exact: true }).first().click();
+  await page.getByRole('heading', { name: 'Pistachio Gelato' }).getByRole('button').click();
   await capture(page, testInfo, 'mobile-trend-detail');
   await page.getByRole('tab', { name: 'Ingredients' }).click();
-  await expect(page.getByText('Kataifi topping', { exact: true }).first()).toBeVisible();
+  await expect(page.getByText('Kataifi topping', { exact: true })).toHaveCount(0);
   await capture(page, testInfo, 'mobile-ingredients');
   await page.getByRole('button', { name: /add all/i }).click();
-  await page.getByRole('button', { name: /cart/i }).first().click();
   const cart = page.getByRole('dialog', { name: /your cart/i });
   const increase = cart.getByRole('button', { name: /^increase pistachio paste/i });
   for (let step = 0; step < 3; step++) await increase.click();

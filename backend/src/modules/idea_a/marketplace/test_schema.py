@@ -2,8 +2,10 @@ from datetime import date
 from decimal import Decimal
 
 import pytest
+from alembic.config import Config
 from alembic.migration import MigrationContext
 from alembic.operations import Operations
+from alembic.script import ScriptDirectory
 from psycopg.conninfo import make_conninfo
 from sqlalchemy import inspect, select
 from sqlalchemy.engine import Engine
@@ -18,7 +20,10 @@ from backend.src.shared.db import database_url
 
 def test_marketplace_tables_match_mappings(marketplace_engine: Engine) -> None:
     inspector = inspect(marketplace_engine)
-    assert len(models.Base.metadata.tables) == 16
+    tables = set(models.Base.metadata.tables)
+    assert {"idea_a_orders", "idea_a_daily_runs", "idea_a_recommendations"}.issubset(
+        tables
+    )
     for name, mapping in models.Base.metadata.tables.items():
         assert set(mapping.columns.keys()) == {
             entry["name"] for entry in inspector.get_columns(name)
@@ -75,6 +80,8 @@ def test_make_migration_retains_v1_data_and_migrates_compatible_usage(
             date(2026, 11, 20),
             Decimal("2.75"),
         )
+    config = Config()
+    config.set_main_option("script_location", str(manage.DB / "alembic"))
     with postgres_engine.connect() as db:
         assert (
             db.exec_driver_sql("SELECT count(*) FROM idea_a_legacy_usage").scalar_one()
@@ -94,7 +101,7 @@ def test_make_migration_retains_v1_data_and_migrates_compatible_usage(
         )
         assert (
             db.exec_driver_sql("SELECT version_num FROM alembic_version").scalar_one()
-            == "idea_a_0003"
+            == ScriptDirectory.from_config(config).get_current_head()
         )
 
 

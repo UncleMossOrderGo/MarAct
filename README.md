@@ -10,15 +10,17 @@ Install Node.js 24, npm, Python 3.12–3.14, uv, Make, and Docker with the Compo
 
 ```sh
 make init
-OPENAI_API_KEY= IDEA_A_USE_SEED_TRENDS=true IDEA_A_DEMO_TRIGGER_ENABLED=1 make dev
+make dev-demo
 ```
 
-Open [MarAct on port 5173](http://127.0.0.1:5173). The first visit opens Today’s Trends for the default Bakery shop. Use the idea dropdown to compare it with Idea B. The starter API listens on port 3000 and Vite proxies `/api` requests. Adjust `.env` if local ports conflict. Keep `DB_PORT` and the port in `DATABASE_URL` in sync.
+Open [MarAct on port 5173](http://127.0.0.1:5173). Idea A opens Today’s Trends for MarAct Bakery, its single buyer store. Use the idea dropdown to compare it with Idea B. The starter API listens on port 3000 and Vite proxies `/api` requests. Adjust `.env` if local ports conflict. Keep `DB_PORT` and the port in `DATABASE_URL` in sync.
 
 | Command | Behavior |
 | --- | --- |
 | `make init` | Create `.env` if needed, install locked Python and Node dependencies, start PostgreSQL, apply migrations, and seed all demos. Safe to rerun. |
 | `make dev` | Start PostgreSQL and both development apps. |
+| `make dev-demo` | Start the local seeded demo with the Run daily job button enabled. The daily job uses saved fixtures. |
+| `make dev-live` | Start the live app on 5175 and API on 3002, with the 06:00 Asia/Bangkok job enabled while the server runs. Configure the OpenAI key in `.env`. |
 | `make migrate` | Apply pending starter SQL and Alembic revisions to `DATABASE_URL`. |
 | `make seed IDEA=idea-b` | Insert that idea’s fixtures once. |
 | `make test-idea IDEA=idea-a` | Run the idea’s API and browser suites. |
@@ -38,11 +40,13 @@ Before the first browser test, run `cd frontend && npx playwright install chromi
 
 For an existing clone, run `make migrate && make seed IDEA=idea-a` before restarting the app. The new Alembic revision retains existing order IDs and totals. Reseeding preserves previous orders and depleted stock.
 
-The seed-only command uses no OpenAI calls. With live mode enabled, page reads still use saved SQL snapshots. To run the live job locally, set `OPENAI_API_KEY` in the server's `.env` and run:
+The seed-only command uses no OpenAI calls. With live mode enabled, page reads still use saved SQL snapshots. To run live search and assistant chat locally, set `OPENAI_API_KEY` in the server's `.env` and run:
 
 ```sh
-IDEA_A_USE_SEED_TRENDS=false IDEA_A_DEMO_TRIGGER_ENABLED=1 make dev
+make dev-live
 ```
+
+Open [the live Idea A demo](http://127.0.0.1:5175/ideas/idea-a). Use **Run daily job** to update the saved trends, or **Ask agent** to send a chat message. Sourced trend photos appear when supported publishers provide a usable preview. Ingredient listings and simulated PromptPay use demo supplier data.
 
 The model and trend cap are configurable via `OPENAI_MODEL` and `IDEA_A_DAILY_TREND_CAP`. Missing credentials or unusable discovery falls back to the demo trends. Verify the configured model's tool support, source quality, and costs before deployment.
 

@@ -29,7 +29,7 @@ test('Bakery orders the daily ingredient bundle and keeps it after refreshing tr
   expect(shopsResponse.status()).toBe(200);
   expect(await shopsResponse.json()).toMatchObject({
     default_shop_id: bakery,
-    shops: expect.arrayContaining([{ id: bakery, name: 'MarAct Bakery', category: 'bakery' }]),
+    shops: [{ id: bakery, name: 'MarAct Bakery', category: 'bakery' }],
   });
 
   const firstResponse = await request.get(today('th'));
@@ -63,15 +63,13 @@ test('Bakery orders the daily ingredient bundle and keeps it after refreshing tr
   expect(readCalls.status()).toBe(200);
   expect(await readCalls.json()).toEqual({ calls: 0 });
 
-  await page.getByRole('button', { name: 'Order Ingredients', exact: true }).first().click();
-  const ingredientPanel = page.getByRole('tabpanel', { name: 'Ingredients' });
+  const ingredientPanel = page.locator('.market-today-desktop-order');
   await expect(ingredientPanel.getByRole('combobox', { name: /compare sellers: pistachio paste/i }).locator('option'))
     .toHaveCount(2);
   const selectedQuantity = ingredientPanel.getByRole('spinbutton', { name: /pistachio paste quantity/i });
   await expect(selectedQuantity).toHaveValue('2');
   await selectedQuantity.fill('5');
   await page.getByRole('button', { name: /add all/i }).click();
-  await page.getByRole('button', { name: /^cart \(3\)$/i }).click();
   const cart = page.getByRole('dialog');
   await expect(cart.getByRole('status', {
     name: 'Pistachio Paste from Sweetingred Co. (Pistachio Gelato) quantity',
@@ -96,6 +94,8 @@ test('Bakery orders the daily ingredient bundle and keeps it after refreshing tr
   });
   expect(order).toMatchObject({ id: expect.any(String), total_thb: '5495.00' });
   expect(order.items).toHaveLength(3);
+  expect(order.orders).toHaveLength(3);
+  await expect(page.getByRole('heading', { name: 'Demo PromptPay' })).toBeVisible();
   await expect(page.getByText(/5,495\.00/).first()).toBeVisible();
 
   const replay = await request.post(`${ideaA}/orders`, {
@@ -113,6 +113,34 @@ test('Bakery orders the daily ingredient bundle and keeps it after refreshing tr
     expect.objectContaining({ id: 'cream-dairypro', stock_kg: 25 }),
     expect.objectContaining({ id: 'milk-thaidairy', stock_kg: 40 }),
   ]));
+
+  const firstSellerOrder = order.orders[0];
+  await page.getByRole('button', { name: 'I’ve paid' }).first().click();
+  await expect(page.getByText('Demo payment receipt')).toBeVisible();
+  const paidInbox = await request.get(`${ideaA}/notifications`, {
+    params: { recipient_type: 'seller', recipient_id: firstSellerOrder.seller_id },
+  });
+  expect(await paidInbox.json()).toMatchObject({
+    notifications: expect.arrayContaining([expect.objectContaining({ kind: 'order_paid' })]),
+  });
+  await page.getByRole('button', { name: 'View as seller' }).click();
+  await expect(page).toHaveURL('/ideas/idea-a/seller');
+  await page.getByRole('combobox', { name: 'Supplier', exact: true }).selectOption(firstSellerOrder.seller_id);
+  const confirming = page.waitForResponse((response) =>
+    response.request().method() === 'POST' &&
+    new URL(response.url()).pathname === `${ideaA}/orders/${firstSellerOrder.id}/confirm`);
+  await page.getByRole('button', { name: 'Confirm order', exact: true }).click();
+  expect((await confirming).status()).toBe(200);
+  const confirmed = await request.get(`${ideaA}/orders/${firstSellerOrder.id}`);
+  expect(await confirmed.json()).toMatchObject({ status: 'confirmed' });
+  const buyerInbox = await request.get(`${ideaA}/notifications`, {
+    params: { recipient_type: 'shop', recipient_id: bakery },
+  });
+  expect(await buyerInbox.json()).toMatchObject({
+    notifications: expect.arrayContaining([expect.objectContaining({ kind: 'order_confirmed' })]),
+  });
+  const groupBeforeRefresh = await (await request.get(`${ideaA}/orders/${order.id}`)).json();
+  await page.getByRole('button', { name: 'View as shop' }).click();
 
   await navigation.getByRole('button', { name: /today/i }).click();
   const requesting = page.waitForResponse((response) =>
@@ -142,10 +170,10 @@ test('Bakery orders the daily ingredient bundle and keeps it after refreshing tr
 
   const saved = await request.get(`${ideaA}/orders/${order.id}`);
   expect(saved.status()).toBe(200);
-  expect(await saved.json()).toEqual(order);
+  expect(await saved.json()).toEqual(groupBeforeRefresh);
   const history = await request.get(`${ideaA}/shops/${bakery}/orders`);
   expect(history.status()).toBe(200);
-  expect((await history.json()).orders).toContainEqual(order);
+  expect((await history.json()).orders).toContainEqual(groupBeforeRefresh);
 
   await navigation.getByRole('button', { name: 'Orders', exact: true }).click();
   await expect(page.getByText(/5,495\.00/).first()).toBeVisible();

@@ -11,6 +11,7 @@ from . import models
 from .catalog import IngredientListingResponse, Money, ingredient_listings
 
 Locale = Literal["th", "en"]
+SHOP_CATEGORIES = ("bakery", "cafe", "juice_shop")
 
 
 class ReadModel(BaseModel):
@@ -55,7 +56,7 @@ class Ingredient(BaseModel):
     name: str
     ingredient_id: str | None
     suggested_kg: int
-    availability: Literal["available", "unavailable"]
+    availability: Literal["available", "unavailable", "not_prioritized"]
     listings: tuple[Listing, ...] = ()
 
 
@@ -105,18 +106,20 @@ class SavedReads(Protocol):
 
 
 class DailyReadRepository:
-    def __init__(self, engine: Engine) -> None:
+    def __init__(self, engine: Engine, *, single_shop: bool = False) -> None:
         self.engine = engine
+        self.single_shop = single_shop
+
+    @staticmethod
+    def _shop_query():
+        return select(models.Shop).where(models.Shop.category.in_(SHOP_CATEGORIES)).order_by(
+            models.Shop.is_default.desc(), models.Shop.id
+        )
 
     def shops(self) -> ShopList:
         with Session(self.engine) as session:
-            rows = list(
-                session.scalars(
-                    select(models.Shop).order_by(
-                        models.Shop.is_default.desc(), models.Shop.id
-                    )
-                )
-            )
+            query = self._shop_query()
+            rows = list(session.scalars(query.limit(1) if self.single_shop else query))
             return ShopList(
                 shops=tuple(DailyShop.model_validate(row) for row in rows),
                 default_shop_id=rows[0].id if rows else None,
@@ -129,8 +132,11 @@ class DailyReadRepository:
             ) as connection,
             Session(connection) as session,
         ):
-            shop = session.get(models.Shop, shop_id)
-            if shop is None:
+            shop = (
+                session.scalar(self._shop_query().limit(1))
+                if self.single_shop else session.get(models.Shop, shop_id)
+            )
+            if shop is None or shop.id != shop_id or shop.category not in SHOP_CATEGORIES:
                 return None
             snapshot = self._snapshot(session, locale, shop)
             return ShopToday(
@@ -205,6 +211,32 @@ class DailyReadRepository:
                 )
             }
 
+        ingredient_ids = {
+            match.ingredient_id
+            for matched in matches.values()
+            for match in matched
+            if match.ingredient_id is not None
+        } | {
+            item.ingredient_id for items in recommendations.values() for item in items
+        }
+        offer_rows = session.execute(
+            select(models.Listing, models.Seller.name)
+            .join(models.Seller, models.Seller.id == models.Listing.seller_id)
+            .where(
+                models.Listing.ingredient_id.in_(ingredient_ids),
+                models.Listing.active.is_(True),
+                models.Listing.stock_kg >= 1,
+            )
+        )
+        current_offers = {
+            row.id: (
+                row.ingredient_id,
+                Listing(id=row.id, seller_id=row.seller_id, seller_name=seller_name,
+                        price_per_kg_thb=row.price_per_kg_thb, stock_kg=row.stock_kg),
+            )
+            for row, seller_name in offer_rows
+        }
+        stocked_ids = {ingredient_id for ingredient_id, _ in current_offers.values()}
         rendered = []
         for slug in recommendations if shop is not None else trends:
             trend = trends[slug]
@@ -215,25 +247,27 @@ class DailyReadRepository:
                 for match in matches[slug]
                 if match.ingredient_id is not None
             }
-            ingredients = [
-                Ingredient(
+            ingredients = []
+            for item in ranked:
+                offers = tuple(
+                    current_offers[offer.id][1] for offer in item.listings
+                    if offer.id in current_offers
+                    and current_offers[offer.id][0] == item.ingredient_id
+                )
+                ingredients.append(Ingredient(
                     name=ingredient_names.get(item.ingredient_id, item.ingredient_id),
                     ingredient_id=item.ingredient_id,
                     suggested_kg=item.suggested_kg,
-                    availability="available"
-                    if any(listing.stock_kg > 0 for listing in item.listings)
-                    else "unavailable",
-                    listings=item.listings,
-                )
-                for item in ranked
-            ]
+                    availability="available" if offers else "unavailable",
+                    listings=offers,
+                ))
             ranked_ids = {item.ingredient_id for item in ranked}
             ingredients.extend(
                 Ingredient(
                     name=_text(match.name_en, match.name_th, locale),
                     ingredient_id=match.ingredient_id,
                     suggested_kg=0,
-                    availability="unavailable",
+                    availability="not_prioritized" if match.ingredient_id in stocked_ids else "unavailable",
                 )
                 for match in matches[slug]
                 if match.ingredient_id not in ranked_ids

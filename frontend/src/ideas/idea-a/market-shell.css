@@ -10,6 +10,37 @@ main:has(> .market-shell) {
   max-width: 1200px;
 }
 
+main:has(> .market-shell--daily) {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+
+.market-shell--daily {
+  min-height: calc(100dvh - 57px);
+  border: 0;
+  border-radius: 0;
+}
+
+.market-shell--daily .market-layout { min-height: inherit; }
+.market-shell--daily .market-navigation { border-radius: 0; }
+.market-store-name {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  color: #31553b;
+  font-size: .925rem;
+  font-weight: 700;
+}
+.market-shell--daily h1:lang(en) { letter-spacing: -.04em; }
+.market-shell--daily h2:lang(en) { letter-spacing: -.025em; }
+@media (prefers-reduced-motion: no-preference) {
+  .market-navigation button, .market-toolbar button {
+    transition: color .16s ease, background-color .16s ease, transform .16s ease;
+  }
+  .market-navigation button:active, .market-toolbar button:active { transform: scale(.97); }
+}
+
 .market-shell:has(> .market-welcome) {
   margin-inline: auto;
   max-width: 600px;
@@ -94,7 +125,7 @@ main:has(> .market-shell) {
 }
 
 .market-shell--daily .market-layout {
-  grid-template-columns: 192px minmax(0, 1fr);
+  grid-template-columns: clamp(192px, 16vw, 248px) minmax(0, 1fr);
 }
 
 .market-shell--daily nav button {
@@ -107,7 +138,8 @@ main:has(> .market-shell) {
 
 .market-mobile-brand,
 .market-nav-short-label,
-.market-app-header:has(+ main .market-shell--daily) .market-brand {
+.market-app-header + main .market-shell--daily .market-navigation .market-brand,
+.market-app-header + main .market-shell--daily .market-mobile-brand {
   display: none;
 }
 
@@ -298,4 +330,8 @@ main:has(> .market-shell) {
     text-align: center;
     font-size: 12px;
   }
+}
+
+@media (max-width: 660px) {
+  .market-shell--daily .market-navigation { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 }

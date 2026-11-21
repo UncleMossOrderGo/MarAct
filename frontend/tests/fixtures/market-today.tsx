@@ -34,7 +34,7 @@ function Fixture() {
           onStatus('running');
           const response = await fetch('/market-today-fixture/job', { method: 'POST', signal });
           if (!response.ok) throw new Error('Could not update trends.');
-          setData({ ...dailyFixture, run: { ...dailyFixture.run!, trend_date: '2026-11-22' } });
+          setData({ ...dailyFixture, run: { ...dailyFixture.run!, trend_date: '2026-11-22', finished_at: '2026-11-22T06:01:00+07:00' } });
           onStatus('published');
         } }} />
     </main>

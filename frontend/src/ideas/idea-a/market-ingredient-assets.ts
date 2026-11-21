@@ -47,3 +47,15 @@ export function ingredientImage(key?: string | null): string {
       : undefined)
     ?? fallback;
 }
+
+export function trendImage(key?: string | null): string {
+  if (key?.startsWith('https://')) {
+    try {
+      const url = new URL(key);
+      if (!url.username && !url.password && !url.port) return url.href;
+    } catch {
+      return fallback;
+    }
+  }
+  return ingredientImage(key);
+}

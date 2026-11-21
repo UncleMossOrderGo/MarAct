@@ -1,4 +1,5 @@
-@import '@fontsource-variable/inter';
+@import '@fontsource-variable/manrope';
+@import '@fontsource-variable/noto-sans-thai';
 
 :root {
   --market-ink: #171717;
@@ -9,7 +10,7 @@
   --market-paper: #fff;
   --market-radius: 12px;
   --market-button-radius: 10px;
-  --market-font: 'Inter Variable', system-ui, sans-serif;
+  --market-font: 'Manrope Variable', 'Noto Sans Thai Variable', system-ui, sans-serif;
   --market-space-1: 8px;
   --market-space-2: 16px;
   --market-space-3: 24px;
@@ -61,7 +62,7 @@ body:has(.market-app-header) {
 }
 
 header.market-app-header {
-  padding: 8px max(16px, calc((100% - 1168px) / 2));
+  padding: 8px 16px;
   border-color: var(--market-border);
 }
 
@@ -74,5 +75,47 @@ header.market-app-header {
   .market-app-header + main {
     margin-block: 8px 0;
     padding-inline: 8px;
+  }
+}
+
+:is(.market-shell, .market-app-header) select:not([multiple]) {
+  appearance: none;
+  box-sizing: border-box;
+  max-width: 100%;
+  padding: .5rem 2.35rem .5rem .85rem;
+  border: 1px solid #cbd8ce;
+  border-radius: .75rem;
+  color: #1e392a;
+  background: #f8fbf8 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23355841' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E") no-repeat right .7rem center;
+  cursor: pointer;
+  font-family: var(--market-font);
+  font-weight: 650;
+}
+:is(.market-shell, .market-app-header) select:not([multiple]):is(:hover, :focus-visible) {
+  border-color: #60926d;
+  box-shadow: 0 0 0 3px #237a3212;
+}
+@supports (appearance: base-select) {
+  :is(.market-shell, .market-app-header) select:not([multiple]),
+  :is(.market-shell, .market-app-header) select:not([multiple])::picker(select) {
+    appearance: base-select;
+  }
+  :is(.market-shell, .market-app-header) select:not([multiple])::picker-icon { display: none; }
+  :is(.market-shell, .market-app-header) select::picker(select) {
+    margin-block: 4px;
+    padding: 4px;
+    border: 1px solid var(--market-border);
+    border-radius: .85rem;
+    background: white;
+    box-shadow: 0 12px 32px #143d2424;
+    font-family: var(--market-font);
+  }
+  :is(.market-shell, .market-app-header) select option {
+    padding: .55rem .8rem;
+    border-radius: .55rem;
+  }
+  :is(.market-shell, .market-app-header) select option:is(:checked, :focus-visible, :hover) {
+    background-color: var(--market-green-soft);
+    color: #185e29;
   }
 }

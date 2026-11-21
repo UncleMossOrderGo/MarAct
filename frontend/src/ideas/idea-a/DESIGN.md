@@ -4,7 +4,7 @@ MarAct is a mobile-first B2B fruit marketplace for cafés, smoothie shops, and b
 
 ## Design tokens
 
-[market-design.css](market-design.css) defines the shared tokens. Use Inter, Lucide line icons at 20–24px, and an 8px spacing grid.
+[market-design.css](market-design.css) defines the shared tokens. Use Manrope for Latin text and Noto Sans Thai for Thai text, Lucide line icons at 20–24px, and an 8px spacing grid.
 
 | Token | Value |
 | --- | --- |

@@ -45,6 +45,4 @@ export const dailyFixture: MarketTodayData = {
   ],
 };
 
-export function dailyFixtureImage() {
-  return new URL('../../src/ideas/idea-a/marketplace-photos/mango.webp', import.meta.url).href;
-}
+export { trendImage as dailyFixtureImage } from '../../src/ideas/idea-a/market-ingredient-assets';

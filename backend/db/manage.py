@@ -10,7 +10,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.pool import NullPool
 
 from backend.db.seeds.idea_a import BANGKOK, seed_demo
+from backend.db.seeds.idea_a_assistant import seed_assistant_stock
 from backend.db.seeds.idea_a_marketplace import seed_daily_marketplace, seed_marketplace
+from backend.db.seeds.idea_a_trials import seed_trial_terms
 from backend.src.shared.db import database_url
 
 DB = Path(__file__).resolve().parent
@@ -86,6 +88,12 @@ def seed(idea: str | None, *, planning_date: date | None = None) -> None:
                         print("Skipped Idea A fixtures because the schema is pending.")
                     else:
                         seeder(connection, planning_date or datetime.now(BANGKOK).date())
+                    if connection.execute(
+                        "SELECT to_regclass('idea_a_shop_stock') IS NOT NULL"
+                    ).fetchone() == (True,):
+                        seed_assistant_stock(connection)
+                    if connection.execute("SELECT to_regclass('idea_a_trial_terms') IS NOT NULL").fetchone() == (True,):
+                        seed_trial_terms(connection)
             print(f"Loaded {idea_id} fixtures")
 
 

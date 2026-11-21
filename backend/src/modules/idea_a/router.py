@@ -15,6 +15,10 @@ from .marketplace.daily_trigger import (
     TriggerSettings,
     daily_trend_trigger_router,
 )
+from .marketplace.notifications import notification_router
+from .marketplace.shop_assistant import shop_assistant_router
+from .marketplace.trials import trial_router
+from .marketplace.voice import voice_router
 
 
 def marketplace_router(
@@ -47,9 +51,13 @@ def marketplace_router(
         "SELECT id, title FROM idea_a_records ORDER BY id",
         "INSERT INTO idea_a_records (title) VALUES (%s) RETURNING id, title",
     )
-    router.include_router(daily_read_router(DailyReadRepository(engine), job_status))
+    router.include_router(daily_read_router(DailyReadRepository(engine, single_shop=True), job_status))
     router.include_router(daily_trend_trigger_router(
         trigger, settings=settings, clock=clock, active_attempt=active_attempt,
     ))
     router.include_router(orders_router(OrderRepository(engine, clock=clock)))
+    router.include_router(notification_router(engine, clock))
+    router.include_router(shop_assistant_router(engine))
+    router.include_router(voice_router(engine))
+    router.include_router(trial_router(engine, clock))
     return router

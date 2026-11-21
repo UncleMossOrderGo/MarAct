@@ -1,9 +1,12 @@
 import { marketItemName, marketLineKey } from './market-cart';
 import type { SavedMarketOrder } from './market-checkout';
+import { MarketOrderTimeline, marketOrderDate, marketStatusLabel } from './market-order-timeline';
 import { marketplaceListingImage } from './marketplace-fruit-images';
 import './market-order-history.css';
 
 type Locale = 'th' | 'en';
+
+export { marketOrderDate } from './market-order-timeline';
 
 const orderCopy = {
   en: {
@@ -24,14 +27,6 @@ export function marketOrderAmount(amount: string | number, locale: Locale = 'en'
   }).format(Number(amount));
 }
 
-export function marketOrderDate(date: string, locale: Locale) {
-  return new Intl.DateTimeFormat(locale === 'th' ? 'th-TH' : 'en-GB', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-    timeZone: 'Asia/Bangkok',
-  }).format(new Date(date));
-}
-
 export function MarketOrderDetails({ order, locale = 'en', compact = false }: {
   order: SavedMarketOrder;
   locale?: Locale;
@@ -45,7 +40,7 @@ export function MarketOrderDetails({ order, locale = 'en', compact = false }: {
       <div className="market-order-heading">
         <h2>{copy.order} {order.id}</h2>
         <time dateTime={order.created_at}>{marketOrderDate(order.created_at, locale)}</time>
-        <span className="market-order-status">{order.status === 'placed' ? copy.placed : order.status}</span>
+        <span className="market-order-status">{marketStatusLabel(order.status, locale)}</span>
       </div>
       {trends.length > 0 && (
         <p className="market-order-trend">{copy.trend}: {trends.join(', ')}</p>
@@ -73,6 +68,12 @@ export function MarketOrderDetails({ order, locale = 'en', compact = false }: {
           })}
         </ul>
       )}
+      {!compact && (order.orders ? order.orders.map((child) => (
+        <div key={child.id} className="market-order-supplier">
+          <h3>{child.seller_name ?? `${copy.order} ${child.id}`}</h3>
+          <MarketOrderTimeline order={child} locale={locale} />
+        </div>
+      )) : <MarketOrderTimeline order={order} locale={locale} />)}
       <p className="market-order-total">
         <span>{copy.total}</span>
         <strong>{marketOrderAmount(order.total_thb, locale)}</strong>

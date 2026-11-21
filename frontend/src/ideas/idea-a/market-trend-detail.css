@@ -21,7 +21,7 @@
   width: 100%;
   max-height: 340px;
   aspect-ratio: 2.5;
-  object-fit: cover;
+  object-fit: contain;
   border-radius: var(--market-radius, 12px);
   background: var(--market-green-soft, #eaf5e5);
 }
@@ -74,6 +74,15 @@
 
 .market-trend-ingredient-copy { display: grid; gap: 8px; min-width: 0; }
 .market-trend-ingredient-copy h2 { font-size: 16px; }
+.market-ask-ingredient {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--market-green, #237a32);
+  text-align: start;
+  cursor: pointer;
+  font-size: 13px;
+}
 
 .market-trend-sellers {
   display: grid;
@@ -123,6 +132,28 @@
   margin-top: 16px;
   padding-block: 8px;
   background: #fff;
+}
+
+.market-trend-ingredients--compact .market-trend-ingredient-list > li {
+  grid-template-columns: 40px minmax(0, 1fr);
+}
+
+.market-trend-ingredients--compact .market-trend-ingredient-photo { width: 40px; }
+
+.market-trend-ingredients--compact .market-trend-ingredient-copy {
+  grid-template-columns: minmax(90px, 1fr) minmax(110px, 1fr) auto;
+  align-items: center;
+}
+
+.market-trend-ingredients--compact .market-trend-ingredient-controls { grid-column: 1 / -1; }
+.market-trend-ingredients--compact .market-trend-add { display: flex; justify-content: flex-end; }
+.market-trend-ingredients--compact .market-trend-add-one { padding-inline: 10px; }
+
+@media (min-width: 1200px) {
+  .market-trend-ingredients--compact .market-trend-ingredient-copy {
+    grid-template-columns: minmax(90px, 1fr) minmax(100px, 1fr) minmax(90px, 1fr) auto;
+  }
+  .market-trend-ingredients--compact .market-trend-ingredient-controls { grid-column: auto; }
 }
 
 @media (max-width: 660px) {

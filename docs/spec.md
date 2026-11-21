@@ -67,4 +67,8 @@ Validate UUID checkout keys, active listings and whole quantities from 1–500 w
 
 Begin independent backend, frontend, and infrastructure slices against fixed contract fixtures. Merge schema, job pipeline, and API adapters, wire the new shell and saved Today view, then run the deterministic walkthrough and visual review. Run `make test-idea IDEA=idea-a` and shared checks for migration or app wiring. Verify job evidence and fallbacks with provider stubs, ranking with pure Python tests, read-only page requests with network assertions, and checkout serialization with PostgreSQL. Review screenshots of the actual implementation at 1440px desktop and mobile before signing off.
 
-Open decisions are the final Thai domain allow-list, the full catalog and source/image rights, whether the host uses platform cron, and retention of legacy data. Preserve existing orders and legacy data during cutover. Payments, logistics, vendor UI, push notifications, external trend vendors, and embeddings remain outside this PoC.
+Open decisions are the final Thai domain allow-list, the full catalog and source/image rights, whether the host uses platform cron, and retention of legacy data. Preserve existing orders and legacy data during cutover. Real payment processing, logistics, seller onboarding, push notifications, external trend vendors, and embeddings remain outside this PoC.
+
+## Marketplace extension
+
+The [payment, seller, notifications, stock and assistant plan](idea-a-marketplace-extension.md) extends this core flow. Payment is simulated within MarAct.

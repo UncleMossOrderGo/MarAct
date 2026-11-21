@@ -16,6 +16,7 @@ test('recovers from a failed shop load and opens Bakery without sign-in', async 
   await expect(page.getByRole('alert')).toHaveText('โหลดข้อมูลไม่สำเร็จ');
   await page.getByRole('button', { name: 'ลองอีกครั้ง' }).click();
   await expect(page.getByRole('heading', { name: 'เทรนด์วันนี้' })).toBeVisible();
-  await expect(page.getByRole('combobox', { name: 'ร้านที่ใช้งาน' })).toHaveValue(shop.id);
-  await expect(page.getByRole('button', { name: 'รันงานประจำวัน' })).toHaveCount(0);
+  await expect(page.getByRole('combobox', { name: 'ร้านที่ใช้งาน' })).toHaveCount(0);
+  await expect(page.locator('.market-store-name')).toHaveText(shop.name);
+  await expect(page.getByRole('button', { name: 'รันงานประจำวัน' })).toBeDisabled();
 });

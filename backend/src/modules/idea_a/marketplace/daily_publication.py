@@ -25,6 +25,7 @@ from .daily_job import (
 )
 from .daily_ranking import Observation, Offer
 from .ingredient_extraction import IngredientCatalogItem
+from .notifications import publish_daily_notifications
 
 # Each API adapter has its own advisory lock. Hold this one only during reservation.
 _JOB_LOCK = 428912
@@ -55,9 +56,14 @@ def _running(session: Session, attempt: JobAttempt) -> models.DailyJobAttempt:
 
 
 class SqlPublicationStore:
-    def __init__(self, engine: Engine, seed: Callable[[], Enrichment]) -> None:
+    def __init__(
+        self, engine: Engine, seed: Callable[[], Enrichment], *,
+        single_shop: bool = False, notify: bool = False,
+    ) -> None:
         self.engine = engine
         self.seed = seed
+        self.single_shop = single_shop
+        self.notify = notify
 
     def reserve(self, trend_date: date, now: datetime) -> tuple[JobAttempt, bool]:
         with Session(self.engine) as session, session.begin():
@@ -135,11 +141,17 @@ class SqlPublicationStore:
                 .group_by(models.Usage.shop_id, models.Usage.ingredient_id)
             ):
                 usage[shop_id][ingredient_id] = total
+            shop_query = select(models.Shop).order_by(models.Shop.id)
+            if self.single_shop:
+                shop_query = (
+                    select(models.Shop)
+                    .where(models.Shop.category.in_(("bakery", "cafe", "juice_shop")))
+                    .order_by(models.Shop.is_default.desc(), models.Shop.id)
+                    .limit(1)
+                )
             shops = tuple(
                 ShopInputs(shop.id, shop.category, usage.get(shop.id, {}))
-                for shop in session.scalars(
-                    select(models.Shop).order_by(models.Shop.id)
-                )
+                for shop in session.scalars(shop_query)
             )
             offers = tuple(
                 Offer(
@@ -198,6 +210,14 @@ class SqlPublicationStore:
             session.flush()
             self._save_trends(session, snapshot)
             self._save_enrichment(session, snapshot)
+            if self.notify:
+                names = {entry.trend.slug: entry.trend.name_en for entry in snapshot.trends}
+                publish_daily_notifications(
+                    session, publication.trend_date,
+                    {shop_id: names[trends[0].slug]
+                     for shop_id, trends in snapshot.recommendations.items() if trends},
+                    created_at=publication.finished_at,
+                )
 
             row.state = "published"
             row.finished_at = publication.finished_at

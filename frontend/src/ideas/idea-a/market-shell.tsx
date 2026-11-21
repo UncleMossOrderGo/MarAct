@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { ArrowUpRight, House, Package, Search, Settings, ShoppingBag, ShoppingCart, UserRound } from 'lucide-react';
+import { ArrowUpRight, House, Package, Search, Settings, ShoppingBag, ShoppingCart, Store, Warehouse, UserRound } from 'lucide-react';
 import { MarketBrand, marketplaceMascot } from './market-brand';
 import { marketCopy, type MarketLocale } from './market-locale';
 import './market-design.css';
@@ -22,12 +22,13 @@ const legacyNavigation = [
 const dailyNavigation = [
   ['today', House],
   ['marketplace', ShoppingBag],
+  ['stock', Warehouse],
   ['orders', Package],
   ['settings', Settings],
 ] as const;
 const mobileDailyLabels: Record<MarketLocale, Record<typeof dailyNavigation[number][0], string>> = {
-  th: { today: 'เทรนด์', marketplace: 'ตลาด', orders: 'คำสั่งซื้อ', settings: 'ตั้งค่า' },
-  en: { today: 'Trends', marketplace: 'Market', orders: 'Orders', settings: 'Settings' },
+  th: { today: 'เทรนด์', marketplace: 'ตลาด', stock: 'สต็อก', orders: 'คำสั่งซื้อ', settings: 'ตั้งค่า' },
+  en: { today: 'Trends', marketplace: 'Market', stock: 'Stock', orders: 'Orders', settings: 'Settings' },
 };
 
 export type MarketDestination = typeof legacyNavigation[number][0] | typeof dailyNavigation[number][0];
@@ -39,9 +40,12 @@ type MarketShellProps = {
   locale?: MarketLocale;
   destination: MarketDestination;
   cartCount: number;
-  onShopChange: (shopId: string) => void;
+  onShopChange?: (shopId: string) => void;
   onNavigate: (destination: MarketDestination) => void;
   onOpenCart: () => void;
+  singleShop?: boolean;
+  toolbarActions?: ReactNode;
+  hideCart?: boolean;
   showProfile?: boolean;
   onSignOut?: () => void;
   signingOut?: boolean;
@@ -89,7 +93,7 @@ function ShopPicker({ shops, onSelect }: {
 
 export function MarketShell({
   shops, activeShopId, defaultShopId, locale = 'th', destination, cartCount, onShopChange, onNavigate, onOpenCart,
-  showProfile = destination === 'profile', onSignOut, signingOut, fruitSearch, children,
+  singleShop = false, toolbarActions, hideCart, showProfile = destination === 'profile', onSignOut, signingOut, fruitSearch, children,
 }: MarketShellProps) {
   const shop = shops.find(({ id }) => id === activeShopId)
     ?? shops.find(({ id }) => id === defaultShopId);
@@ -123,12 +127,12 @@ export function MarketShell({
           <div className="market-workspace">
             <div className="market-toolbar">
               {daily && <div className="market-mobile-brand"><MarketBrand /></div>}
-              <label>
+              {singleShop ? <span className="market-store-name"><Store size={17} aria-hidden="true" />{shop.name}</span> : <label>
                 {copy.activeShop}
-                <select value={shop.id} onChange={(event) => onShopChange(event.currentTarget.value)}>
+                <select value={shop.id} onChange={(event) => onShopChange?.(event.currentTarget.value)}>
                   {shops.map(({ id, name }) => <option key={id} value={id}>{name}</option>)}
                 </select>
-              </label>
+              </label>}
               {fruitSearch && (
                 <div className="market-search">
                   <Search size={20} aria-hidden="true" />
@@ -138,10 +142,11 @@ export function MarketShell({
                 </div>
               )}
               <div className="market-toolbar-actions">
-                <button type="button" className="market-cart-control" onClick={onOpenCart}>
+                {toolbarActions}
+                {!hideCart && <button type="button" className="market-cart-control" onClick={onOpenCart}>
                   <ShoppingCart size={20} aria-hidden="true" />
                   {copy.cart} ({cartCount})
-                </button>
+                </button>}
                 {signOut}
               </div>
             </div>
@@ -160,7 +165,7 @@ export function MarketShell({
         </div>
       ) : daily ? <div className="market-workspace">{children}</div> : <>
         {signOut && <div className="market-toolbar market-welcome-toolbar">{signOut}</div>}
-        <ShopPicker shops={shops} onSelect={onShopChange} />
+        {onShopChange && <ShopPicker shops={shops} onSelect={onShopChange} />}
       </>}
     </div>
   );

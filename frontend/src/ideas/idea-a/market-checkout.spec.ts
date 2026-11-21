@@ -50,7 +50,7 @@ test('replays the same checkout and displays the saved order in its shop', async
   await expect(receipt.getByRole('heading', { name: 'Order saved' })).toBeVisible();
   await expect(receipt.getByText('5 kg ×', { exact: false })).toBeVisible();
   await expect(receipt.getByText('฿28.25', { exact: true })).toHaveCount(2);
-  await expect(receipt.locator('time')).toHaveText('21 Nov 2026, 10:15');
+  await expect(receipt.locator('.market-order-heading time')).toHaveText('21 Nov 2026, 10:15');
   await receipt.getByRole('button', { name: 'View orders' }).click();
   await expect(page.getByRole('region', { name: 'Order history' }).getByText('5 kg ×', { exact: false })).toBeVisible();
 

@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
-import { CalendarDays, ExternalLink, RefreshCw, ShoppingCart } from 'lucide-react';
+import { ExternalLink, RefreshCw } from 'lucide-react';
 import {
   eligibleListings, type DailyImageResolver, type DailyLocale, type DailyRun, type DailyTrend,
   type MarketTodayData, type MarketTrendTab,
 } from './market-daily-types';
 import './market-today.css';
+import { MarketTrial, TrialActivity } from './market-trial';
+import { MarketSocialPreview } from './market-social-preview';
+import { MarketTrendIngredients, type MarketTrendCartLine } from './market-trend-ingredients';
 
 const copy = {
   en: {
@@ -13,8 +16,10 @@ const copy = {
     jobFailed: 'Could not update trends. Try again.', timeout: 'The trend update is taking longer than expected.',
     loading: 'Loading today’s trends…', retry: 'Retry', empty: 'No trends have been published yet.',
     menu: 'Menu idea', sources: 'Sources', evidence: 'Evidence', ingredient: 'Recommended ingredients',
-    order: 'Order Ingredients', more: 'More trends', rising: 'Rising', peak: 'Peak', fading: 'Fading', new: 'New',
-    unavailable: 'Unavailable', kg: 'kg', fit: 'For your shop',
+    order: 'Order Ingredients', rising: 'Rising', peak: 'Peak', fading: 'Fading', new: 'New this week',
+    jobDisabled: 'Manual runs are off in this environment.',
+    listening: 'Scanning public food posts and matching ingredients…',
+    kg: 'kg', fit: 'For your shop',
   },
   th: {
     today: 'เทรนด์วันนี้', updated: 'อัปเดต', cached: 'เทรนด์จากแคช', seeded: 'เทรนด์ตัวอย่าง',
@@ -22,8 +27,10 @@ const copy = {
     jobFailed: 'อัปเดตเทรนด์ไม่ได้ ลองอีกครั้ง', timeout: 'การอัปเดตเทรนด์ใช้เวลานานกว่าที่คาดไว้',
     loading: 'กำลังโหลดเทรนด์วันนี้…', retry: 'ลองอีกครั้ง', empty: 'ยังไม่มีเทรนด์ที่เผยแพร่',
     menu: 'ไอเดียเมนู', sources: 'แหล่งข้อมูล', evidence: 'หลักฐาน', ingredient: 'วัตถุดิบแนะนำ',
-    order: 'สั่งวัตถุดิบ', more: 'เทรนด์เพิ่มเติม', rising: 'กำลังมาแรง', peak: 'ยอดนิยม', fading: 'ความนิยมลดลง', new: 'ใหม่',
-    unavailable: 'ไม่มีสินค้า', kg: 'กก.', fit: 'เหมาะกับร้านของคุณ',
+    order: 'สั่งวัตถุดิบ', rising: 'กำลังมาแรง', peak: 'ยอดนิยม', fading: 'ความนิยมลดลง', new: 'พบครั้งแรกในรอบสัปดาห์',
+    jobDisabled: 'สภาพแวดล้อมนี้ปิดการรันด้วยตนเอง',
+    listening: 'กำลังค้นหาโพสต์อาหารสาธารณะและจับคู่วัตถุดิบ…',
+    kg: 'กก.', fit: 'เหมาะกับร้านของคุณ',
   },
 } as const;
 
@@ -31,25 +38,29 @@ export type MarketDailyJobState = 'queued' | 'running' | 'published';
 type DailyJobFeedback = MarketDailyJobState | 'failed' | 'timeout';
 export type MarketTodayProps = {
   data: MarketTodayData | null;
+  trialEnabled?: boolean;
   locale?: DailyLocale;
   loading?: boolean;
   error?: string;
   onRetry?: () => void;
   onTrendSelect: (slug: string, tab: MarketTrendTab) => void;
+  onAddItems?: (lines: MarketTrendCartLine[]) => void;
+  onAsk?: (focus: { type: 'trend' | 'ingredient'; id: string }) => void;
+  manualJobDisabled?: boolean;
   dailyJob?: { run: (signal: AbortSignal, onStatus: (state: MarketDailyJobState) => void) => Promise<void> };
   resolveImage?: DailyImageResolver;
 };
 
 export function DailyRunDate({ run, locale }: { run: DailyRun; locale: DailyLocale }) {
   const labels = copy[locale];
-  const day = new Date(`${run.trend_date}T12:00:00+07:00`);
+  const publishedAt = run.finished_at ?? `${run.trend_date}T12:00:00+07:00`;
   const label = new Intl.DateTimeFormat(locale === 'th' ? 'th-TH' : 'en-GB', {
-    dateStyle: 'medium', timeZone: 'Asia/Bangkok',
-  }).format(day);
+    dateStyle: 'medium', timeStyle: run.finished_at ? 'short' : undefined,
+    timeZone: 'Asia/Bangkok',
+  }).format(new Date(publishedAt));
   return (
     <p className="market-daily-date">
-      <CalendarDays size={16} aria-hidden="true" />
-      {labels.updated} <time dateTime={run.trend_date}>{label}</time>
+      {labels.updated} <time dateTime={run.finished_at ?? run.trend_date}>{label}</time>
       {run.source === 'seed' && <span className="market-daily-badge">{labels.seeded}</span>}
       {run.source !== 'seed' && run.status === 'fallback' && (
         <span className="market-daily-badge">{labels.cached}</span>
@@ -69,28 +80,41 @@ export function TrendBadges({ trend, locale }: { trend: DailyTrend; locale: Dail
 }
 
 export function TrendSources({ trend, locale }: { trend: DailyTrend; locale: DailyLocale }) {
-  const links = trend.sources.filter(({ url }) => /^https?:\/\//i.test(url));
+  const links = trend.sources.flatMap((source) => {
+    try {
+      const url = new URL(source.url);
+      if (url.protocol !== 'https:' && url.protocol !== 'http:') return [];
+      return [{ ...source, host: url.hostname.replace(/^www\./, '') }];
+    } catch { return []; }
+  });
   if (links.length === 0) return null;
   return (
     <div className="market-daily-sources">
-      <strong>{copy[locale].sources}</strong>
+      <strong>{copy[locale].sources} ({links.length})</strong>
       <ul>
-        {links.map(({ url, title }) => (
-          <li key={url}><a href={url}>{title}<ExternalLink size={14} aria-hidden="true" /></a></li>
+        {links.map(({ url, title, host }) => (
+          <li key={url}><a href={url}><span>{title}</span>{title.replace(/^www\./, '') !== host && <small aria-hidden="true">{host}</small>}<ExternalLink size={14} aria-hidden="true" /></a></li>
         ))}
       </ul>
+      <MarketSocialPreview sources={trend.sources} locale={locale} />
     </div>
   );
 }
 
-export function DailyImage({ imageKey, resolveImage, className }: {
+export function DailyImage({ imageKey, resolveImage, className, dish = false }: {
   imageKey?: string | null;
   resolveImage?: DailyImageResolver;
   className?: string;
+  dish?: boolean;
 }) {
-  return resolveImage
-    ? <img className={className} src={resolveImage(imageKey)} alt="" />
-    : <div className={className} aria-hidden="true" />;
+  const src = resolveImage?.(imageKey);
+  const [broken, setBroken] = useState<string>();
+  if (!src || (dish && (!imageKey || src === broken || src === resolveImage?.()))) return null;
+  return <img className={className} src={src} alt="" referrerPolicy="no-referrer"
+    onError={({ currentTarget }) => {
+      if (dish) setBroken(src);
+      else if (resolveImage && currentTarget.src !== resolveImage()) currentTarget.src = resolveImage();
+    }} />;
 }
 
 function TodaySkeleton({ locale }: { locale: DailyLocale }) {
@@ -101,15 +125,18 @@ function TodaySkeleton({ locale }: { locale: DailyLocale }) {
   );
 }
 
-const jobTimeoutMs = 90_000;
+const jobTimeoutMs = 120_000;
 
 export function MarketToday({
-  data, locale = 'th', loading, error, onRetry, onTrendSelect, dailyJob, resolveImage,
+  data, trialEnabled, locale = 'th', loading, error, onRetry, onTrendSelect, onAddItems, onAsk, dailyJob, manualJobDisabled, resolveImage,
 }: MarketTodayProps) {
   const labels = copy[locale];
   const [state, setState] = useState<DailyJobFeedback>();
   const pendingJob = useRef<AbortController | null>(null);
-  const [featured, ...more] = data?.trends ?? [];
+  const [choice, setChoice] = useState('');
+  const top = data?.trends.slice(0, 3) ?? [];
+  const featured = top.find(item => item.slug === choice) ?? top[0];
+  const ingredients = featured?.ingredients.filter((ingredient) => eligibleListings(ingredient).length > 0) ?? [];
 
   useEffect(() => () => pendingJob.current?.abort(), []);
 
@@ -144,18 +171,24 @@ export function MarketToday({
   return (
     <section className="market-today" aria-labelledby="market-today-title">
       <div className="market-today-header">
-        <div>
-          <h1 id="market-today-title">{labels.today}</h1>
-          {data && <p>{data.shop.name}</p>}
-        </div>
-        {dailyJob && (
-          <button className="market-daily-secondary" type="button" disabled={pending} onClick={() => void runDailyJob()}>
-            <RefreshCw size={16} aria-hidden="true" />{labels.run}
-          </button>
+        <h1 id="market-today-title">{labels.today}</h1>
+        {(dailyJob || manualJobDisabled) && (
+          <div className="market-today-job">
+            <button className="market-daily-secondary" type="button" disabled={pending || manualJobDisabled}
+              onClick={() => void runDailyJob()}>
+              <RefreshCw className={pending ? 'market-daily-spinning' : undefined} size={16} aria-hidden="true" />{labels.run}
+            </button>
+            {manualJobDisabled && <small>{labels.jobDisabled}</small>}
+          </div>
         )}
       </div>
       {data?.run && <DailyRunDate run={data.run} locale={locale} />}
-      {feedback && <p role={state === 'failed' || state === 'timeout' ? 'alert' : 'status'}>{feedback}</p>}
+      {pending ? (
+        <div className="market-daily-listening">
+          <span role="status">{state === 'queued' ? labels.queued : labels.listening}</span>
+          <div role="progressbar" aria-label={labels.running} className="market-daily-progress"><span /></div>
+        </div>
+      ) : feedback && <p role={state === 'failed' || state === 'timeout' ? 'alert' : 'status'}>{feedback}</p>}
       {error && <div className="market-daily-error"><p role="alert">{error}</p>
         {onRetry && <button type="button" onClick={onRetry}>{labels.retry}</button>}
       </div>}
@@ -164,7 +197,15 @@ export function MarketToday({
       {featured && (
         <>
           <article className="market-today-feature" aria-label={featured.name}>
-            <DailyImage className="market-today-feature-photo" imageKey={featured.image_key} resolveImage={resolveImage} />
+            {top.length > 1 && <div className="market-trend-choices" role="group" aria-label={locale === 'th' ? 'เทรนด์แนะนำ' : 'Ranked trends'}>
+              {top.map(item => <button type="button" key={item.slug} aria-label={item.name} aria-pressed={item.slug === featured.slug}
+                onClick={() => setChoice(item.slug)}>
+                <DailyImage dish className="market-choice-photo" imageKey={item.image_key} resolveImage={resolveImage} />
+                <span><strong>{item.name}</strong><small>{item.menu_idea}</small></span>
+              </button>)}
+            </div>}
+            <DailyImage className="market-today-feature-photo"
+              dish imageKey={featured.image_key} resolveImage={resolveImage} />
             <div className="market-today-feature-copy">
               <TrendBadges trend={featured} locale={locale} />
               <h2><button type="button" onClick={() => onTrendSelect(featured.slug, 'overview')}>{featured.name}</button></h2>
@@ -172,47 +213,45 @@ export function MarketToday({
               <p className="market-daily-fit"><strong>{labels.fit}</strong> {featured.why_fit}</p>
               <p className="market-daily-menu"><strong>{labels.menu}</strong> {featured.menu_idea}</p>
               <TrendSources trend={featured} locale={locale} />
+
+              {onAsk && <button className="market-daily-secondary market-ask-trend" type="button"
+                onClick={() => onAsk({ type: 'trend', id: featured.slug })}>
+                {locale === 'th' ? 'ถามผู้ช่วย' : 'Ask agent'}
+              </button>}
             </div>
+            {trialEnabled && data && <MarketTrial key={data.shop.id + featured.slug} shop={data.shop.id} trend={featured} locale={locale} />}
           </article>
-          {featured.ingredients.length > 0 && (
+          {ingredients.length > 0 && (
             <div className="market-today-ingredients">
               <h2>{labels.ingredient}</h2>
-              <ul>
-                {featured.ingredients.map((ingredient, index) => {
-                  const listing = eligibleListings(ingredient)[0];
-                  return (
-                    <li key={`${ingredient.ingredient_id ?? ingredient.name}-${index}`}>
-                      <DailyImage className="market-today-ingredient-photo" imageKey={ingredient.image_key ?? ingredient.ingredient_id}
-                        resolveImage={resolveImage} />
-                      <span><strong>{ingredient.name}</strong>{listing && <small>{listing.seller_name}</small>}</span>
-                      {listing ? <span>฿{listing.price_per_kg_thb} / {labels.kg}</span> : <small>{labels.unavailable}</small>}
-                      {listing && <span>{ingredient.suggested_kg} {labels.kg}</span>}
-                    </li>
-                  );
-                })}
-              </ul>
-              <button className="market-daily-primary" type="button"
-                onClick={() => onTrendSelect(featured.slug, 'ingredients')}>
-                <ShoppingCart size={18} aria-hidden="true" />{labels.order}
-              </button>
+              {onAddItems && <div className="market-today-desktop-order">
+                <MarketTrendIngredients key={`${data?.shop.id}:${featured.slug}:${data?.run?.finished_at ?? ""}`} trend={featured} locale={locale}
+                  onAddItems={onAddItems} resolveImage={resolveImage}
+                  onAsk={onAsk ? (id) => onAsk({ type: 'ingredient', id }) : undefined} compact />
+              </div>}
+              <div className={onAddItems ? 'market-today-mobile-order' : undefined}>
+                <ul>
+                  {ingredients.map((ingredient, index) => {
+                    const listing = eligibleListings(ingredient)[0];
+                    return (
+                      <li key={`${ingredient.ingredient_id ?? ingredient.name}-${index}`}>
+                        <DailyImage className="market-today-ingredient-photo" imageKey={ingredient.image_key ?? ingredient.ingredient_id}
+                          resolveImage={resolveImage} />
+                        <span><strong>{ingredient.name}</strong><small>{listing.seller_name}</small></span>
+                        <span>฿{listing.price_per_kg_thb} / {labels.kg}</span>
+                        <span>{ingredient.suggested_kg} {labels.kg}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+                <button className="market-daily-primary" type="button"
+                  onClick={() => onTrendSelect(featured.slug, 'ingredients')}>
+                  {labels.order}
+                </button>
+              </div>
             </div>
           )}
-          {more.length > 0 && (
-            <div className="market-today-more">
-              <h2>{labels.more}</h2>
-              <ul>
-                {more.map((trend) => (
-                  <li key={trend.slug}>
-                    <button className="market-today-secondary-trend" type="button"
-                      onClick={() => onTrendSelect(trend.slug, 'overview')}>
-                      <DailyImage className="market-today-secondary-photo" imageKey={trend.image_key} resolveImage={resolveImage} />
-                      <span>{trend.name}</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+          {trialEnabled && data && <TrialActivity shop={data.shop.id} locale={locale} />}
         </>
       )}
     </section>

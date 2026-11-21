@@ -1,0 +1,19 @@
+.market-chat-compose { position: relative; }
+.market-chat-compose button.market-voice-button {
+  display: inline-flex;
+  align-items: center;
+  background: #eaf5e5;
+  color: #245b35;
+}
+.market-chat-compose button.market-voice-button:hover:not(:disabled) { background: #d9ebd5; }
+.market-chat-compose button.market-voice-button[data-state="recording"] { color: #a52520; background: #fce8e5; }
+.market-voice-status:not(:empty) {
+  position: absolute;
+  inset-inline: 0;
+  bottom: calc(100% + 3px);
+  border: 1px solid #cbdcc7;
+  border-radius: 10px;
+  background: white;
+  padding: 6px 10px;
+  font-size: 13px;
+}

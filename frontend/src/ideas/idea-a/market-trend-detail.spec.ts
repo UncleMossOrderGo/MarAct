@@ -6,15 +6,15 @@ test('reads saved evidence and reaches ingredients with the keyboard on mobile',
   await expect(page.getByRole('heading', { name: 'Pistachio Gelato' })).toBeVisible();
   await expect(page.getByText('Pistachio Gelato Cake')).toBeVisible();
   await expect(page.getByRole('link', { name: 'Dessert menu report' })).toBeVisible();
-  await expect(page.locator('time')).toHaveAttribute('datetime', '2026-11-21');
+  await expect(page.locator('time')).toHaveAttribute('datetime', '2026-11-21T06:00:04+07:00');
   const overview = page.getByRole('tab', { name: 'Overview' });
   await overview.focus();
   await overview.press('ArrowRight');
   const ingredients = page.getByRole('tab', { name: 'Ingredients' });
   await expect(ingredients).toBeFocused();
   await expect(ingredients).toHaveAttribute('aria-selected', 'true');
-  await expect(page.getByText('No matching listing.')).toBeVisible();
-  await expect(page.getByText('Unavailable ingredients will be skipped.')).toBeVisible();
+  await expect(page.getByText('Kataifi topping')).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Milk' })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
 });
 

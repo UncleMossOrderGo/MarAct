@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from . import models
 from .checkout import OrderRepository, orders_router
+from .notifications import notification_router, publish_daily_notifications
 
 NOW = datetime(2026, 11, 21, 8, 30, tzinfo=UTC)
 
@@ -57,6 +58,7 @@ def clients(marketplace_engine: Engine):
     app.include_router(
         orders_router(OrderRepository(marketplace_engine, clock=lambda: NOW))
     )
+    app.include_router(notification_router(marketplace_engine, lambda: NOW))
     with TestClient(app) as client:
         yield client
 
@@ -332,3 +334,158 @@ def test_seeded_gelato_order_uses_server_prices(marketplace_engine: Engine) -> N
                 )
             ).all()
         ) == {"pistachio-sweeting": 20, "cream-dairypro": 25, "milk-thaidairy": 40}
+
+
+def test_split_checkout_and_fulfillment_updates_only_the_assigned_order(
+    clients: TestClient,
+    marketplace_engine: Engine,
+) -> None:
+    with Session(marketplace_engine) as session, session.begin():
+        listing = session.get(models.Listing, "z")
+        assert listing is not None
+        listing.active = True
+    rows = [{"listing_id": "a", "qty_kg": 5}, {"listing_id": "z", "qty_kg": 2}]
+    payload = {**checkout_payload(), "items": rows}
+    created = clients.post("/orders", json=payload)
+    assert created.status_code == 201, created.text
+    checkout = created.json()
+    assert checkout["total_thb"] == "441.25"
+    group_id = checkout["id"]
+    assert group_id == checkout["checkout_group_id"]
+    children = {order["seller_id"]: order for order in checkout["orders"]}
+    assert set(children) == {"backup", "seller"}
+    order_id = children["seller"]["id"]
+    order_url = f"/orders/{order_id}"
+    assert children["seller"]["total_thb"] == "301.25"
+    assert children["backup"]["total_thb"] == "140.00"
+    assert clients.get("/sellers/seller/orders").json() == {
+        "orders": [children["seller"]]
+    }
+    assert clients.get("/sellers/backup/orders").json() == {
+        "orders": [children["backup"]]
+    }
+    assert (
+        clients.post(f"{order_url}/confirm", json={"seller_id": "seller"}).status_code
+        == 409
+    )
+    assert clients.post(f"{order_url}/pay", json={"shop_id": "two"}).status_code == 404
+    paid = clients.post(f"{order_url}/pay", json={"shop_id": "one"})
+    assert paid.status_code == 200
+    assert paid.json()["status"] == "paid"
+    assert paid.json()["payment_ref"].startswith("DEMO-")
+    assert (
+        clients.post(f"{order_url}/pay", json={"shop_id": "one"}).json() == paid.json()
+    )
+    assert (
+        clients.post(f"{order_url}/confirm", json={"seller_id": "backup"}).status_code
+        == 404
+    )
+    confirmed = clients.post(f"{order_url}/confirm", json={"seller_id": "seller"})
+    assert confirmed.status_code == 200
+    assert confirmed.json()["status"] == "confirmed"
+    assert confirmed.json()["paid_at"] == "2026-11-21T08:30:00Z"
+    assert confirmed.json()["confirmed_at"] == "2026-11-21T08:30:00Z"
+    assert (
+        clients.post(f"{order_url}/confirm", json={"seller_id": "seller"}).json()
+        == confirmed.json()
+    )
+    assert (
+        clients.post(f"{order_url}/pay", json={"shop_id": "one"}).json()
+        == confirmed.json()
+    )
+    replay = clients.post("/orders", json=payload)
+    assert replay.status_code == 200
+    assert replay.json() == clients.get(f"/orders/{group_id}").json()
+    assert clients.get("/shops/one/orders").json() == {"orders": [replay.json()]}
+    assert clients.get("/sellers/backup/orders").json() == {
+        "orders": [children["backup"]]
+    }
+    assert read_stock(marketplace_engine) == 3
+
+    seller = {"recipient_type": "seller", "recipient_id": "seller"}
+    shop = {"recipient_type": "shop", "recipient_id": "one"}
+    seller_inbox = clients.get("/notifications", params=seller).json()
+    assert seller_inbox["unread_count"] == 2
+    assert {notice["kind"] for notice in seller_inbox["notifications"]} == {
+        "order_placed",
+        "order_paid",
+    }
+    shop_inbox = clients.get("/notifications", params=shop).json()
+    assert shop_inbox["unread_count"] == 1
+    (notice,) = shop_inbox["notifications"]
+    assert notice["kind"] == "order_confirmed"
+    read_url = f"/notifications/{notice['id']}/read"
+    assert clients.post(read_url, json=seller).status_code == 404
+    assert clients.post(read_url, json=shop).status_code == 204
+    assert clients.get("/notifications", params=shop).json()["unread_count"] == 0
+    assert clients.post("/notifications/read-all", json=seller).status_code == 204
+    assert clients.get("/notifications", params=seller).json()["unread_count"] == 0
+
+
+def test_daily_notifications_deduplicate_by_shop_and_date(
+    clients: TestClient,
+    marketplace_engine: Engine,
+) -> None:
+    with Session(marketplace_engine) as session, session.begin():
+        publish_daily_notifications(
+            session, NOW.date(), {"one": "Gelato"}, created_at=NOW
+        )
+        publish_daily_notifications(
+            session, NOW.date(), {"one": "Refresh", "two": "Fruit"}, created_at=NOW
+        )
+    for shop_id, title in (("one", "Gelato"), ("two", "Fruit")):
+        payload = clients.get(
+            "/notifications",
+            params={"recipient_type": "shop", "recipient_id": shop_id},
+        ).json()
+        assert payload["unread_count"] == 1
+        assert [notice["body"] for notice in payload["notifications"]] == [title]
+
+
+def test_legacy_order_replays_without_a_new_fulfillment(
+    clients: TestClient,
+    marketplace_engine: Engine,
+) -> None:
+    key = str(uuid4())
+    with Session(marketplace_engine) as session, session.begin():
+        session.add(
+            models.Order(
+                id="legacy-order",
+                shop_id="one",
+                idempotency_key=key,
+                status="confirmed",
+                total_thb=Decimal("60.25"),
+                created_at=NOW,
+            )
+        )
+        session.flush()
+        session.add(
+            models.OrderItem(
+                order_id="legacy-order",
+                line_index=0,
+                listing_id="a",
+                fruit_id="mango",
+                fruit_name="Mango",
+                seller_name="Supplier",
+                qty_kg=1,
+                price_per_kg_thb=Decimal("60.25"),
+                line_total_thb=Decimal("60.25"),
+            )
+        )
+    response = clients.post(
+        "/orders",
+        json=checkout_payload(key=key, listing="superseded-listing"),
+    )
+    assert response.status_code == 200
+    assert response.json()["id"] == "legacy-order"
+    assert response.json()["status"] == "confirmed"
+    assert response.json()["total_thb"] == "60.25"
+    assert response.json()["checkout_group_id"] is None
+    assert (
+        clients.post(
+            "/orders",
+            json=checkout_payload(shop="two", key=key),
+        ).status_code
+        == 409
+    )
+    assert read_stock(marketplace_engine) == 8

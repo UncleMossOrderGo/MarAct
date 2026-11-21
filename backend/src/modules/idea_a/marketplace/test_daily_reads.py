@@ -28,6 +28,9 @@ def test_saved_reads_localize_and_filter_without_running_the_job(
                 models.Shop(
                     id="juice", name="Juice Shop", category="juice_shop", menu_tags=[]
                 ),
+                models.Shop(
+                    id="legacy", name="Old Smoothie Café", category="smoothie", menu_tags=[]
+                ),
                 models.Ingredient(
                     id="pistachio",
                     name_en="Pistachio Paste",
@@ -63,7 +66,10 @@ def test_saved_reads_localize_and_filter_without_running_the_job(
 
     app.include_router(daily_read_router(store, job_status))
     client = TestClient(app)
-    assert client.get("/shops").json()["default_shop_id"] == "bakery"
+    shops = client.get("/shops").json()
+    assert shops["default_shop_id"] == "bakery"
+    assert [shop["id"] for shop in shops["shops"]] == ["bakery", "juice"]
+    assert client.get("/shops/legacy/today").status_code == 404
     assert client.get("/shops/bakery/today").json()["run"] is None
     assert client.get("/shops/missing/today").status_code == 404
 
@@ -163,6 +169,12 @@ def test_saved_reads_localize_and_filter_without_running_the_job(
     assert thai["trends"][0]["name"] == "เจลาโต"
     assert thai["trends"][0]["ingredients"][1]["ingredient_id"] is None
     assert english["trends"][0]["ingredients"][0]["suggested_kg"] == 2
+    with Session(marketplace_engine) as session, session.begin():
+        listing = session.get(models.Listing, "paste")
+        assert listing is not None
+        listing.stock_kg = 1
+    current_ingredients = client.get("/shops/bakery/today?locale=en").json()["trends"][0]["ingredients"]
+    assert current_ingredients[0]["listings"][0]["stock_kg"] == 1
     assert client.get("/shops/juice/today").json()["trends"] == []
     assert len(client.get("/trends/today").json()["trends"]) == 1
 
