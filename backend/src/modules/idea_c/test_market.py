@@ -52,14 +52,24 @@ def shop(monkeypatch):
             cleanup(unique)
 
 
-def browser_lot(unique, kg=1):
+def browser_lot(
+    unique,
+    kg=1,
+    *,
+    name=None,
+    farm="สวนริมคลอง",
+    grade=None,
+    price=48,
+    minimum=1,
+    freight=0,
+):
     with psycopg.connect(database_url()) as db:
         db.execute(
             """INSERT INTO idea_c_lots
-            (id,farm,name,uses,unit,kg,price,minimum,stock,starts,ends,transit,postcodes,freight)
-            VALUES (%s,'สวนริมคลอง',%s,'smoothie','crate',%s,48,1,30,current_date,
-                    current_date+14,1,ARRAY['10'],0)""",
-            (unique, unique, kg),
+            (id,farm,name,uses,unit,kg,price,minimum,stock,starts,ends,transit,postcodes,freight,grade)
+            VALUES (%s,%s,%s,'smoothie','crate',%s,%s,%s,30,current_date,
+                    current_date+14,1,ARRAY['10'],%s,%s)""",
+            (unique, farm, name or unique, kg, price, minimum, freight, grade),
         )
 
 
