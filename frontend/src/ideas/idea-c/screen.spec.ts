@@ -40,6 +40,9 @@ test("agent handoff through checkout and cancellation", async ({ page }) => {
     await expect(
       unknown.getByRole("button", { name: "เพิ่มลงตะกร้า" }),
     ).toBeDisabled();
+    await expect(unknown.locator(".market-product-foot strong")).toContainText(
+      "ยอดสำหรับ 20 กก.ยังคำนวณไม่ได้",
+    );
     const lot = page
       .locator("article")
       .filter({ has: page.getByRole("heading", { name: buyer, exact: true }) });
@@ -47,6 +50,12 @@ test("agent handoff through checkout and cancellation", async ({ page }) => {
     await page
       .getByRole("button", { name: "เงื่อนไขการซื้อ", exact: true })
       .click();
+    await page.getByLabel("จำนวนที่ต้องการ (กก.)").fill("");
+    await expect(
+      unknown.getByRole("button", { name: "เพิ่มลงตะกร้า" }),
+    ).toBeEnabled();
+    await expect(unknown).toContainText("สวนยังไม่ระบุน้ำหนักต่อหน่วย");
+    await page.getByLabel("จำนวนที่ต้องการ (กก.)").fill("20");
     await page.getByLabel("รหัสไปรษณีย์").fill("50000");
     await expect(
       lot.getByRole("button", { name: "เพิ่มลงตะกร้า" }),
@@ -151,6 +160,60 @@ test("compare two farms at the same requested weight", async ({ page }) => {
   } finally {
     fixture(
       "from backend.src.modules.idea_c.test_market import cleanup; import sys; cleanup(sys.argv[1]); cleanup(sys.argv[1]+'-west')",
+    );
+  }
+});
+
+test("selected lots stay above deferred lots and farms after refresh", async ({
+  page,
+}) => {
+  const key = randomUUID();
+  const root = new URL("../../../../", import.meta.url);
+  const fixture = (code: string) =>
+    execFileSync(
+      "uv",
+      ["run", "--locked", "python", "-X", "utf8", "-c", code, key],
+      { cwd: root },
+    );
+  const names = ["a", "b", "c"].map((suffix) => key + "-" + suffix);
+  try {
+    fixture(
+      [
+        "from backend.src.modules.idea_c.test_market import browser_lot",
+        "import sys",
+        "k=sys.argv[1]",
+        "browser_lot(k+'-a', farm='สวนรุ่งอรุณ')",
+        "browser_lot(k+'-b')",
+        "browser_lot(k+'-c')",
+      ].join("\n"),
+    );
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/ideas/idea-c?q=" + key);
+    for (const name of names) {
+      await page
+        .locator(".market-product")
+        .filter({ hasText: name })
+        .getByRole("button", { name: "เพิ่มลงตะกร้า" })
+        .click();
+    }
+    await page.getByRole("button", { name: "ตะกร้า (3)" }).click();
+    for (const name of names.slice(0, 2)) {
+      await page
+        .locator(".cart-line")
+        .filter({ hasText: name })
+        .getByRole("checkbox")
+        .uncheck();
+    }
+    await page.reload();
+    await expect(
+      page.locator(".cart-line").first().getByText(names[2], { exact: true }),
+    ).toBeInViewport();
+    await expect(page.locator(".cart-group-heading").first()).toContainText(
+      "48 บาท",
+    );
+  } finally {
+    fixture(
+      "from backend.src.modules.idea_c.test_market import cleanup; import sys; [cleanup(sys.argv[1]+'-'+suffix) for suffix in ('a','b','c')]",
     );
   }
 });

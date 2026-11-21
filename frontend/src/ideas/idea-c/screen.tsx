@@ -330,16 +330,22 @@ export function IdeaC() {
       </label>
     </div>
   );
-  const farmGroups = [...new Set(cart.map((i) => i.lot.farm))].map((farm) => {
-    const group = cart.filter((i) => i.lot.farm === farm);
-    const selected = group.filter((i) => !later.includes(i.lot.id));
-    const freight = Math.max(0, ...selected.map((i) => i.lot.freight));
-    const total = selected.reduce(
-      (sum, i) => sum + i.units * i.lot.price,
-      freight,
-    );
-    return { farm, group, selected, total };
-  });
+  const displayCart = [
+    ...cart.filter((i) => !later.includes(i.lot.id)),
+    ...cart.filter((i) => later.includes(i.lot.id)),
+  ];
+  const farmGroups = [...new Set(displayCart.map((i) => i.lot.farm))].map(
+    (farm) => {
+      const group = displayCart.filter((i) => i.lot.farm === farm);
+      const selected = group.filter((i) => !later.includes(i.lot.id));
+      const freight = Math.max(0, ...selected.map((i) => i.lot.freight));
+      const total = selected.reduce(
+        (sum, i) => sum + i.units * i.lot.price,
+        freight,
+      );
+      return { farm, group, selected, total };
+    },
+  );
   const accountForm = (
     <section className="shop-account">
       <h2>บัญชีผู้ประกอบการ</h2>
@@ -511,6 +517,7 @@ export function IdeaC() {
                   const inCart =
                     cart.find((i) => i.lot.id === l.id)?.units ?? 0;
                   const checking = loadedQuery !== queryString;
+                  const unknownTargetWeight = l.requested_kg !== null && !l.kg;
                   const reason = checking
                     ? "กำลังตรวจเงื่อนไข"
                     : partialPostcode
@@ -538,6 +545,9 @@ export function IdeaC() {
                             {money(l.price)} / {l.unit} ({l.kg} กก.)
                           </p>
                         )}
+                        {!l.kg && !l.requested_kg && (
+                          <p>สวนยังไม่ระบุน้ำหนักต่อหน่วย</p>
+                        )}
                         <p>
                           ขั้นต่ำ {l.minimum} {l.unit} · เหลือ {l.stock} {l.unit}
                         </p>
@@ -550,17 +560,27 @@ export function IdeaC() {
                         {l.preferred && <p>ตรงความสนใจของร้าน</p>}
                       </div>
                       <div className="market-product-foot">
-                        <strong>
-                          <small>
-                            {l.requested_kg ? "ยอดสำหรับ" : "ยอดขั้นต่ำสำหรับ"}{" "}
-                            {l.units} {l.unit}
-                            {l.kg && l.unit !== "กก."
-                              ? " (" + Number(l.kg) * l.units + " กก.)"
-                              : ""}
-                          </small>
-                          {money(l.total)}
-                        </strong>
-                        <small>รวมค่าส่ง {money(l.freight)}</small>
+                        {unknownTargetWeight ? (
+                          <strong>
+                            <small>ยอดสำหรับ {l.requested_kg} กก.</small>
+                            ยังคำนวณไม่ได้
+                          </strong>
+                        ) : (
+                          <strong>
+                            <small>
+                              {l.requested_kg ? "ยอดสำหรับ" : "ยอดขั้นต่ำสำหรับ"}{" "}
+                              {l.units} {l.unit}
+                              {l.kg && l.unit !== "กก."
+                                ? " (" + Number(l.kg) * l.units + " กก.)"
+                                : ""}
+                            </small>
+                            {money(l.total)}
+                          </strong>
+                        )}
+                        <small>
+                          {unknownTargetWeight ? "ค่าส่งต่อรอบ" : "รวมค่าส่ง"}{" "}
+                          {money(l.freight)}
+                        </small>
                         <p
                           className={
                             reason ? "delivery-blocked" : "delivery-status"
