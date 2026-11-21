@@ -110,21 +110,20 @@ def rank(
             + weights.trend * trend_score
         )
 
-        def score(offer: Listing) -> Decimal:
+        scored = []
+        for offer in offers:
             value = ONE - (offer.price_per_kg_thb - minimum) / spread if spread else ONE
             stock_factor = ONE if offer.stock_kg >= suggested else Decimal("0.5")
-            return (base + weights.value * value) * stock_factor
-
-        best = sorted(
-            offers, key=lambda offer: (-score(offer), offer.price_per_kg_thb, offer.id)
-        )[:2]
+            score = (base + weights.value * value) * stock_factor
+            scored.append((score, offer))
+        scored.sort(key=lambda pair: (-pair[0], pair[1].price_per_kg_thb, pair[1].id))
         item = RankedFruit(
             fruit,
-            score(best[0]),
+            scored[0][0],
             suggested,
             trend.trend_name if trend else None,
             min(matched, default=None),
-            tuple(best),
+            tuple(offer for _, offer in scored[:2]),
         )
         ranked.append((item, trend_score))
 

@@ -24,7 +24,7 @@ def test_rank_personalizes_and_prefers_stock_that_meets_suggestion() -> None:
     )
     mango, banana = rank(
         SHOP,
-        (UsageTotal("mango", D("50")), UsageTotal("banana", D("25"))),
+        (UsageTotal("mango", D(50)), UsageTotal("banana", D(25))),
         listings,
         (TrendSignal("mango", D("0.8"), "Mango smoothies"),),
     )
