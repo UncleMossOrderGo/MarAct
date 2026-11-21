@@ -1,53 +1,53 @@
-﻿<p align="center"><img src="frontend/src/shared/brand/maract-mascot.webp" alt="โลโก้ MarAct เกษตรกรถือมะม่วง" width="128"></p>
+﻿<p align="center"><img src="frontend/src/shared/brand/maract-mascot.webp" alt="MarAct logo showing a grower holding a mango" width="128"></p>
 
 # MarAct
 
-ตลาดผลไม้สำหรับร้านค้าและเกษตรกร ร้านค้าค้นหาผลผลิตจากหลายสวน เทียบราคาตามจำนวนที่ต้องการ และคุยกับผู้ช่วยจัดซื้อได้ ส่วนเกษตรกรจัดการโปรไฟล์สวนและลงประกาศผลผลิตผ่านเว็บหรือ LINE
+MarAct is a fruit marketplace for shops and growers. Buyers can compare lots from different farms, calculate the delivered cost for the quantity they need, and ask a shopping assistant for help. Growers can manage their farm profile and publish listings through the web app or LINE.
 
-**[เปิดตลาดผลไม้](https://maract-market.onrender.com/market)** · [ดูเทรนด์ผลไม้](https://maract-market.onrender.com/trends) · [เข้าสู่สวนของฉัน](https://maract-market.onrender.com/farmer)
+**[Browse the marketplace](https://maract-market.onrender.com/market)** · [Explore fruit trends](https://maract-market.onrender.com/trends) · [Open My Farm](https://maract-market.onrender.com/farmer)
 
-## ลองใช้ในสองนาที
+## Try it in two minutes
 
-1. **เลือกผลผลิต** ลองค้น “มะม่วง” ระบุจำนวน รหัสไปรษณีย์ และวันรับ เพื่อเทียบล็อตที่ส่งได้กับยอดรวมค่าขนส่ง
-2. **ถามผู้ช่วยจัดซื้อ** เปิดแชตแล้วถาม “หามะม่วง 20 กก.” จากนั้นลองถามต่อว่า “ถ้าเพิ่มเป็น 40 กก. ล่ะ” หรือเปลี่ยนเรื่องเป็น “ผลไม้อะไรกำลังเป็นเทรนด์” กางรายการเครื่องมือใต้คำตอบเพื่อดูว่าแชตค้นอะไร
-3. **ตรวจตะกร้า** เมื่อเลือกล็อตจากแชต ระบบจะตรวจราคากับตลาดอีกครั้ง ผู้ซื้อเป็นคนกดยืนยันคำสั่งซื้อที่หน้า checkout
+1. **Find a fruit lot.** Browse the mango listings. Enter the quantity you need, your delivery postcode, and your preferred arrival date to compare eligible lots by total cost, including shipping.
+2. **Ask the shopping assistant.** Open the chat and ask “Can you find 20 kg of mangoes?” Follow up with “What about 40 kg?” or switch topics with “Which fruits are trending?” Expand the tool list below the reply to see what the assistant looked up.
+3. **Review your cart.** When you add a suggested lot, MarAct checks the quote against the catalog again. You confirm the order at checkout.
 
-ถ้าเป็นเจ้าของสวน ให้เลือก **สวนของฉัน** เพื่อสร้างบัญชี แก้ข้อมูลสวน และเตรียมประกาศ เมื่อตรวจร่างและยืนยันลงขายแล้ว ผู้ซื้อจะเห็นประกาศในหน้าตลาดและที่ `/farms` บัญชีแบบรหัสผ่านใช้ได้ทั้งซื้อและจัดการสวน ส่วนรหัสจาก LINE ใช้เปิดสวนที่ผูกไว้ [วิธีเชื่อม LINE](backend/src/modules/farmer/README.md)
+Growers can open **My Farm** to create an account, edit their farm profile, and draft a listing. Once the grower confirms publication, buyers can find the listing in the marketplace and at `/farms`. A password account works for both buying and managing a farm. A LINE sign-in code opens the farm linked to that LINE account. [Connect a farm to LINE](backend/src/modules/farmer/README.md)
 
-### ข้อมูลในเดโมมาจากไหน
+### Where the demo data comes from
 
-ราคา สต็อก และจำนวนซื้อขั้นต่ำมาจากแค็ตตาล็อกใน PostgreSQL ซึ่งเติมล็อตตัวอย่างสำหรับทดลองกรองสินค้าไว้ได้ ตัวเลขเทรนด์เป็นสัญญาณตัวอย่าง และแชตจะแสดงแหล่งข่าวเพิ่มเติมเมื่อค้นพบหลักฐาน ในโหมดเดโมสาธารณะ ผู้เยี่ยมชมค้นด้วยกฎของตลาดได้ทันที ส่วนผู้ซื้อที่เข้าสู่ระบบใช้ OpenAI ตีความคำถามได้ตามโควตา
+Prices, stock levels, and minimum order quantities come from the PostgreSQL catalog. You can load sample lots to try the filters. Trend figures use sample data. When the assistant finds supporting news coverage, it includes citations in its reply. In the public demo, guests can search the catalog directly. Signed-in buyers can use OpenAI to interpret questions within the demo quota.
 
-## รันบนเครื่อง
+## Run locally
 
-เตรียม Node.js 24 พร้อม npm, Python 3.12–3.14, uv, Make และ Docker ที่มี Compose จากนั้นเปิด Docker แล้วรันจากโฟลเดอร์หลักของ repo
+Install Node.js 24 with npm, Python 3.12–3.14, uv, Make, and Docker with Compose. Start Docker, then run these commands from the repository root.
 
 ```sh
 make init
 make dev
 ```
 
-เปิด [หน้าตลาดในเครื่อง](http://127.0.0.1:5173/market) คำสั่ง `make init` จะสร้าง `.env` หากยังไม่มี ติดตั้ง dependencies เปิด PostgreSQL และโหลดข้อมูลตัวอย่าง ส่วน `make dev` เปิด Vite ที่พอร์ต 5173 และ FastAPI ที่พอร์ต 3000 โดย Vite ส่งคำขอ `/api` ไปยัง backend หากเปลี่ยนพอร์ตฐานข้อมูล ให้แก้ทั้ง `DB_PORT` และ `DATABASE_URL` ใน `.env`
+Open the [local marketplace](http://127.0.0.1:5173/market). The `make init` command creates `.env` if needed, installs dependencies, starts PostgreSQL, and loads sample data. The `make dev` command starts Vite on port 5173 and FastAPI on port 3000. Vite forwards `/api` requests to FastAPI. If you change the database port, update both `DB_PORT` and `DATABASE_URL` in `.env`.
 
-| เมื่อต้องการ | คำสั่ง |
+| Task | Command |
 | --- | --- |
-| ตรวจเครื่องมือและการเชื่อมต่อ Docker | `make doctor` |
-| อัปเดตโครงสร้างฐานข้อมูล | `make migrate` |
-| เติมล็อตตัวอย่างในตลาด | `make seed DOMAIN=marketplace` |
-| ทดสอบ backend | `make test-api` |
-| ตรวจ lint, type และรันชุดทดสอบรวมถึง Playwright | `make check` |
-| สร้างและเปิดแอปรวม frontend กับ backend | `make build` แล้ว `make start` |
+| Check local tools and Docker connectivity | `make doctor` |
+| Apply database migrations | `make migrate` |
+| Load sample marketplace lots | `make seed DOMAIN=marketplace` |
+| Run backend tests | `make test-api` |
+| Run lint, type checks, and tests, including Playwright | `make check` |
+| Build and serve the frontend and backend together | `make build` followed by `make start` |
 
-ก่อนรัน Playwright ครั้งแรก ให้รัน `npx playwright install chromium` ในโฟลเดอร์ `frontend` ชุดทดสอบใช้ PostgreSQL และต้องการพอร์ต 5174 กับ 3001 ว่าง
+Before your first browser test, run `npx playwright install chromium` from the `frontend` directory. The tests use PostgreSQL and require ports 5174 and 3001 to be available.
 
-## จุดเริ่มต้นสำหรับทีมพัฒนา
+## Find your way around the code
 
-| ส่วนงาน | Frontend (React + Vite) | Backend (FastAPI) |
+| Feature | Frontend (React + Vite) | Backend (FastAPI) |
 | --- | --- | --- |
-| ตลาด ตะกร้า และคำสั่งซื้อ | [Marketplace](frontend/src/features/marketplace/) | [กฎราคาและใบเสนอราคา](backend/src/modules/marketplace/catalog.py) · [API ตลาด](backend/src/modules/marketplace/router.py) |
-| แชตจัดซื้อและเทรนด์ | [Copilot](frontend/src/features/copilot/) | [การตีความคำถาม โควตา และเครื่องมือ](backend/src/modules/copilot/router.py) |
-| โปรไฟล์สวน ประกาศ และ LINE | [Farmer Studio](frontend/src/features/farmer/) | [โมดูลสวน](backend/src/modules/farmer/) |
+| Marketplace, cart, and orders | [Marketplace](frontend/src/features/marketplace/) | [Pricing and quotes](backend/src/modules/marketplace/catalog.py) · [Marketplace API](backend/src/modules/marketplace/router.py) |
+| Shopping assistant and fruit trends | [Copilot](frontend/src/features/copilot/) | [Intent, quotas, and tools](backend/src/modules/copilot/router.py) |
+| Farm profiles, listings, and LINE | [Farmer Studio](frontend/src/features/farmer/) | [Farmer module](backend/src/modules/farmer/) |
 
-แชตเรียก `POST /api/ideas/idea-c/copilot/chat` โดยส่งคำถาม บริบทสนทนา และเงื่อนไขการซื้อ คำตอบประกอบด้วยข้อความ แหล่งที่มา เครื่องมือที่เรียก และล็อตหรือเทรนด์ที่พบ ลิงก์เดิม `/ideas/idea-c` และ `/ideas/idea-b` ยังเปิดหน้าตลาดและแชตตามลำดับ
+The chat sends the buyer’s question, conversation context, and purchasing criteria to `POST /api/ideas/idea-c/copilot/chat`. The response includes the answer, its source, the tools used, and any matching lots or trends. The legacy routes `/ideas/idea-c` and `/ideas/idea-b` open the marketplace and shopping assistant respectively.
 
-อ่านต่อได้ที่ [โครงสร้างโปรเจกต์](docs/adr/0003-product-structure.md) · [เทสต์ API](backend/tests/) · [เทสต์เส้นทางผู้ใช้](frontend/tests/e2e/) · [คู่มือ deploy บน GCP](infra/README.md)
+[Project structure](docs/adr/0003-product-structure.md) · [API tests](backend/tests/) · [Browser tests](frontend/tests/e2e/) · [GCP deployment guide](infra/README.md)
