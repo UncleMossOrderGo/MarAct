@@ -1,0 +1,21 @@
+export type Lot = {
+  id: string;
+  farm: string;
+  name: string;
+  grade: string | null;
+  uses: string;
+  kg: number | string | null;
+  unit: string;
+  price: number;
+  minimum: number;
+  stock: number;
+  freight: number;
+  earliest: string;
+  ends: string;
+  transit: number;
+  units: number;
+  requested_kg: number | null;
+  total: number;
+  misses: string[];
+  preferred: boolean;
+};

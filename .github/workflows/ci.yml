@@ -12,49 +12,17 @@ env:
   DATABASE_URL: postgres://maract:maract@127.0.0.1:55432/maract
 
 jobs:
-  plan:
+  backend:
     runs-on: ubuntu-latest
-    outputs:
-      ideas: ${{ steps.scope.outputs.ideas }}
-      full: ${{ steps.scope.outputs.full }}
     steps:
       - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-      - id: scope
-        env:
-          BASE: ${{ github.event.pull_request.base.sha }}
-          HEAD: ${{ github.event.pull_request.head.sha }}
-        run: python3 -m scripts.ci_plan "$BASE" "$HEAD"
-
-  ideas:
-    needs: plan
-    if: needs.plan.outputs.ideas != '[]'
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        idea: ${{ fromJSON(needs.plan.outputs.ideas) }}
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v6
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
       - uses: astral-sh/setup-uv@v7
       - run: uv sync --locked
-      - run: npm --prefix frontend ci
       - run: make db migrate
-      - run: npx playwright install --with-deps chromium
-        working-directory: frontend
-      - run: make test-idea
-        env:
-          IDEA: ${{ matrix.idea }}
-
-  shared:
-    needs: plan
-    if: needs.plan.outputs.full == 'true'
+      - run: uv run --locked ruff check backend
+      - run: uv run --locked mypy backend
+      - run: make test-api
+  frontend:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -63,30 +31,34 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
           cache-dependency-path: frontend/package-lock.json
+      - run: npm --prefix frontend ci
+      - run: npm --prefix frontend run lint
+      - run: npm --prefix frontend run typecheck
+      - run: npm --prefix frontend run build
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v7
       - run: uv sync --locked
-      - run: npm --prefix frontend ci
-      - run: make quality
       - run: make db migrate
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm --prefix frontend ci
       - run: npx playwright install --with-deps chromium
         working-directory: frontend
-      - run: npm --prefix frontend run test:web -- tests/
-      - if: github.event_name == 'push'
-        run: make build
+      - run: npm --prefix frontend run test:web
 
   ci:
-    needs: [plan, ideas, shared]
+    needs: [backend, frontend, e2e]
     if: always()
     runs-on: ubuntu-latest
-    env:
-      PLAN: ${{ needs.plan.result }}
-      IDEAS: ${{ needs.ideas.result }}
-      SHARED: ${{ needs.shared.result }}
-      EXPECT_IDEAS: ${{ needs.plan.outputs.ideas != '[]' }}
-      EXPECT_SHARED: ${{ needs.plan.outputs.full }}
     steps:
-      - run: |
-          set -eu
-          test "$PLAN" = success
-          if [ "$EXPECT_IDEAS" = true ]; then test "$IDEAS" = success; else test "$IDEAS" = skipped; fi
-          if [ "$EXPECT_SHARED" = true ]; then test "$SHARED" = success; else test "$SHARED" = skipped; fi
+      - run: test "$BACKEND" = success && test "$FRONTEND" = success && test "$E2E" = success
+        env:
+          BACKEND: ${{ needs.backend.result }}
+          FRONTEND: ${{ needs.frontend.result }}
+          E2E: ${{ needs.e2e.result }}

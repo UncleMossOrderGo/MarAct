@@ -23,6 +23,8 @@ def migrate() -> None:
 
 def seed(idea: str | None) -> None:
     directories = {path.name: path for path in (DB / "seeds").iterdir() if path.is_dir()}
+    aliases = {"idea-a": "records", "idea-b": "workspace", "idea-c": "marketplace"}
+    idea = aliases.get(idea, idea) if idea else idea
     if idea == "--all":
         selected = sorted(directories)
     elif idea in directories:
@@ -44,7 +46,7 @@ def main() -> None:
     commands.add_parser("migrate")
     seed_command = commands.add_parser("seed")
     selection = seed_command.add_mutually_exclusive_group(required=True)
-    selection.add_argument("--idea")
+    selection.add_argument("--domain", "--idea", dest="idea")
     selection.add_argument("--all", action="store_true")
     args = parser.parse_args()
     if args.command == "migrate":

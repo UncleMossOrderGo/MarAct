@@ -2,14 +2,16 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from psycopg_pool import ConnectionPool
+from psycopg import Error
+from psycopg_pool import ConnectionPool, PoolTimeout
 
-from backend.src.modules.idea_a.router import router as idea_a
-from backend.src.modules.idea_b.router import router as idea_b
-from backend.src.modules.idea_c.router import router as idea_c
+from backend.src.legacy.records.router import router as idea_a
+from backend.src.legacy.workspace.router import router as idea_b
+from backend.src.modules.copilot.router import router as copilot
+from backend.src.modules.marketplace.router import router as marketplace
 from backend.src.shared.db import database_url
 
 
@@ -23,11 +25,23 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 app = FastAPI(title="MarAct", lifespan=lifespan)
 app.include_router(idea_a, prefix="/api/ideas/idea-a")
 app.include_router(idea_b, prefix="/api/ideas/idea-b")
-app.include_router(idea_c, prefix="/api/ideas/idea-c")
+app.include_router(marketplace, prefix="/api/ideas/idea-c")
+app.include_router(copilot, prefix="/api/ideas/idea-c")
 
 
 @app.get("/api/health")
 def health() -> dict[str, bool]:
+    return {"ok": True}
+
+
+@app.get("/api/readiness")
+def readiness() -> dict[str, bool]:
+    try:
+        with app.state.pool.connection(timeout=3) as conn:
+            conn.execute("SELECT 1 FROM idea_c_lots LIMIT 1")
+            conn.execute("SELECT 1 FROM market_copilot_quota LIMIT 1")
+    except (Error, PoolTimeout) as exc:
+        raise HTTPException(503, "Marketplace database unavailable") from exc
     return {"ok": True}
 
 
@@ -37,6 +51,7 @@ if (frontend / "index.html").is_file():
 
     @app.get("/", include_in_schema=False)
     @app.get("/ideas", include_in_schema=False)
+    @app.get("/market", include_in_schema=False)
     @app.get("/ideas/{path:path}", include_in_schema=False)
     def frontend_page() -> FileResponse:
         return FileResponse(frontend / "index.html")

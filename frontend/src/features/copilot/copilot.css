@@ -1,0 +1,26 @@
+.market-copilot {
+  width: min(40rem, calc(100% - 1.5rem));
+  max-height: 86dvh;
+  padding: 1rem;
+  color: #1f2937;
+  background: #fff;
+  border: 1px solid #dce5df;
+  border-radius: 1rem;
+}
+.market-copilot::backdrop { background: #10281c88; }
+.market-copilot header {
+  padding: 0 0 .65rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.market-copilot h2 { margin: 0; }
+.market-copilot__thread { max-height: 54dvh; overflow-y: auto; overscroll-behavior: contain; }
+.market-copilot__thread section, .market-copilot__thread article { padding: .65rem; }
+.market-copilot__thread article { margin-top: .55rem; border: 1px solid #dce5df; border-radius: .65rem; }
+.market-copilot__thread p { margin: .35rem 0; overflow-wrap: anywhere; }
+.market-copilot__question { background: #e5f1e9; padding: .55rem .75rem; border-radius: .65rem; }
+.market-copilot form { display: grid; gap: .4rem; margin-top: .6rem; }
+.market-copilot textarea { width: 100%; box-sizing: border-box; padding: .5rem; font: inherit; }
+.market-copilot form button { justify-self: end; }
