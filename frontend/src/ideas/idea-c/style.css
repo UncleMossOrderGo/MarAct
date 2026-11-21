@@ -1,0 +1,74 @@
+.market {
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  color: #233b30;
+  font-family: system-ui, sans-serif;
+}
+.market h1 {
+  font-size: clamp(2rem, 5vw, 3rem);
+  letter-spacing: -0.045em;
+  margin-bottom: 0.7rem;
+}
+.market nav,
+.market-heading,
+.market-fields {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+.market nav {
+  border-bottom: 1px solid #b5c8bb;
+  padding-bottom: 1rem;
+  margin-bottom: 1.5rem;
+}
+.market nav button {
+  background: transparent;
+  color: #224b3c;
+}
+.market nav button[aria-pressed="true"] {
+  background: #214c3b;
+  color: white;
+}
+.market section,
+.market article {
+  padding: 1.2rem;
+  background: #fff;
+  border: 1px solid #cfdbce;
+  border-radius: 0.75rem;
+  margin: 0.8rem 0;
+}
+.market article {
+  border-left: 4px solid #89a970;
+}
+.market article small {
+  color: #526c5a;
+}
+.market h3,
+.market section h2 {
+  margin: 0.25rem 0 0.65rem;
+}
+.market p {
+  margin: 0.65rem 0;
+}
+.market label {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0.4rem 0;
+}
+.market-fields label {
+  flex: 1 1 12rem;
+}
+.market button {
+  cursor: pointer;
+  margin: 0.2rem 0.25rem 0.2rem 0;
+}
+.market-heading {
+  justify-content: space-between;
+  margin-top: 1.25rem;
+}
+.market-heading h2 {
+  margin: 0;
+}

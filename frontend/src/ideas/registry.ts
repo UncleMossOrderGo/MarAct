@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react';
 import { IdeaA } from './idea-a/screen';
 import { IdeaB } from './idea-b/screen';
+import { IdeaC } from './idea-c/screen';
 
 type Idea = {
   id: string;
@@ -12,6 +13,7 @@ type Idea = {
 export const ideas: readonly Idea[] = [
   { id: 'idea-a', label: 'Idea A', status: 'demo', Screen: IdeaA },
   { id: 'idea-b', label: 'Idea B', status: 'demo', Screen: IdeaB },
+  { id: 'idea-c', label: 'Idea C · Marketplace', status: 'demo', Screen: IdeaC },
 ];
 
 export const defaultIdeaId = 'idea-a';
