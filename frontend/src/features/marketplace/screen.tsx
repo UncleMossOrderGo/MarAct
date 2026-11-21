@@ -556,6 +556,7 @@ export function Marketplace() {
                           <img className="farm-lot-cover" src={l.cover_url} alt={l.name} loading="lazy" />}
                         <h3>{l.name}</h3>
                         <strong>{l.farm}</strong>
+                        {l.is_sample && <small>ล็อตตัวอย่าง</small>}
                         <p>{l.grade ?? "สวนยังไม่ระบุเกรด"}</p>
                         <p>{l.uses}</p>
                       </div>

@@ -1,4 +1,5 @@
 export type Lot = {
+  is_sample?: boolean;
   id: string;
   cover_url?: string | null;
   farm: string;

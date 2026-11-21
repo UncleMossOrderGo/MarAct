@@ -293,7 +293,7 @@ def publish(
         updates = ",".join(f"{f}=EXCLUDED.{f}" for f in fields)
         cur.execute(
             f"INSERT INTO idea_c_lots(id,{columns}) VALUES ({placeholders}) "
-            f"ON CONFLICT(id) DO UPDATE SET {updates} RETURNING id, version",
+            f"ON CONFLICT(id) DO UPDATE SET {updates}, is_sample=false RETURNING id, version",
             (lot_id, *body.model_dump().values()),
         )
         return cur.fetchone()

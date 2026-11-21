@@ -25,9 +25,13 @@ Open [the marketplace](http://127.0.0.1:5173/market), [shop trends](http://127.0
 
 Install Chromium before the first browser test with `cd frontend && npx playwright install chromium`.
 
+## Accounts and roles
+
+Open [บัญชีและบทบาท](http://127.0.0.1:5173/market/login) to create an account or sign in. Choose **ผู้ซื้อ** for the buyer marketplace or **เกษตรกร** for the grower workspace. Use the account icon to switch. A newly registered grower starts with an empty farm. Sign back in to manage previously published lots and incoming orders. For a two-person demo, use separate browser profiles for the buyer and grower.
+
 ## Demo a farm order
 
-1. **Grower.** Open Farmer Studio → **จัดการสวน** to edit a farm, or pair a LINE account. Open **ผู้ช่วยลงขาย** to describe a lot or enter its details. Set quantity, unit price, sales unit, ready date and delivery area. Review the draft and confirm publication.
+1. **Grower.** Sign in as the grower and open Farmer Studio → **จัดการสวน** to edit a farm, or pair a LINE account. Open **ผู้ช่วยลงขาย** to describe a lot or enter its details. Set quantity, unit price, sales unit, ready date and delivery area. Review the draft and confirm publication.
 2. **Buyer.** Open the shop's daily trends and follow an ingredient to the farm market. Search by fruit or farm. Set the requested kg, postcode, and arrival date. Compare minimum units, available stock and delivered total. A newly published lot needs a matching delivery policy.
 3. **Reserve.** Add the farm lot to the marketplace basket and confirm the quote with a buyer account. The marketplace reserves stock and creates the farm order. Open the buyer's orders to see its status. The shop's sample ingredient checkout and demo PromptPay receipt are separate from this farm reservation.
 4. **Farm handoff.** Open **จัดการสวน → คำสั่งซื้อจากตลาด** or send **ออเดอร์** in the linked LINE chat. Accept the reservation with payment instructions or decline it with a reason. Refresh the buyer’s order to see the decision. To show supply changing, send **สต็อก**, then **ของหมด 1** for the intended lot, and confirm. The next quote checks the new stock. The existing reservation keeps its original price. No money moves during the demo.
@@ -48,7 +52,7 @@ For a development tunnel, run the webhook-only gateway below and point the tunne
 API_PORT=3002 uv run --locked uvicorn backend.src.modules.farmer.webhook_gateway:app --host 127.0.0.1 --port 3010
 ```
 
-Private grower drafts, pairings, images and the LINE event queue use the grower adapter’s SQLite data directory. Published purchasable lots and buyer reservations use PostgreSQL. A hosted farmer deployment needs durable storage and a provisioned owner session flow. The server-to-server partner API uses a separate per-farm `X-Market-Key`. [Marketplace partner contract](backend/src/modules/marketplace/README.md)
+Private grower drafts, pairings, images and the LINE event queue use the grower adapter’s SQLite data directory. Published purchasable lots and buyer reservations use PostgreSQL. Farmer Studio currently restricts management to the local demo host. A hosted deployment also needs durable storage for grower data. The server-to-server partner API uses a separate per-farm `X-Market-Key`. [Marketplace partner contract](backend/src/modules/marketplace/README.md)
 
 ## Product structure
 

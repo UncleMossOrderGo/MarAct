@@ -10,7 +10,12 @@ test('a grower publishes a fresh lot and accepts the buyer’s reservation', asy
     timeZone: 'Asia/Bangkok', year: 'numeric', month: '2-digit', day: '2-digit',
   }).format(new Date(Date.now() + offset * 86400000));
 
-  await grower.goto('/market/farm');
+  await grower.goto('/market/login');
+  await grower.getByRole('button', { name: /ยังไม่มีบัญชี/ }).click();
+  await grower.getByLabel('ชื่อบัญชี').fill('สวน-' + suffix);
+  await grower.getByLabel('รหัสผ่าน', { exact: true }).fill(randomUUID());
+  await grower.getByRole('button', { name: 'สร้างบัญชี', exact: true }).click();
+  await grower.getByRole('link', { name: /เกษตรกร/ }).click();
   await grower.getByRole('button', { name: 'ผู้ช่วยลงขาย', exact: true }).click();
   await grower.getByRole('button', { name: 'กรอกเอง' }).click();
   await grower.getByLabel('ชื่อผลไม้ / พันธุ์').fill(fruit);
@@ -21,6 +26,7 @@ test('a grower publishes a fresh lot and accepts the buyer’s reservation', asy
   await grower.getByLabel('เริ่มส่งได้วันที่').fill(date(0));
   await grower.getByLabel('พื้นที่จัดส่ง', { exact: true }).fill('กรุงเทพฯ');
   await grower.getByRole('button', { name: 'บันทึกร่างจากแบบฟอร์ม' }).click();
+  await expect(grower.getByRole('status')).toHaveText('บันทึกร่างแล้ว');
   const photo = fileURLToPath(new URL('../../src/features/shop/marketplace-photos/pineapple.webp', import.meta.url));
   await grower.getByLabel('เลือกรูปจากเครื่อง').setInputFiles(photo);
   await expect(grower.getByRole('img', { name: 'รูปปกที่จะเผยแพร่' })).toBeVisible();
@@ -31,9 +37,12 @@ test('a grower publishes a fresh lot and accepts the buyer’s reservation', asy
   try {
     const buyer = await buyerContext.newPage();
     const query = new URLSearchParams({ q: fruit, kg: '5', postcode: '10100', arrival: date(2) });
+    await buyer.goto('/market?' + new URLSearchParams({ q: 'มะม่วงน้ำดอกไม้' }));
+    await expect(buyer.getByText('ล็อตตัวอย่าง').first()).toBeVisible();
     await buyer.goto('/market?' + query);
     const lot = buyer.getByRole('article').filter({ has: buyer.getByRole('heading', { name: fruit, exact: true }) });
     await expect(lot).toContainText('310 บาท');
+    await expect(lot.getByText('ล็อตตัวอย่าง')).toHaveCount(0);
     const cover = lot.locator('img[src^="/api/farmer/marketplace/photos/"]');
     await expect(cover).toBeVisible();
     await expect.poll(() => cover.evaluate(img => (img as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
