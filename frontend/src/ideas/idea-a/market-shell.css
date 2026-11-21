@@ -147,11 +147,23 @@ main:has(> .market-shell) {
 }
 
 .market-toolbar,
-.market-toolbar label {
+.market-toolbar label,
+.market-toolbar-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+}
+
+.market-toolbar-actions {
+  margin-inline-start: auto;
+}
+
+.market-toolbar .market-search {
+  flex: 1 1 12rem;
+  max-width: 22rem;
+  border-color: var(--market-border);
+  background: #fafbf9;
 }
 
 .market-toolbar {

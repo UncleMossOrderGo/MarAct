@@ -1,5 +1,35 @@
 import { expect, test } from '@playwright/test';
 
+test('searches the marketplace by English or Thai name without changing rank', async ({ page }) => {
+  const api = '**/api/ideas/idea-a';
+  await page.route(`${api}/auth/session`, (route) => route.fulfill({ json: { email: 'buyer@example.test' } }));
+  await page.route(`${api}/shops`, (route) => route.fulfill({
+    json: { shops: [{ id: 'cafe', name: 'Café', category: 'cafe', menu_tags: [] }] },
+  }));
+  await page.route(`${api}/trends/latest`, (route) => route.fulfill({ json: { run: null, cards: [] } }));
+  await page.route(`${api}/shops/cafe/feed/explanations?*`, (route) => route.fulfill({ status: 204 }));
+  await page.route(`${api}/shops/cafe/feed`, (route) => route.fulfill({
+    json: { feed_key: 'demo', run_id: null, items: [
+      { fruit: { id: 'mango', name_en: 'Mango', name_th: 'มะม่วง' }, listings: [], suggested_kg: 2 },
+      { fruit: { id: 'banana', name_en: 'Banana', name_th: 'กล้วย' }, listings: [], suggested_kg: 2 },
+    ] },
+  }));
+  await page.goto('/ideas/idea-a');
+  await page.getByRole('button', { name: 'Continue', exact: true }).click();
+  const search = page.getByRole('searchbox', { name: 'Search fruit' });
+  const results = page.getByRole('list', { name: 'Ranked fruit recommendations' });
+  await expect(results.getByRole('listitem')).toHaveCount(2);
+  await search.fill(' BANANA ');
+  await expect(results.getByRole('listitem')).toHaveCount(1);
+  await expect(results.getByLabel('Rank 2')).toBeVisible();
+  await search.fill('มะม่วง');
+  await expect(results.getByRole('button', { name: 'Mango' })).toBeVisible();
+  await search.fill('pear');
+  await expect(page.getByRole('status')).toHaveText('No fruit matches your search.');
+  await search.clear();
+  await expect(results.getByRole('listitem')).toHaveCount(2);
+});
+
 const fixturePath = '/tests/fixtures/marketplace-feed.html';
 
 test('shows ranked fruit, price and quantity before updating the active shop explanation', async ({ page }) => {

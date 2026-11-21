@@ -46,6 +46,7 @@ type MarketplaceFeedProps = {
   feed: MarketplaceFeedData | null;
   loading?: boolean;
   error?: string;
+  query?: string;
   locale?: string;
   onSelectFruit: (fruit: MarketplaceFruit) => void;
   openExplanations?: OpenExplanationStream;
@@ -53,7 +54,7 @@ type MarketplaceFeedProps = {
 };
 
 function FeedGrid({
-  shop, feed, locale = 'en', onSelectFruit, openExplanations, onObsolete,
+  shop, feed, locale = 'en', query = '', onSelectFruit, openExplanations, onObsolete,
 }: MarketplaceFeedProps & { feed: MarketplaceFeedData }) {
   const [updates, setUpdates] = useState<Record<string, ExplanationUpdate>>({});
   const shopId = shop.id;
@@ -84,10 +85,17 @@ function FeedGrid({
   }, [shopId, feedKey, locale, openExplanations, onObsolete]);
 
   if (!feed.items.length) return <p>No fruit recommendations yet.</p>;
+  const search = query.trim().toLocaleLowerCase();
+  const matches = feed.items
+    .map((item, index) => ({ item, rank: index + 1 }))
+    .filter(({ item: { fruit } }) =>
+      fruit.name_en.toLocaleLowerCase().includes(search) || fruit.name_th.toLocaleLowerCase().includes(search),
+    );
+  if (!matches.length) return <p role="status">No fruit matches your search.</p>;
 
   return (
     <ol className="market-feed-grid" aria-label="Ranked fruit recommendations">
-      {feed.items.map(({ fruit, listings, seller_count, suggested_kg, trend_name, explanation }, index) => {
+      {matches.map(({ item: { fruit, listings, seller_count, suggested_kg, trend_name, explanation }, rank }) => {
         const photo = marketplaceFruitImage(fruit);
         const recommended = listings[0];
         const sellers = seller_count ?? new Set(listings.map((listing) => listing.seller.id)).size;
@@ -97,7 +105,7 @@ function FeedGrid({
           <li key={fruit.id} className="market-fruit-card">
             <div className="market-fruit-media">
               {photo && <img src={photo} alt={fruit.name_en} loading="lazy" />}
-              <span className="market-fruit-rank" aria-label={`Rank ${index + 1}`}>#{index + 1}</span>
+              <span className="market-fruit-rank" aria-label={`Rank ${rank}`}>#{rank}</span>
             </div>
             <div className="market-fruit-content">
               <h3><button type="button" onClick={() => onSelectFruit(fruit)}>{fruit.name_en}</button></h3>

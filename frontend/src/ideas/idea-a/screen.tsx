@@ -35,6 +35,7 @@ function Marketplace({ signOut, signingOut }: { signOut: () => void; signingOut:
   const [destination, setDestination] = useState<MarketDestination>('marketplace');
   const [view, setView] = useState<View>({ type: 'navigation' });
   const [cartOpen, setCartOpen] = useState(false);
+  const [fruitQuery, setFruitQuery] = useState('');
 
   const shops = useMarketplaceResource('shops', loadShops);
   const shop = shops.data?.shops.find(({ id }) => id === shopId);
@@ -54,6 +55,7 @@ function Marketplace({ signOut, signingOut }: { signOut: () => void; signingOut:
     sessionStorage.setItem(activeShopStorage, id);
     setShopId(id);
     setCartOpen(false);
+    setFruitQuery('');
     navigate('marketplace');
   }
 
@@ -96,6 +98,9 @@ function Marketplace({ signOut, signingOut }: { signOut: () => void; signingOut:
       onOpenCart={() => setCartOpen(true)}
       onSignOut={signOut}
       signingOut={signingOut}
+      fruitSearch={view.type === 'navigation' && destination === 'marketplace'
+        ? { value: fruitQuery, onChange: setFruitQuery }
+        : undefined}
     >
       {shop && <>
         {view.type === 'product' && (
@@ -128,6 +133,7 @@ function Marketplace({ signOut, signingOut }: { signOut: () => void; signingOut:
         )}
         {view.type === 'navigation' && destination === 'marketplace' && (
           <MarketplaceFeed
+            query={fruitQuery}
             shop={shop}
             feed={feed.data ?? null}
             loading={feed.loading}

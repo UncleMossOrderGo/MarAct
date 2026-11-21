@@ -28,6 +28,7 @@ type MarketShellProps = {
   showProfile?: boolean;
   onSignOut?: () => void;
   signingOut?: boolean;
+  fruitSearch?: { value: string; onChange: (value: string) => void };
   children?: ReactNode;
 };
 
@@ -70,7 +71,7 @@ function ShopPicker({ shops, onSelect }: {
 
 export function MarketShell({
   shops, activeShopId, destination, cartCount, onShopChange, onNavigate, onOpenCart,
-  showProfile = destination === 'profile', onSignOut, signingOut, children,
+  showProfile = destination === 'profile', onSignOut, signingOut, fruitSearch, children,
 }: MarketShellProps) {
   const shop = shops.find(({ id }) => id === activeShopId);
 
@@ -98,8 +99,15 @@ export function MarketShell({
                   {shops.map(({ id, name }) => <option key={id} value={id}>{name}</option>)}
                 </select>
               </label>
-              <button type="button" onClick={onOpenCart}>Cart ({cartCount})</button>
-              {signOut}
+              {fruitSearch && (
+                <input className="market-search" type="search" aria-label="Search fruit"
+                  placeholder="Search fruit" value={fruitSearch.value}
+                  onChange={(event) => fruitSearch.onChange(event.currentTarget.value)} />
+              )}
+              <div className="market-toolbar-actions">
+                <button type="button" onClick={onOpenCart}>Cart ({cartCount})</button>
+                {signOut}
+              </div>
             </div>
             {showProfile && (
               <section className="market-profile">
