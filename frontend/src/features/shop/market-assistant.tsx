@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ArrowUp, CornerDownLeft, History, MessageCircle, Plus, Sparkles, Warehouse, X } from 'lucide-react';
 import { requestJson } from '../../shared/http';
@@ -26,6 +26,7 @@ export type MarketAssistantProps = {
   cart?: readonly MarketCartItem[];
   onAdd?: (line: MarketCartItem) => void;
   openRequest?: number;
+  openQuestion?: string;
 };
 
 const labels = {
@@ -152,7 +153,7 @@ function StockEditor({ shopId, locale }: { shopId: string; locale: DailyLocale }
   </form>;
 }
 
-function ShopAssistant({ shopId, locale, page, focused, cart, onAdd, openRequest }: MarketAssistantProps) {
+function ShopAssistant({ shopId, locale, page, focused, cart, onAdd, openRequest, openQuestion }: MarketAssistantProps) {
   const copy = labels[locale];
   const dialog = useRef<HTMLDialogElement>(null);
   const output = useRef<HTMLDivElement>(null);
@@ -188,20 +189,19 @@ function ShopAssistant({ shopId, locale, page, focused, cart, onAdd, openRequest
     void loadThreads().catch(() => setLoadFailed(true));
   }
 
+  const askFromPage = useEffectEvent(() => {
+    setStock(false);
+    open();
+    const question = focused?.type === 'order' ? copy.orderPrompt
+      : focused?.type === 'ingredient' ? (locale === 'th' ? 'จากสต็อกและยอดใช้จริง ร้านควรซื้อวัตถุดิบนี้เพิ่มไหม?' : 'Given my stock and usage, should I buy more of this ingredient?')
+      : (locale === 'th' ? 'เทรนด์นี้น่าลองสำหรับร้านไหม? ดูหลักฐาน วัตถุดิบที่มี และแนะนำขั้นตอนต่อไป' : 'Is this trend worth testing for my shop? Check the evidence and my stock, then suggest a next step.');
+    void send(openQuestion ?? question);
+  });
   useEffect(() => {
-    if (openRequest && openRequest !== openSequence.current) {
-      openSequence.current = openRequest;
-      setStock(false);
-      if (!dialog.current?.open) {
-        dialog.current?.showModal();
-        const controller = new AbortController();
-        void requestJson<{ threads: Thread[] }>(root, { signal: controller.signal })
-          .then(({ threads: rows }) => setThreads(rows))
-          .catch(() => { if (!controller.signal.aborted) setLoadFailed(true); });
-        return () => controller.abort();
-      }
-    }
-  }, [openRequest, root]);
+    if (!openRequest || openRequest === openSequence.current || busy) return;
+    openSequence.current = openRequest;
+    askFromPage();
+  }, [openRequest, busy]);
   useEffect(() => () => request.current?.abort(), []);
   useEffect(() => { if (output.current && followOutput.current) output.current.scrollTop = output.current.scrollHeight; }, [turns, partial, pending, activity]);
 
@@ -362,7 +362,7 @@ function ShopAssistant({ shopId, locale, page, focused, cart, onAdd, openRequest
               {copy.retry}</button>}</div>}
           </div>
           <div className="market-chat-prompts">{prompts.map((prompt) => <button key={prompt} type="button" disabled={busy}
-            onClick={() => { setDraft(prompt); composer.current?.focus(); }}>{prompt}<CornerDownLeft size={13} aria-hidden="true" /></button>)}</div>
+            onClick={() => void send(prompt)}>{prompt}<CornerDownLeft size={13} aria-hidden="true" /></button>)}</div>
           <form className="market-chat-compose" onSubmit={(event) => { event.preventDefault(); void send(draft); }}>
             <textarea ref={composer} onKeyDown={(event) => {
               if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing && event.nativeEvent.keyCode !== 229) {

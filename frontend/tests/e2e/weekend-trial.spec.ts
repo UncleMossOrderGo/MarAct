@@ -34,11 +34,21 @@ test('a café finds one deliverable trial inside ฿500 and reviews the same lot
 
 test('saved trends open the shop assistant from the buyer home', async ({ page }) => {
   await page.goto('/market');
+  const messages: { message: string; page_context: { focused: { type: string; id: string } } }[] = [];
+  await page.route('**/agent/threads/*/messages', route => {
+    messages.push(route.request().postDataJSON());
+    return route.fulfill({ contentType: 'text/event-stream', body: 'event: text\ndata: {"delta":"ลองล็อตเล็ก"}\n\nevent: done\ndata: {}\n\n' });
+  });
   const trends = page.getByRole('region', { name: 'เทรนด์วันนี้สำหรับร้าน' });
   await expect(trends.getByRole('article').first()).toBeVisible();
   await expect(trends.getByRole('button', { name: 'ค้นหาเทรนด์ใหม่' })).toBeVisible();
   await trends.getByRole('button', { name: 'ถาม AI เรื่องเทรนด์นี้' }).first().click();
   await expect(page.getByRole('dialog', { name: 'ผู้ช่วย MarAct' })).toBeVisible();
+  await expect(page.getByText('ลองล็อตเล็ก', { exact: true })).toBeVisible();
+  expect(messages).toHaveLength(1);
+  expect(messages[0].message).toContain(await trends.getByRole('heading', { level: 3 }).first().innerText());
+  expect(messages[0].message).toContain('500 บาท');
+  expect(messages[0].page_context.focused.type).toBe('trend');
   await page.getByRole('button', { name: 'ปิดผู้ช่วย' }).click();
   await expect(page).toHaveURL('/market');
 });

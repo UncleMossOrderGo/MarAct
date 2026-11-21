@@ -236,6 +236,7 @@ def test_live_provider_streams_chunks_and_bounds_tool_rounds(
             return FakeStream(answer=len(requests) == 5)
 
     monkeypatch.setenv("OPENAI_API_KEY", "test")
+    monkeypatch.delenv("OPENAI_SHOP_AGENT_EFFORT", raising=False)
     monkeypatch.setattr(shop_assistant, "OpenAI", FakeClient)
     tools = ShopTools(marketplace_engine, "bakery", "en", datetime.now(BANGKOK))
     events = list(shop_assistant.openai_reply([], tools, "en"))
@@ -255,6 +256,7 @@ def test_live_provider_streams_chunks_and_bounds_tool_rounds(
         event.state for event in events if isinstance(event, shop_assistant.ToolActivity)
     ] == ["running", "error"] * 4
     assert len(requests) == 5 and requests[-1]["tools"] == []
+    assert all(request["reasoning"] == {"effort": "medium"} for request in requests)
     follow_up = requests[1]["input"]
     assert isinstance(follow_up, list)
     assert follow_up[0] == {

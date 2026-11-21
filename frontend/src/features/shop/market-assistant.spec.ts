@@ -43,7 +43,6 @@ test('opens a mobile assistant, uses focused context, and adds only after the bu
   const panel = page.getByRole('dialog', { name: 'MarAct Assistant' });
   await expect(panel).toBeVisible();
   await panel.getByRole('button', { name: 'Do I have enough stock for this trend?' }).click();
-  await panel.getByRole('button', { name: 'Send', exact: true }).click();
   await expect(panel.locator('strong').filter({ hasText: 'Three days of milk remain.' })).toBeVisible();
   await expect(panel.getByRole('list', { name: 'Tool activity' })).toContainText('Inventory check');
   await expect(panel.getByRole('link', { name: 'Read the source' })).toHaveAttribute('href', 'https://example.com/gelato');

@@ -28,7 +28,7 @@ export function WeekendTrial({ lots, budget, postcode, arrival, kg, loading, err
   const today = useMarketplaceResource(shopId ?? null, loadToday, true);
   const job = useMarketplaceResource('job', loadJob);
   const publication = today.data;
-  const [focus, setFocus] = useState({ slug: '', sequence: 0 });
+  const [focus, setFocus] = useState({ slug: '', question: '', sequence: 0 });
   const [running, setRunning] = useState(false);
   const [jobError, setJobError] = useState(false);
   const attempt = useRef<AbortController | null>(null);
@@ -63,7 +63,7 @@ export function WeekendTrial({ lots, budget, postcode, arrival, kg, loading, err
   return <section className="weekend-trial">
     <div className="trial-title"><h1>เมนูทดลองสุดสัปดาห์</h1>
       {shopId && <MarketAssistantPanel shopId={shopId} locale="th" page="today"
-        focused={focus.slug ? { type: 'trend', id: focus.slug } : undefined} openRequest={focus.sequence} />}
+        focused={focus.slug ? { type: 'trend', id: focus.slug } : undefined} openRequest={focus.sequence} openQuestion={focus.question} />}
     </div>
     <section className="buyer-trends" aria-labelledby="buyer-trends-title">
       <div className="trial-title"><h2 id="buyer-trends-title">เทรนด์วันนี้สำหรับร้าน</h2>
@@ -79,7 +79,11 @@ export function WeekendTrial({ lots, budget, postcode, arrival, kg, loading, err
         <p>{t.menu_idea || t.why_rising}</p>
         {t.sources.filter(s => /^https?:\/\//.test(s.url)).slice(0, 1).map(s =>
           <a key={s.url} href={s.url} target="_blank" rel="noreferrer">ดูแหล่งที่มา</a>)}
-        <button type="button" onClick={() => setFocus(f => ({ slug: t.slug, sequence: f.sequence + 1 }))}>ถาม AI เรื่องเทรนด์นี้</button>
+        <button type="button" onClick={() => setFocus(f => ({ slug: t.slug, sequence: f.sequence + 1,
+          question: [`ร้านควรทดลองเมนูจากเทรนด์ “${t.name}” สุดสัปดาห์นี้ไหม?`,
+            budget && `งบรวมค่าส่ง ${budget} บาท`, kg && `ต้องการ ${kg} กก.`,
+            postcode && `ส่งรหัสไปรษณีย์ ${postcode}`, arrival && `รับวันที่ ${arrival}`,
+            'ช่วยดูหลักฐานเทรนด์ สต็อกร้าน และเปรียบเทียบล็อตจากสวน ถ้าไม่คุ้มหรือส่งไม่ทัน บอกเหตุผลที่ควรข้าม'].filter(Boolean).join(' '), }))}>ถาม AI เรื่องเทรนด์นี้</button>
       </article>)}</div>
       <a href="/market/shop">ดูรายละเอียดเทรนด์และสต็อกร้าน →</a>
     </section>

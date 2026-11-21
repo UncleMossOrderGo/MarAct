@@ -10,6 +10,7 @@ const names: Record<string, [string, string]> = {
   get_usage: ['Ingredient usage', 'การใช้วัตถุดิบ'],
   get_today_trends: ['Today’s trends', 'เทรนด์วันนี้'],
   get_trend_detail: ['Trend research', 'ข้อมูลเทรนด์'],
+  check_farm_lots: ['Checking farm prices and delivery', 'เช็กราคาและรอบส่งจากสวน'],
   compare_trial_lots: ['Trial lot comparison', 'เปรียบเทียบล็อตทดลอง'],
   search_listings: ['Supplier search', 'ค้นหาผู้ขาย'],
   get_orders: ['Order lookup', 'ค้นหาคำสั่งซื้อ'],

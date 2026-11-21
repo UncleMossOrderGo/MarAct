@@ -35,8 +35,8 @@ def postgres_engine() -> Iterator[Engine]:
 
         try:
             with engine.begin() as connection:
-                for path in sorted(STARTER_MIGRATIONS.glob("*.sql")):
-                    connection.exec_driver_sql(path.read_text())
+                for filename in ("0001_idea_a_records.sql", "0002_idea_b_records.sql"):
+                    connection.exec_driver_sql((STARTER_MIGRATIONS / filename).read_text())
                 connection.exec_driver_sql(
                     "INSERT INTO idea_b_records (title, seed_key) VALUES ('retained', 'starter')"
                 )
