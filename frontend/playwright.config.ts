@@ -14,10 +14,11 @@ export default defineConfig({
   use: { baseURL: `http://127.0.0.1:${webPort}` },
   webServer: [
     {
-      command: 'uv run --locked python -m backend.src.app.server',
+      command: 'uv run --locked python -m backend.src.testing.browser_server',
       cwd: fileURLToPath(new URL('..', import.meta.url)),
       url: `http://127.0.0.1:${apiPort}/api/health`,
-      env: { API_PORT: apiPort, API_HOST: '127.0.0.1' },
+      env: { API_PORT: apiPort },
+      gracefulShutdown: { signal: 'SIGTERM', timeout: 5000 },
     },
     {
       command: `npm run dev -- --port ${webPort}`,

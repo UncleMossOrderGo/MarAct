@@ -1,0 +1,132 @@
+.market-product {
+  padding: 0;
+  border: 0;
+}
+
+.market-product h1 {
+  margin: 0;
+  font-size: clamp(26px, 4vw, 36px);
+  letter-spacing: -.03em;
+}
+
+.market-product-back {
+  margin-bottom: 18px;
+  border: 1px solid var(--market-border, #d6e1da);
+  color: inherit;
+  background: white;
+  cursor: pointer;
+}
+
+.market-product-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(16px, 4vw, 32px);
+  align-items: start;
+}
+
+.market-product-image {
+  display: block;
+  width: 100%;
+  max-height: 420px;
+  aspect-ratio: 1;
+  border-radius: var(--market-radius, 10px);
+  object-fit: cover;
+}
+
+@media (min-width: 820px) {
+  .market-product-layout:has(.market-product-image) {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  }
+}
+
+.market-product-trend {
+  width: fit-content;
+  padding: 4px 10px;
+  border-radius: 999px;
+  color: var(--market-green, #21613b);
+  background: var(--market-green-soft, #e8f3e9);
+  font-size: 14px;
+}
+
+.market-product-offers {
+  min-width: 0;
+  margin: 16px 0;
+  padding: 0;
+  border: 0;
+}
+
+.market-product-offers legend,
+.market-product-purchase > label {
+  padding: 0;
+  font-weight: 650;
+}
+
+.market-product-offer {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 10px;
+  border: 1px solid var(--market-border, #d6e1da);
+  border-radius: var(--market-radius, 10px);
+  font-size: 14px;
+}
+
+.market-product-offer:has(:checked) {
+  border-color: var(--market-green, #21613b);
+  background: var(--market-green-soft, #e8f3e9);
+}
+
+.market-product-offer input {
+  margin: 3px 0 0;
+  accent-color: var(--market-green, #21613b);
+}
+
+.market-product-offer small {
+  display: block;
+  color: var(--market-muted, #53645c);
+}
+
+.market-product-offer span:last-child {
+  text-align: right;
+}
+
+.market-quantity-stepper {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.market-quantity-stepper input {
+  width: 100%;
+  box-sizing: border-box;
+  text-align: center;
+  appearance: textfield;
+}
+
+.market-quantity-stepper input::-webkit-inner-spin-button {
+  appearance: none;
+}
+
+.market-quantity-stepper :is(input, button) {
+  border: 1px solid var(--market-border, #d6e1da);
+  color: inherit;
+  background: white;
+}
+
+.market-product-purchase p {
+  margin: 6px 0 12px;
+  color: var(--market-muted, #53645c);
+  font-size: 13px;
+}
+
+.market-product-add {
+  width: 100%;
+  background: var(--market-green, #21613b);
+}
+
+.market-product-status:empty {
+  margin: 0;
+}
