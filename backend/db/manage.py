@@ -10,6 +10,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.pool import NullPool
 
 from backend.db.seeds.idea_a import BANGKOK, seed_demo
+from backend.db.seeds.idea_a_marketplace import seed_marketplace
 from backend.src.shared.db import database_url
 
 DB = Path(__file__).resolve().parent
@@ -72,9 +73,11 @@ def seed(idea: str | None, *, planning_date: date | None = None) -> None:
                     connection.execute(path.read_text(), prepare=False)
                 if idea_id == "idea-a":
                     schema = connection.execute(
-                        "SELECT to_regclass('idea_a_cafes')"
+                        "SELECT COALESCE(to_regclass('idea_a_shops'), to_regclass('idea_a_cafes'))::text"
                     ).fetchone()
-                    if schema and schema[0] is not None:
+                    if schema and schema[0] == "idea_a_shops":
+                        seed_marketplace(connection, planning_date or datetime.now(BANGKOK).date())
+                    elif schema and schema[0] == "idea_a_cafes":
                         seed_demo(connection, planning_date or datetime.now(BANGKOK).date())
                     else:
                         print("Skipped Idea A restock fixtures because the schema is pending.")
