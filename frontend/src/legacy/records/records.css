@@ -1,0 +1,42 @@
+@import '../../features/shop/market-design.css';
+
+body:has(.legacy-records) {
+  font-family: var(--market-font);
+  color: var(--market-ink);
+  background: var(--market-paper);
+}
+#root:has(.legacy-records) > header {
+  padding: var(--market-space-2) clamp(1rem, 3vw, 3rem);
+  border-color: var(--market-border);
+  color: var(--market-green);
+}
+main:has(> .legacy-records) {
+  max-width: none;
+  margin: 0;
+  padding: clamp(1rem, 3vw, 3rem);
+}
+.legacy-records section {
+  max-width: 60rem;
+  margin-inline: auto;
+  border-color: var(--market-border);
+  border-radius: var(--market-radius);
+  padding: clamp(1rem, 3vw, 2rem);
+}
+.legacy-records h1 { font-size: 2rem; }
+.legacy-records input,
+.legacy-records button,
+#root:has(.legacy-records) > header select {
+  min-height: 44px;
+  box-sizing: border-box;
+  border-color: var(--market-border);
+  border-radius: var(--market-button-radius);
+}
+.legacy-records button {
+  background: var(--market-green);
+  border-color: var(--market-green);
+  font-weight: 650;
+}
+.legacy-records :focus-visible {
+  outline: 2px solid var(--market-green);
+  outline-offset: 2px;
+}

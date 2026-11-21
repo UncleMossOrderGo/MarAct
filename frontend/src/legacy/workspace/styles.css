@@ -1,12 +1,35 @@
-@import "./brand-tokens.css";
+@import "../../features/shop/market-design.css";
+
+body:has(.buyer-intelligence) {
+  --maract-primary: var(--market-green);
+  --maract-primary-hover: #195f27;
+  --maract-background: var(--market-paper);
+  --maract-surface: var(--market-paper);
+  --maract-text: var(--market-ink);
+  --maract-muted: var(--market-muted);
+  --maract-border: var(--market-border);
+  --maract-control-border: #cbd8ce;
+  --maract-success-surface: var(--market-green-soft);
+  --maract-success-text: var(--market-green);
+  --maract-attention-surface: #fff3ce;
+  --maract-attention-text: #6e450a;
+  --maract-focus: var(--market-green);
+  --maract-leaf: var(--market-green);
+  --maract-harvest: var(--market-green-soft);
+  --maract-font: var(--market-font);
+  --maract-card-radius: var(--market-radius);
+  --maract-control-radius: var(--market-button-radius);
+  --maract-target: 44px;
+  font-family: var(--market-font);
+}
 
 body:has(.buyer-intelligence:not(.copilot-chat)) {
   background: var(--maract-background);
 }
 
 #root:has(.buyer-intelligence) > header {
-  padding-inline: max(1rem, calc((100% - 74rem) / 2));
-  border-color: #e0e6db;
+  padding-inline: clamp(1rem, 3vw, 3rem);
+  border-color: var(--maract-border);
   color: var(--maract-primary);
 }
 
@@ -16,8 +39,9 @@ body:has(.buyer-intelligence:not(.copilot-chat)) {
 }
 
 main:has(> .buyer-intelligence:not(.copilot-chat)) {
-  max-width: 74rem;
-  margin-block: 1.5rem 3rem;
+  max-width: none;
+  margin: 0;
+  padding: clamp(1rem, 3vw, 3rem);
 }
 
 .buyer-intelligence {
@@ -28,7 +52,7 @@ main:has(> .buyer-intelligence:not(.copilot-chat)) {
   --accent: var(--maract-harvest);
   --paper: var(--maract-background);
   display: grid;
-  gap: 1.25rem;
+  gap: var(--market-space-3);
   color: var(--ink);
   font-family: var(--maract-font);
   line-height: 1.5;
@@ -44,7 +68,7 @@ main:has(> .buyer-intelligence:not(.copilot-chat)) {
   isolation: isolate;
   position: relative;
   overflow: hidden;
-  border-radius: 1.25rem;
+  border-radius: var(--maract-card-radius);
   background: #112c20;
   color: #f8fbf4;
 }
@@ -95,7 +119,7 @@ main:has(> .buyer-intelligence:not(.copilot-chat)) {
 
 .buyer-intelligence__hero h1 {
   margin-top: .6rem;
-  font-size: clamp(2.25rem, 5vw, 4rem);
+  font-size: clamp(2rem, 4vw, 3rem);
   font-weight: 680;
   letter-spacing: -.06em;
   line-height: .99;
@@ -122,7 +146,7 @@ main:has(> .buyer-intelligence:not(.copilot-chat)) {
 .buyer-intelligence__workspace {
   display: grid;
   grid-template-columns: minmax(0, 1.42fr) minmax(0, 1fr);
-  gap: 1.25rem;
+  gap: var(--market-space-3);
   align-items: start;
 }
 
@@ -181,13 +205,13 @@ main:has(> .buyer-intelligence:not(.copilot-chat)) {
   min-height: var(--maract-target);
   padding-inline: .8rem;
   border-radius: var(--maract-control-radius);
-  border-color: #c4d3c4;
-  background: #f0f5eb;
+  border-color: var(--maract-control-border);
+  background: var(--market-paper);
   color: var(--forest);
   font-size: .9rem;
   font-weight: 650;
 }
-.buyer-intelligence button:not(:disabled):hover { background: #e5efdf; }
+.buyer-intelligence button:not(:disabled):hover { background: var(--market-green-soft); }
 .buyer-intelligence button.buyer-intelligence__primary { background: var(--forest); border-color: var(--forest); color: white; }
 .buyer-intelligence button.buyer-intelligence__primary:not(:disabled):hover { background: var(--maract-primary-hover); }
 .buyer-intelligence__primary span { margin-inline-start: .4rem; }
@@ -195,9 +219,9 @@ main:has(> .buyer-intelligence:not(.copilot-chat)) {
 .buyer-intelligence__brief {
   margin-bottom: 1rem;
   padding-inline: .8rem;
-  border: 1px solid #d8e4d5;
+  border: 1px solid var(--market-border);
   border-radius: .65rem;
-  background: #f1f6ed;
+  background: var(--market-green-soft);
 }
 .buyer-intelligence__brief[open] { padding-bottom: .8rem; }
 .buyer-intelligence__brief summary,
@@ -231,7 +255,7 @@ main:has(> .buyer-intelligence:not(.copilot-chat)) {
   margin-top: .8rem;
   padding: .7rem .85rem;
   border-radius: .55rem;
-  background: #f1f5ed;
+  background: var(--market-green-soft);
 }
 .buyer-intelligence__landed span { display: block; font-size: .78rem; color: var(--muted); }
 .buyer-intelligence__landed strong { display: block; color: var(--forest); font-size: 1.08rem; font-variant-numeric: tabular-nums; }
