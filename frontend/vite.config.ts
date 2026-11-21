@@ -8,7 +8,12 @@ export default defineConfig(({ mode }) => {
     envDir,
     server: {
       host: '127.0.0.1',
-      proxy: { '/api': `http://127.0.0.1:${env.API_PORT ?? 3000}` },
+      proxy: {
+        '/api': {
+          target: `http://127.0.0.1:${env.API_PORT ?? 3000}`,
+          changeOrigin: false,
+        },
+      },
     },
   };
 });

@@ -17,7 +17,15 @@ test('seeded marketplace checkout saves the server price and replays without aff
   expect(beforeB.ok()).toBeTruthy();
   const ideaBData = await beforeB.json();
 
+  expect((await request.get(`${ideaA}/shops`)).status()).toBe(401);
   await page.goto('/ideas/idea-a');
+  await page.getByLabel('Email').fill('buyer@example.test');
+  await page.getByLabel('Password').fill('test-demo-password');
+  const signingIn = page.waitForResponse((response) => new URL(response.url()).pathname === `${ideaA}/auth/login`);
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  const login = await signingIn;
+  expect(login.status(), await login.text()).toBe(200);
+  const buyer = page.request;
   await page.getByRole('radio', { name: 'Smoothie Café' }).check();
   await page.getByRole('button', { name: 'Continue', exact: true }).click();
   await expect(page.getByText('Showing cached trends')).toBeVisible();
@@ -51,19 +59,19 @@ test('seeded marketplace checkout saves the server price and replays without aff
   await expect(page.getByRole('heading', { name: 'Order saved' })).toBeVisible();
   await expect(page.getByRole('region', { name: 'Order confirmation' })).toContainText('5 kg');
 
-  const replay = await request.post(`${ideaA}/orders`, {
+  const replay = await buyer.post(`${ideaA}/orders`, {
     data: { ...body, items: body.items.map((item) => ({ ...item, qty_kg: 1, price_per_kg_thb: '0.01' })) },
   });
   expect(replay.status()).toBe(200);
   expect(await replay.json()).toEqual(order);
-  const listingResponse = await request.get(`${ideaA}/listings?fruit_id=mango`);
+  const listingResponse = await buyer.get(`${ideaA}/listings?fruit_id=mango`);
   expect(listingResponse.ok()).toBeTruthy();
   expect((await listingResponse.json()).listings).toContainEqual(expect.objectContaining({
     id: body.items[0].listing_id, stock_kg: 31,
   }));
 
   await page.getByRole('button', { name: 'Trends', exact: true }).click();
-  const previousTrends = await request.get(`${ideaA}/trends/latest`);
+  const previousTrends = await buyer.get(`${ideaA}/trends/latest`);
   expect(previousTrends.ok()).toBeTruthy();
   const previousRun = (await previousTrends.json()).run.id;
   const refresh = page.waitForResponse((response) => new URL(response.url()).pathname === `${ideaA}/trends/run`);
@@ -73,11 +81,11 @@ test('seeded marketplace checkout saves the server price and replays without aff
   const newRun = await refreshed.json();
   expect(newRun).toMatchObject({ status: 'fallback', run_id: expect.any(String) });
   expect(newRun.run_id).not.toBe(previousRun);
-  const latest = await request.get(`${ideaA}/trends/latest`);
+  const latest = await buyer.get(`${ideaA}/trends/latest`);
   expect(latest.ok()).toBeTruthy();
   expect((await latest.json()).run.id).toBe(newRun.run_id);
   await expect(page.getByText('Showing cached trends')).toBeVisible();
-  const persisted = await request.get(`${ideaA}/orders/${order.id}`);
+  const persisted = await buyer.get(`${ideaA}/orders/${order.id}`);
   expect(persisted.ok()).toBeTruthy();
   expect(await persisted.json()).toEqual(order);
 

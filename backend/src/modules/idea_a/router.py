@@ -2,11 +2,12 @@ from collections.abc import Callable
 from datetime import datetime
 from decimal import Decimal
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from sqlalchemy import Engine
 
 from backend.src.shared.records import records_router
 
+from .marketplace.auth import DemoAuth, auth_router
 from .marketplace.catalog import CatalogRepository, catalog_router
 from .marketplace.checkout import OrderRepository, orders_router
 from .marketplace.explanation_store import SqlExplanationStore
@@ -39,8 +40,12 @@ def marketplace_router(
         "SELECT id, title FROM idea_a_records ORDER BY id",
         "INSERT INTO idea_a_records (title) VALUES (%s) RETURNING id, title",
     )
-    router.include_router(catalog_router(catalog))
-    router.include_router(trend_router(trends))
-    router.include_router(feed_router(FeedService(catalog, trend_signals, explanations, clock=clock)))
-    router.include_router(orders_router(OrderRepository(engine, clock=clock)))
+    auth = DemoAuth.from_env()
+    router.include_router(auth_router(auth))
+    protected = APIRouter(dependencies=[Depends(auth.require_session)])
+    protected.include_router(catalog_router(catalog))
+    protected.include_router(trend_router(trends))
+    protected.include_router(feed_router(FeedService(catalog, trend_signals, explanations, clock=clock)))
+    protected.include_router(orders_router(OrderRepository(engine, clock=clock)))
+    router.include_router(protected)
     return router

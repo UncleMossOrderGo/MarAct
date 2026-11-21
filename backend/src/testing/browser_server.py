@@ -11,6 +11,7 @@ from psycopg import sql
 from psycopg.conninfo import make_conninfo
 
 from backend.db.manage import migrate, seed
+from backend.src.modules.idea_a.marketplace.auth import make_password_hash
 from backend.src.modules.idea_a.scheduler import BANGKOK
 from backend.src.shared.db import database_url
 
@@ -31,6 +32,9 @@ def main() -> None:
             os.environ["OPENAI_API_KEY"] = ""
             os.environ["IDEA_A_USE_SEED_TRENDS"] = "true"
             os.environ["IDEA_A_TREND_CACHE_HOURS"] = "0"
+            os.environ["IDEA_A_DEMO_EMAIL"] = "buyer@example.test"
+            os.environ["IDEA_A_DEMO_PASSWORD_HASH"] = make_password_hash("test-demo-password")
+            os.environ["IDEA_A_SESSION_SECRET"] = uuid4().hex + uuid4().hex
             migrate()
             seed("--all", planning_date=NOW.date())
 

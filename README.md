@@ -10,6 +10,11 @@ Install Node.js 24, npm, Python 3.12–3.14, uv, Make, and Docker with the Compo
 
 ```sh
 make init
+```
+
+[Configure the demo buyer account](docs/idea-a-demo-auth.md) in `.env`, then start MarAct.
+
+```sh
 OPENAI_API_KEY= IDEA_A_USE_SEED_TRENDS=true IDEA_A_SCHEDULER_ENABLED=1 make dev
 ```
 
@@ -31,7 +36,7 @@ Before the first browser test, run `cd frontend && npx playwright install chromi
 
 ## Run the marketplace demo
 
-1. Select **Smoothie Café** and continue. Mango ranks first and has two seller offers in the seed fixtures.
+1. Sign in with the configured demo account. Select **Smoothie Café** and continue. Mango ranks first and has two seller offers in the seed fixtures.
 2. Open Mango, choose the recommended seller at ฿78.00/kg, set the quantity to 5 kg, and add it to your cart.
 3. Continue to checkout and place the order. The saved order shows 5 kg and ฿390.00, calculated by the server.
 4. Run a trend check in **Trends** and reopen the order in **Orders**. The saved quantity and total stay the same.
