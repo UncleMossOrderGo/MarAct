@@ -9,6 +9,7 @@ const webPort = 5174;
 const apiPort = process.env.TEST_API_PORT ?? '3001';
 
 export default defineConfig({
+  workers: process.platform === 'win32' ? 1 : undefined,
   testMatch: ['src/ideas/**/*.spec.ts', 'tests/**/*.spec.ts'],
   forbidOnly: Boolean(process.env.CI),
   use: { baseURL: `http://127.0.0.1:${webPort}` },

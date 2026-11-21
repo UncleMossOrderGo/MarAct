@@ -9,6 +9,7 @@ from psycopg_pool import ConnectionPool
 
 from backend.src.modules.idea_a.router import router as idea_a
 from backend.src.modules.idea_b.router import router as idea_b
+from backend.src.modules.idea_c.router import router as idea_c
 from backend.src.shared.db import database_url
 
 
@@ -22,6 +23,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 app = FastAPI(title="MarAct", lifespan=lifespan)
 app.include_router(idea_a, prefix="/api/ideas/idea-a")
 app.include_router(idea_b, prefix="/api/ideas/idea-b")
+app.include_router(idea_c, prefix="/api/ideas/idea-c")
 
 
 @app.get("/api/health")

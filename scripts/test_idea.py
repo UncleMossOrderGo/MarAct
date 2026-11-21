@@ -1,4 +1,5 @@
 import argparse
+import shutil
 import subprocess
 import sys
 
@@ -16,7 +17,8 @@ def main() -> None:
         check=True,
     )
     subprocess.run(
-        ["npm", "run", "test:web", "--", f"src/ideas/{idea}/"],
+        [shutil.which("npm.cmd" if sys.platform == "win32" else "npm") or "npm",
+         "run", "test:web", "--", f"src/ideas/{idea}/"],
         cwd=ROOT / "frontend",
         check=True,
     )

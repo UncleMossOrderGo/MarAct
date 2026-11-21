@@ -16,7 +16,7 @@ def migrate() -> None:
         for path in sorted((DB / "migrations").glob("*.sql")):
             if path.name in applied:
                 continue
-            connection.execute(path.read_text(), prepare=False)
+            connection.execute(path.read_text(encoding="utf-8"), prepare=False)
             connection.execute("INSERT INTO schema_migrations (filename) VALUES (%s)", (path.name,))
             print(f"Applied {path.name}")
 
@@ -34,7 +34,7 @@ def seed(idea: str | None) -> None:
         for idea_id in selected:
             with connection.transaction():
                 for path in sorted(directories[idea_id].glob("*.sql")):
-                    connection.execute(path.read_text(), prepare=False)
+                    connection.execute(path.read_text(encoding="utf-8"), prepare=False)
             print(f"Loaded {idea_id} fixtures")
 
 
