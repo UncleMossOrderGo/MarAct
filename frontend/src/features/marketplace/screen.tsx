@@ -159,6 +159,7 @@ export function Marketplace() {
       ? params.get("sort")!
       : "match",
   );
+  const [visibleCount, setVisibleCount] = useState(15);
   const [lots, setLots] = useState<Lot[]>([]);
   const [cart, setCart] = useState<Cart>(saved.cart);
   const [later, setLater] = useState<string[]>(saved.later);
@@ -208,6 +209,7 @@ export function Marketplace() {
       .then((data) => {
         if (current) {
           setLots(data);
+          setVisibleCount(15);
           setLoadedQuery(queryString);
           setCatalogError("");
         }
@@ -530,7 +532,7 @@ export function Marketplace() {
                 </div>
               )}
               <div className="market-grid">
-                {lots.map((l) => {
+                {lots.slice(0, visibleCount).map((l) => {
                   const inCart =
                     cart.find((i) => i.lot.id === l.id)?.units ?? 0;
                   const checking = loadedQuery !== queryString;
@@ -648,6 +650,7 @@ export function Marketplace() {
                   );
                 })}
               </div>
+              {visibleCount < lots.length && <button onClick={() => setVisibleCount(n => n + 15)}>แสดงล็อตเพิ่มเติม</button>}
             </div>
             <FarmHarvest query={q}/>
           </div>

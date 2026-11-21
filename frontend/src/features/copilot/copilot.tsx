@@ -4,6 +4,7 @@ import { ArrowUp, ChevronRight, MessageCircle, Minus, Sparkles } from 'lucide-re
 import { Link } from 'react-router-dom';
 import { requestJson } from '../../shared/http';
 import type { Lot } from '../marketplace/types';
+import { VoiceInput } from './VoiceInput';
 import './copilot.css';
 
 const mascot = new URL('../../shared/brand/maract-mascot.webp', import.meta.url).href;
@@ -96,9 +97,15 @@ export function MarketCopilot({ open, onOpen, business, initialText, postcode, a
         body: JSON.stringify({
           message: question, postcode: /^\d{5}$/.test(postcode) ? postcode : null,
           arrival: arrival || null, preference, previous: prior.current,
+          history: turns.slice(-8).map(({ question, reply }) => ({
+            question,
+            answer: [reply.message, ...reply.trends.map(t => t.fruit_name),
+              ...reply.lots.map(l => l.name + ' · ' + l.farm), ...reply.groups.map(g => g.farm)]
+              .join(' / ').slice(0, 1200),
+          })),
         }),
       });
-      if (reply.previous) prior.current = reply.previous;
+      if (reply.previous || reply.trends.length) prior.current = reply.previous;
       setTurns((current) => [...current, { question, reply, postcode, arrival }]);
     } catch {
       setText(question);
@@ -185,8 +192,8 @@ export function MarketCopilot({ open, onOpen, business, initialText, postcode, a
       {sending && <p className="market-copilot__question">{sending}</p>}
       {pending && <p className="copilot-status" role="status">{sending ? 'กำลังดูข้อมูลตลาด…' : 'กำลังตรวจยอดกับสวน…'}</p>}
     </div>
-    <fieldset className="copilot-shipping" disabled={pending}>
-      <legend>เงื่อนไขจัดส่ง</legend>{deliveryFields}
+    <fieldset className="copilot-shipping" aria-label="เงื่อนไขจัดส่ง" disabled={pending}>
+      {deliveryFields}
     </fieldset>
     {error && <p className="copilot-error" role="alert">{error}</p>}
     <form onSubmit={submit}>
@@ -198,6 +205,10 @@ export function MarketCopilot({ open, onOpen, business, initialText, postcode, a
             event.currentTarget.form?.requestSubmit();
           }
         }}/>
+      {!pending && <VoiceInput onNotice={setError} onText={spoken => {
+        setText(current => [current.trimEnd(), spoken].filter(Boolean).join(' ').slice(0, 600));
+        composer.current?.focus();
+      }}/>}
       <button type="submit" aria-label="ส่ง" disabled={pending || !text.trim()}><ArrowUp size={21}/></button>
     </form>
     </dialog>}

@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 import { useState } from 'react';
 import { Image as ImageIcon } from 'lucide-react';
 
@@ -7,9 +8,13 @@ const demoPhotos = new Map<string, string>([
   ['passion-east', new URL('./assets/passion-east-harvest.webp', import.meta.url).href],
 ]);
 
+const fruitPhotos = import.meta.glob<string>("./assets/demo-fruit/*.webp", { eager: true, import: "default" });
+
 export function LotPhoto({ id, name, compact = false }: { id: string; name: string; compact?: boolean }) {
   const [failed, setFailed] = useState(false);
-  const source = demoPhotos.get(id);
+  const [,fruit,offer] = /^demo-([a-z]+)-(retail|crate|basket|bulk)$/.exec(id) ?? [];
+  const source = demoPhotos.get(id) ?? fruitPhotos[`./assets/demo-fruit/${fruit}-${offer}.webp`]
+    ?? fruitPhotos[`./assets/demo-fruit/${fruit}.webp`];
   return (
     <figure className={compact ? "lot-photo compact-photo" : "lot-photo"}>
       {source && !failed ? <>

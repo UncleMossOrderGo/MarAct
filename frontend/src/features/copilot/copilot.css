@@ -35,7 +35,6 @@
 .market .copilot-answer article { margin-top: 9px; padding: 10px; border: 1px solid #d7dfd1; border-radius: 9px; background: #fafbf5; }
 .market .copilot-answer article button { margin-top: 8px; }
 .market .copilot-shipping { flex: none; margin: 0; padding: 6px 16px 9px; border: 0; min-width: 0; }
-.copilot-shipping legend { float: left; width: 100%; padding: 2px 0 3px; color: #365340; font-size: 13px; font-weight: 650; }
 .market-copilot .market-fields { clear: both; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; padding: 0; }
 .market .copilot-shipping label { margin: 0; font-size: 12px; }
 .market .copilot-shipping input { min-height: 36px; padding: 5px 8px; font-size: 14px; }
