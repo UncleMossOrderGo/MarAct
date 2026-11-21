@@ -126,16 +126,6 @@ function Marketplace({ signOut, signingOut }: { signOut: () => void; signingOut:
         {view.type === 'order' && (
           <MarketOrderConfirmation order={view.order} onViewOrders={() => navigate('orders')} />
         )}
-        {view.type === 'navigation' && (destination === 'marketplace' || destination === 'trends') && (
-          <MarketplaceTrends
-            trends={trends.data ?? null}
-            view={destination === 'trends' ? 'full' : 'strip'}
-            loading={trends.loading}
-            error={trends.failed ? 'Could not load trends.' : undefined}
-            onRefresh={refreshTrends}
-            onViewTrends={() => navigate('trends')}
-          />
-        )}
         {view.type === 'navigation' && destination === 'marketplace' && (
           <MarketplaceFeed
             shop={shop}
@@ -148,6 +138,16 @@ function Marketplace({ signOut, signingOut }: { signOut: () => void; signingOut:
             }}
             openExplanations={openMarketplaceExplanations}
             onObsolete={feed.reload}
+          />
+        )}
+        {view.type === 'navigation' && (destination === 'marketplace' || destination === 'trends') && (
+          <MarketplaceTrends
+            trends={trends.data ?? null}
+            view={destination === 'trends' ? 'full' : 'strip'}
+            loading={trends.loading}
+            error={trends.failed ? 'Could not load trends.' : undefined}
+            onRefresh={refreshTrends}
+            onViewTrends={() => navigate('trends')}
           />
         )}
         {view.type === 'navigation' && destination === 'orders' && (

@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 
 import { HttpError } from '../../shared/http';
+import { marketplaceFruitImage } from './marketplace-fruit-images';
 import './market-checkout.css';
 
 type OrderLine = {
@@ -12,6 +13,7 @@ export type MarketCheckoutLine = OrderLine & {
   fruit_name: string;
   seller_name: string;
   price_per_kg_thb: string;
+  image_url?: string;
 };
 
 export type MarketOrderRequest = {
@@ -159,6 +161,7 @@ function CheckoutSummary({
           <ul className="market-order-items">
             {lines.map((line) => (
               <li key={line.listing_id}>
+                {line.image_url && <img src={line.image_url} alt="" width={56} height={56} />}
                 <div>
                   <strong>{line.fruit_name}</strong>
                   <span>{line.seller_name}</span>
@@ -201,16 +204,20 @@ function OrderDetails({ order }: { order: SavedMarketOrder }) {
         <span className="market-order-status">{orderStatus(order.status)}</span>
       </div>
       <ul className="market-order-items">
-        {order.items.map((item) => (
-          <li key={item.listing_id}>
-            <div>
-              <strong>{item.fruit_name}</strong>
-              <span>{item.seller_name}</span>
-              <span>{item.qty_kg} kg × {amountLabel(item.price_per_kg_thb)} / kg</span>
-            </div>
-            <span>{amountLabel(item.line_total_thb)}</span>
-          </li>
-        ))}
+        {order.items.map((item) => {
+          const image = marketplaceFruitImage({ id: item.fruit_id, name_en: item.fruit_name });
+          return (
+            <li key={item.listing_id}>
+              {image && <img src={image} alt="" width={56} height={56} />}
+              <div>
+                <strong>{item.fruit_name}</strong>
+                <span>{item.seller_name}</span>
+                <span>{item.qty_kg} kg × {amountLabel(item.price_per_kg_thb)} / kg</span>
+              </div>
+              <span>{amountLabel(item.line_total_thb)}</span>
+            </li>
+          );
+        })}
       </ul>
       <p className="market-order-total">
         <span>Total</span>

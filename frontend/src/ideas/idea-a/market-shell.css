@@ -1,20 +1,26 @@
 .market-shell {
-  --market-ink: #18231f;
-  --market-muted: #53645c;
-  --market-border: #d6e1da;
-  --market-green: #21613b;
-  --market-green-soft: #e8f3e9;
+  --market-ink: #151a17;
+  --market-muted: #4f5752;
+  --market-border: #dce2de;
+  --market-green: #207521;
+  --market-green-soft: #e4f3df;
   --market-radius: 10px;
 
   color: var(--market-ink);
   background: #fff;
   border: 1px solid var(--market-border);
-  border-radius: var(--market-radius);
+  border-radius: 16px;
+  box-shadow: 0 6px 20px rgb(20 35 23 / 6%);
   font: 400 16px / 1.5 system-ui, sans-serif;
 }
 
 main:has(> .market-shell) {
   max-width: 1200px;
+}
+
+.market-shell:has(> .market-welcome) {
+  margin-inline: auto;
+  max-width: 600px;
 }
 
 .market-shell .market-brand {
@@ -67,7 +73,8 @@ main:has(> .market-shell) {
 .market-shop-option {
   display: grid;
   justify-items: center;
-  align-content: start;
+  align-content: center;
+  min-height: 66px;
   gap: 4px;
   padding: 12px 8px;
   border: 1px solid var(--market-border);
@@ -88,7 +95,7 @@ main:has(> .market-shell) {
 }
 
 .market-shell .market-primary {
-  min-width: min(220px, 100%);
+  width: min(280px, 100%);
   background: var(--market-green);
   cursor: pointer;
 }
@@ -105,6 +112,9 @@ main:has(> .market-shell) {
   gap: 6px;
   padding: 20px 12px;
   border-inline-end: 1px solid var(--market-border);
+  border-start-start-radius: 16px;
+  border-end-start-radius: 16px;
+  background: #fafbf9;
 }
 
 .market-navigation .market-brand {
@@ -128,6 +138,7 @@ main:has(> .market-shell) {
 .market-navigation button:is(:hover, [aria-current]) {
   background: var(--market-green-soft);
   color: var(--market-green);
+  font-weight: 600;
 }
 
 .market-workspace {

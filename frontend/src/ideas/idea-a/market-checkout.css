@@ -2,6 +2,13 @@
   display: grid;
   gap: 16px;
   color: var(--market-ink, #102019);
+  padding: 0;
+  border: 0;
+}
+
+.market-checkout h1 {
+  font-size: clamp(24px, 4vw, 32px);
+  letter-spacing: -.025em;
 }
 
 .market-checkout h1,
@@ -91,8 +98,15 @@
 
 .market-order-items li > div {
   display: grid;
+  flex: 1;
   min-width: 0;
   overflow-wrap: anywhere;
+}
+
+.market-order-items img {
+  flex: none;
+  border-radius: 8px;
+  object-fit: cover;
 }
 
 .market-order-items li > div span {
