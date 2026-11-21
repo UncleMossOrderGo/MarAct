@@ -244,28 +244,42 @@ export function IdeaC() {
           <section className="market-hero" data-enter>
             <div className="market-story">
               <h1>
-                ผลไม้จากสวน
+                ตลาดผลไม้
                 <br />
-                สำหรับร้านคุณ
+                <em>ยกล็อต</em>
               </h1>
-              <p>เลือกล็อตตามจำนวนและวันรับ เทียบราคาพร้อมค่าส่งจากแต่ละสวน</p>
-              <a className="catalog-link" href="#market-catalog">
-                เลือกดูผลผลิต <span aria-hidden="true">↓</span>
-              </a>
+              <form
+                className="fruit-search"
+                role="search"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  const results = document.getElementById("market-results");
+                  results?.focus({ preventScroll: true });
+                  results?.scrollIntoView({ block: "start" });
+                }}
+              >
+                <label htmlFor="fruit-query">ค้นหาผลไม้ สวน หรือเมนู</label>
+                <div>
+                  <input
+                    id="fruit-query"
+                    type="search"
+                    value={q}
+                    onChange={(e) => setQ(e.target.value)}
+                    placeholder="เช่น มะม่วงน้ำดอกไม้"
+                  />
+                  <button type="submit">ดูล็อตผลผลิต</button>
+                </div>
+              </form>
             </div>
-            <img className="market-orchard" src={orchardPhoto} alt="" />
+            <img
+              className="market-orchard"
+              src={mangoPhoto}
+              alt="มะม่วงน้ำดอกไม้เรียงในลังที่สวน"
+            />
           </section>
           <div className="catalog-layout" id="market-catalog">
             <section className="market-filters" aria-label="เงื่อนไขการเลือกผลผลิต">
-              <h2>ค้นหาผลผลิต</h2>
-              <label>
-                ผลไม้ สวน หรือเมนู
-                <input
-                  value={q}
-                  placeholder="เช่น มะม่วง หรือ สมูทตี"
-                  onChange={(e) => setQ(e.target.value)}
-                />
-              </label>
+              <h2>เงื่อนไขการซื้อ</h2>
               <div className="market-fields">
                 <label>
                   จำนวนที่ต้องการ (กก.)
@@ -286,10 +300,16 @@ export function IdeaC() {
                 </label>
               </div>
               {fields}
+              <img
+                className="filter-orchard"
+                src={orchardPhoto}
+                alt=""
+                loading="lazy"
+              />
             </section>
             <div className="catalog-results">
               <div className="market-heading">
-                <h2>
+                <h2 id="market-results" tabIndex={-1}>
                   ล็อตผลผลิต <span className="market-count">{lots.length}</span>
                 </h2>
                 <label>
@@ -312,32 +332,54 @@ export function IdeaC() {
                 {lots.map((l) => (
                   <article key={l.id} className="market-product">
                     <div className="market-product-head">
-                      {l.name.includes("มะม่วงน้ำดอกไม้") && (
-                        <img
-                          src={mangoPhoto}
-                          loading="lazy"
-                          alt="ภาพประกอบมะม่วงน้ำดอกไม้"
-                        />
-                      )}
                       <div className="market-product-title">
                         <small>{l.farm}</small>
                         <h3>{l.name}</h3>
                       </div>
                     </div>
                     <div className="market-product-body">
-                      <p>
-                        {l.grade ?? "สวนยังไม่ระบุเกรด"} · {l.uses}
-                      </p>
                       <strong className="market-price">
                         {money(l.price)} / {l.unit}
                       </strong>
-                      <p>
-                        ขั้นต่ำ {l.minimum} {l.unit} · เหลือ {l.stock} {l.unit} ·{" "}
-                        {l.kg ? l.kg + " กก./" + l.unit : "สวนยังไม่ระบุน้ำหนัก"}
-                      </p>
-                      <p>
-                        รับได้เร็วสุด {l.earliest} · ค่าส่ง {money(l.freight)}
-                      </p>
+                      <dl className="lot-terms">
+                        <div>
+                          <dt>ขั้นต่ำ</dt>
+                          <dd>
+                            {l.minimum} {l.unit}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt>คงเหลือ</dt>
+                          <dd>
+                            {l.stock} {l.unit}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt>รับได้ตั้งแต่</dt>
+                          <dd>
+                            <time dateTime={l.earliest}>
+                              {new Intl.DateTimeFormat("th-TH", {
+                                day: "numeric",
+                                month: "short",
+                                year: "numeric",
+                                timeZone: "UTC",
+                              }).format(new Date(l.earliest))}
+                            </time>
+                          </dd>
+                        </div>
+                        <div>
+                          <dt>ค่าส่ง</dt>
+                          <dd>{money(l.freight)}</dd>
+                        </div>
+                      </dl>
+                      <details>
+                        <summary>รายละเอียดผลผลิต</summary>
+                        <p>{l.grade ?? "สวนยังไม่ระบุเกรด"}</p>
+                        <p>{l.uses}</p>
+                        <p>
+                          {l.kg ? l.kg + " กก./" + l.unit : "สวนยังไม่ระบุน้ำหนัก"}
+                        </p>
+                      </details>
                       <p>
                         {l.misses.join(" · ") ||
                           (postcode.length === 5 && arrival
@@ -381,11 +423,9 @@ export function IdeaC() {
         </>
       )}
       {tab !== "market" && !buyer && (
-        <section>
+        <section className="shop-account">
           <h2>บัญชีผู้ประกอบการ</h2>
-          <p className="market-hint">
-            กรอกชื่อร้านและรหัสผ่านอย่างน้อย 8 ตัว หากใช้ครั้งแรกให้เลือก “สร้างบัญชีร้าน”
-          </p>
+          <p className="market-hint">ใช้ครั้งแรก เลือก “สร้างบัญชีร้าน”</p>
           <label>
             ชื่อร้าน
             <input value={name} onChange={(e) => setName(e.target.value)} />
