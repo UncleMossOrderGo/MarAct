@@ -10,10 +10,10 @@ Install Node.js 24, npm, Python 3.12–3.14, uv, Make, and Docker with the Compo
 
 ```sh
 make init
-IDEA_A_SCHEDULER_ENABLED=1 make dev
+OPENAI_API_KEY= IDEA_A_USE_SEED_TRENDS=true IDEA_A_SCHEDULER_ENABLED=1 make dev
 ```
 
-Open [MarAct on port 5173](http://127.0.0.1:5173). The first visit opens the Idea A café restocking dashboard. Use the idea dropdown to compare it with Idea B. The starter API listens on port 3000 and Vite proxies `/api` requests. Adjust `.env` if local ports conflict. Keep `DB_PORT` and the port in `DATABASE_URL` in sync.
+Open [MarAct on port 5173](http://127.0.0.1:5173). The first visit opens the Idea A fruit marketplace. Use the idea dropdown to compare it with Idea B. The starter API listens on port 3000 and Vite proxies `/api` requests. Adjust `.env` if local ports conflict. Keep `DB_PORT` and the port in `DATABASE_URL` in sync.
 
 | Command | Behavior |
 | --- | --- |
@@ -27,26 +27,16 @@ Open [MarAct on port 5173](http://127.0.0.1:5173). The first visit opens the Ide
 | `make build` | Compile-check Python and build the frontend. Run `make start` to serve them together. |
 | `make doctor` | Print runtime and Docker versions and check Docker connectivity. |
 
-Before the first browser test, run `cd frontend && npx playwright install chromium` from the repo root. API tests use `DATABASE_URL`. Browser tests create and remove a disposable PostgreSQL schema with fixed demo fixtures and a stubbed OpenAI transport. Browser tests use port 5174 and API port 3001 by default. Keep these ports free, and set a distinct `DB_PORT` and `DATABASE_URL` when running database environments in parallel.
+Before the first browser test, run `cd frontend && npx playwright install chromium` from the repo root. API tests use `DATABASE_URL`. Browser tests create and remove a disposable PostgreSQL schema with fixed demo fixtures and seed mode with the OpenAI key cleared. Browser tests use port 5174 and API port 3001 by default. Keep these ports free, and set a distinct `DB_PORT` and `DATABASE_URL` when running database environments in parallel.
 
-## Run the café demo
+## Run the marketplace demo
 
-1. Open Idea A and save the current stock. On a new database, the demo starts with 8 kg of mango on hand and 3 kg to use today.
-2. Click **Run daily check**. Mango starts with a 6 kg recommendation. Change it to 5 kg, confirm the order, and copy the supplier message.
-3. Reload to see the saved order. Running the check again for the same delivery preserves the confirmed order.
+1. Select **Smoothie Café** and continue. Mango ranks first and has two seller offers in the seed fixtures.
+2. Open Mango, choose the recommended seller at ฿78.00/kg, set the quantity to 5 kg, and add it to your cart.
+3. Continue to checkout and place the order. The saved order shows 5 kg and ฿390.00, calculated by the server.
+4. Run a trend check in **Trends** and reopen the order in **Orders**. The saved quantity and total stay the same.
 
-The demo command above enables one scheduler in the API process. It runs the same check as the dashboard at 15:30 Asia/Bangkok. Set `IDEA_A_SCHEDULER_ENABLED=1` for just one API instance. To refresh the seven days of demo usage for the current Bangkok date, run `make seed IDEA=idea-a` and save today's stock in the dashboard.
-
-Optionally set `OPENAI_API_KEY` in `.env` for generated risk explanations. The default model is `gpt-6-luna`. Set `OPENAI_MODEL` to override it. The dashboard uses built-in explanations when the provider is unavailable.
-
-## Marketplace demo configuration
-
-For the marketplace walkthrough, start one API instance with the scheduler enabled. Use seed trends and an empty API key to exercise the demo without provider calls.
-
-```sh
-make init
-OPENAI_API_KEY= IDEA_A_USE_SEED_TRENDS=true IDEA_A_SCHEDULER_ENABLED=1 make dev
-```
+The command under Local setup starts the walkthrough without provider calls. A v1 database upgrades through `make migrate`, then `make seed IDEA=idea-a` loads marketplace fixtures without replacing existing orders or depleted stock. Alembic preserves the old café records and migrates compatible usage forward.
 
 Set `IDEA_A_SCHEDULE_TIME` to a 24-hour Bangkok time in `HH:MM` format. The default is `15:30`. Enable the scheduler on one instance only. Manual and scheduled refreshes use the same service. `IDEA_A_TREND_CACHE_HOURS` defaults to 24. Without a key, trend refresh uses seed cards and feed explanations use templates. CI clears the key, selects seed mode, and disables the scheduler.
 

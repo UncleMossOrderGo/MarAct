@@ -76,7 +76,7 @@ def _saved_order(order: models.Order, items: tuple[OrderLine, ...]) -> SavedOrde
         shop_id=order.shop_id,
         status=order.status,
         total_thb=order.total_thb,
-        created_at=order.created_at,
+        created_at=order.created_at.astimezone(UTC),
         items=items,
     )
 

@@ -1,5 +1,7 @@
 # OpenAI — Style Reference
 
+> Historical reference for the retired café restocking UI. The marketplace flow is described in the [current spec](../../../../docs/spec.md).
+
 &gt; Research lab notebook at noon.
 
 **Theme:** light

@@ -5,16 +5,13 @@ import signal
 from datetime import datetime
 from uuid import uuid4
 
-import httpx
 import psycopg
 import uvicorn
-from openai import OpenAI
 from psycopg import sql
 from psycopg.conninfo import make_conninfo
 
 from backend.db.manage import migrate, seed
-from backend.src.modules.idea_a.explanations import OpenAIExplanations
-from backend.src.modules.idea_a.planner import BANGKOK
+from backend.src.modules.idea_a.scheduler import BANGKOK
 from backend.src.shared.db import database_url
 
 NOW = datetime(2026, 6, 12, 15, 30, tzinfo=BANGKOK)
@@ -31,20 +28,19 @@ def main() -> None:
         try:
             isolated_url = make_conninfo(base_url, options=f"-csearch_path={schema_name}")
             os.environ["DATABASE_URL"] = isolated_url
+            os.environ["OPENAI_API_KEY"] = ""
+            os.environ["IDEA_A_USE_SEED_TRENDS"] = "true"
+            os.environ["IDEA_A_TREND_CACHE_HOURS"] = "0"
             migrate()
             seed("--all", planning_date=NOW.date())
 
             from backend.src.app.main import create_app
 
-            transport = httpx.MockTransport(lambda _: httpx.Response(503))
-            with OpenAI(
-                api_key="browser-test", http_client=httpx.Client(transport=transport), max_retries=0,
-            ) as client:
-                uvicorn.run(
-                    create_app(clock=lambda: NOW, explanations=OpenAIExplanations(client), schedule=False),
-                    host="127.0.0.1",
-                    port=int(os.environ["API_PORT"]),
-                )
+            uvicorn.run(
+                create_app(clock=lambda: NOW, schedule=False),
+                host="127.0.0.1",
+                port=int(os.environ["API_PORT"]),
+            )
         finally:
             admin.execute(sql.SQL("DROP SCHEMA {} CASCADE").format(schema))
 
