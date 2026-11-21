@@ -104,3 +104,11 @@ main:has(> .market) { max-width:none; margin:0; padding:0; }
 .trial-catalog { margin-top:24px; border-top:1px solid var(--market-border); }
 .trial-catalog > summary { cursor:pointer; padding:16px 0; font-weight:650; }
 @media(max-width:760px){.trial-conditions{grid-template-columns:1fr 1fr}.trial-pick{grid-template-columns:1fr;gap:16px}}
+.trial-title { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+.weekend-trial .buyer-trends { margin:20px 0; padding:clamp(14px,2vw,24px); border:1px solid var(--market-border); border-radius:var(--market-radius); }
+.buyer-trend-list { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,14rem),1fr)); gap:18px; margin:14px 0; }
+.buyer-trend-list article { display:grid; align-content:start; justify-items:start; gap:6px; }
+.buyer-trend-list p { font-size:14px; }
+.buyer-trends a { color:var(--market-green); }
+.buyer-trends small { color:var(--market-muted); }
+.buyer-trends progress { width:100%; accent-color:var(--market-green); }

@@ -1,5 +1,7 @@
-import { useEffect, useState, type ReactNode } from 'react';
-import { requestJson } from '../../shared/http';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { MarketAssistantPanel } from '../shop/market-assistant';
+import { dailyMarketplaceApi, waitForDailyPublication } from '../shop/marketplace-api';
+import { useMarketplaceResource } from '../shop/marketplace-resource';
 import type { MarketTodayData } from '../shop/market-daily-types';
 import type { Lot } from './types';
 
@@ -16,14 +18,38 @@ type Props = {
   onReserve: (lot: Lot) => void; hasCart: boolean; onCart: () => void;
 };
 
+const loadShops = (_: string, signal: AbortSignal) => dailyMarketplaceApi.shops(signal);
+const loadToday = (id: string, signal: AbortSignal): Promise<MarketTodayData> => dailyMarketplaceApi.today(id, 'th', signal);
+const loadJob = (_: string, signal: AbortSignal) => dailyMarketplaceApi.jobStatus(signal);
+
 export function WeekendTrial({ lots, budget, postcode, arrival, kg, loading, error, conditions, onReserve, hasCart, onCart }: Props) {
-  const [publication, setPublication] = useState<Pick<MarketTodayData, 'trends' | 'run'>>();
-  useEffect(() => {
+  const shops = useMarketplaceResource('shops', loadShops);
+  const shopId = shops.data?.default_shop_id;
+  const today = useMarketplaceResource(shopId ?? null, loadToday, true);
+  const job = useMarketplaceResource('job', loadJob);
+  const publication = today.data;
+  const [focus, setFocus] = useState({ slug: '', sequence: 0 });
+  const [running, setRunning] = useState(false);
+  const [jobError, setJobError] = useState(false);
+  const attempt = useRef<AbortController | null>(null);
+  useEffect(() => () => attempt.current?.abort(), []);
+  async function refresh() {
+    if (attempt.current) return;
     const controller = new AbortController();
-    requestJson<Pick<MarketTodayData, 'trends' | 'run'>>('/api/shop/trends/today?locale=th', { signal: controller.signal })
-      .then(data => { if (!controller.signal.aborted) setPublication(data); }).catch(() => {});
-    return () => controller.abort();
-  }, []);
+    attempt.current = controller;
+    setRunning(true);
+    setJobError(false);
+    try {
+      await waitForDailyPublication(controller.signal, () => {});
+      today.reload();
+      job.reload();
+    } catch {
+      if (!controller.signal.aborted) setJobError(true);
+    } finally {
+      attempt.current = null;
+      if (!controller.signal.aborted) setRunning(false);
+    }
+  }
   const valid = Number(budget) > 0 && Number.isInteger(Number(kg)) && Number(kg) > 0 && /^\d{5}$/.test(postcode) && Boolean(arrival);
   const liveTrends = publication?.run?.source === 'live' ? publication.trends : [];
   const choices = lots.filter(lot => !lot.misses.length && lot.kg && lot.total <= Number(budget))
@@ -33,8 +59,29 @@ export function WeekendTrial({ lots, budget, postcode, arrival, kg, loading, err
   const best = choices[0];
   const dateLabel = (value: string) => new Intl.DateTimeFormat('th-TH', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(value));
   return <section className="weekend-trial">
-    <h1>เมนูทดลองสุดสัปดาห์</h1>
+    <div className="trial-title"><h1>เมนูทดลองสุดสัปดาห์</h1>
+      {shopId && <MarketAssistantPanel shopId={shopId} locale="th" page="today"
+        focused={focus.slug ? { type: 'trend', id: focus.slug } : undefined} openRequest={focus.sequence} />}
+    </div>
     <p>เลือกผลไม้และสวนที่ส่งถึงร้านทัน ภายในงบรวมค่าส่ง</p>
+    <section className="buyer-trends" aria-labelledby="buyer-trends-title">
+      <div className="trial-title"><h2 id="buyer-trends-title">เทรนด์วันนี้สำหรับร้าน</h2>
+        {job.data?.demo_enabled && <button onClick={refresh} disabled={running} type="button">{running ? 'กำลังค้นหาเทรนด์…' : 'ค้นหาเทรนด์ใหม่'}</button>}
+      </div>
+      {running && <progress aria-label="กำลังค้นหาเทรนด์" />}
+      {jobError && <p role="alert">อัปเดตเทรนด์ไม่สำเร็จ โปรดลองอีกครั้ง</p>}
+      {publication?.run && <small>{publication.run.source === 'live' ? 'จากการค้นเว็บ' : 'ข้อมูลตัวอย่าง'} · {dateLabel(publication.run.trend_date)}</small>}
+      {(shops.failed || today.failed) ? <p role="alert">โหลดเทรนด์ไม่สำเร็จ <button onClick={() => { shops.reload(); today.reload(); }}>ลองอีกครั้ง</button></p>
+        : !publication?.trends.length && <p role="status">{shops.loading || today.loading ? 'กำลังโหลดเทรนด์…' : 'ยังไม่มีเทรนด์ที่เผยแพร่'}</p>}
+      <div className="buyer-trend-list">{publication?.trends.slice(0, 3).map(t => <article key={t.slug}>
+        <h3>{t.name}</h3>
+        <p>{t.menu_idea || t.why_rising}</p>
+        {t.sources.filter(s => /^https?:\/\//.test(s.url)).slice(0, 1).map(s =>
+          <a key={s.url} href={s.url} target="_blank" rel="noreferrer">ดูแหล่งที่มา</a>)}
+        <button type="button" onClick={() => setFocus(f => ({ slug: t.slug, sequence: f.sequence + 1 }))}>ถาม AI เรื่องเทรนด์นี้</button>
+      </article>)}</div>
+      <a href="/market/shop">ดูรายละเอียดเทรนด์และสต็อกร้าน →</a>
+    </section>
     <div className="trial-conditions">{conditions}</div>
     {!valid ? <p>ระบุงบ จำนวนเต็มกิโลกรัม รหัสไปรษณีย์ และวันรับให้ครบ</p>
       : error ? <p role="alert">{error}</p> : loading ? <p role="status">กำลังเช็กราคาและรอบส่งของสวน…</p>

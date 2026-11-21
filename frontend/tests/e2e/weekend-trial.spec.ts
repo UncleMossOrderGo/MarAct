@@ -29,4 +29,16 @@ test('a café finds one deliverable trial inside ฿500 and reviews the same lot
   await plan.getByRole('button', { name: 'ตรวจรายการและจองล็อตนี้' }).click();
   await expect(page).toHaveURL('/market#cart');
   await expect(page.locator('.cart-line').first()).toContainText('มะม่วงน้ำดอกไม้');
+  await page.unrouteAll({ behavior: 'wait' });
+});
+
+test('saved trends open the shop assistant from the buyer home', async ({ page }) => {
+  await page.goto('/market');
+  const trends = page.getByRole('region', { name: 'เทรนด์วันนี้สำหรับร้าน' });
+  await expect(trends.getByRole('article').first()).toBeVisible();
+  await expect(trends.getByRole('button', { name: 'ค้นหาเทรนด์ใหม่' })).toBeVisible();
+  await trends.getByRole('button', { name: 'ถาม AI เรื่องเทรนด์นี้' }).first().click();
+  await expect(page.getByRole('dialog', { name: 'ผู้ช่วย MarAct' })).toBeVisible();
+  await page.getByRole('button', { name: 'ปิดผู้ช่วย' }).click();
+  await expect(page).toHaveURL('/market');
 });

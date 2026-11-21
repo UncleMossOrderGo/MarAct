@@ -429,6 +429,7 @@ export function Marketplace() {
         ))}
       </WorkspaceNav>
       <div className="catalog-workspace">
+      {tab !== "market" && <button type="button" onClick={() => setCopilot(true)}><Sparkles size={16} aria-hidden="true" /> ผู้ช่วยจัดซื้อ</button>}
       {copilotOpen && <MarketCopilot postcode={postcode} arrival={arrival} preference={preference}
         deliveryFields={fields} onClose={() => setCopilot(false)} onApply={applyCopilot}
         onBrowse={(query) => { setQ(query); setCatalogOpen(true); setCopilot(false, ""); }} />}
@@ -443,6 +444,7 @@ export function Marketplace() {
               <label>จำนวนที่ต้องการ (กก.)<input type="number" min="1" value={kg} onChange={e => setKg(e.target.value)} /></label>
               {fields}
             </>} />}
+
           <button type="button" onClick={() => setCopilot(true)}><Sparkles size={16} aria-hidden="true" /> ผู้ช่วยจัดซื้อ</button>
           <details className="trial-catalog" open={catalogOpen} onToggle={event => setCatalogOpen(event.currentTarget.open)}>
             <summary>เปรียบเทียบล็อตอื่นจากสวน</summary>
