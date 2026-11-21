@@ -5,16 +5,26 @@ import './market-cart.css';
 export type MarketCartLine = {
   listing_id: string;
   qty_kg: number;
+  trend_slug?: string | null;
 };
 
-export type MarketCartItem = MarketCartLine & {
-  fruit_name: string;
+export type MarketItemName =
+  | { ingredient_name: string; fruit_name?: string }
+  | { fruit_name: string; ingredient_name?: string };
+
+export function marketItemName(item: MarketItemName) {
+  return item.ingredient_name ?? item.fruit_name;
+}
+
+export type MarketCartItem = MarketCartLine & MarketItemName & {
+  trend_label?: string | null;
   seller_name: string;
   price_per_kg_thb: string;
   stock_kg: number;
   image_url?: string;
 };
 
+const cartStorageKey = 'maract.idea-a.carts';
 const emptyCart: readonly MarketCartItem[] = [];
 const currency = new Intl.NumberFormat('en-TH', {
   style: 'currency',
@@ -22,77 +32,107 @@ const currency = new Intl.NumberFormat('en-TH', {
   currencyDisplay: 'narrowSymbol',
 });
 
-function maxQuantity(item: MarketCartItem) {
-  return Math.min(500, item.stock_kg);
+export function marketLineKey(listingId: string, trendSlug?: string | null) {
+  return JSON.stringify([listingId, trendSlug ?? null]);
 }
 
-function validQuantity(quantity: number, item: MarketCartItem) {
-  return Number.isInteger(quantity) && quantity > 0 && quantity <= maxQuantity(item);
+export function orderLines(items: readonly MarketCartLine[]): MarketCartLine[] {
+  return items.map(({ listing_id, qty_kg, trend_slug }) => ({
+    listing_id,
+    qty_kg,
+    ...(trend_slug ? { trend_slug } : {}),
+  }));
 }
 
-function orderLines(items: readonly MarketCartItem[]): MarketCartLine[] {
-  return items.map(({ listing_id, qty_kg }) => ({ listing_id, qty_kg }));
+function maxQuantity(item: MarketCartItem, lines: readonly MarketCartItem[]) {
+  const reserved = lines.reduce((quantity, line) =>
+    line.listing_id === item.listing_id && (line.trend_slug ?? null) !== (item.trend_slug ?? null)
+      ? quantity + line.qty_kg
+      : quantity, 0);
+  return Math.min(500, Math.max(0, item.stock_kg - reserved));
+}
+
+function readCarts(): ReadonlyMap<string, readonly MarketCartItem[]> {
+  try {
+    return new Map(JSON.parse(localStorage.getItem(cartStorageKey) ?? '[]'));
+  } catch {
+    return new Map();
+  }
 }
 
 export function useMarketCart(shopId: string | null) {
-  const [shops, setShops] = useState<ReadonlyMap<string, readonly MarketCartItem[]>>(() => new Map());
+  const [shops, setShops] = useState(readCarts);
   const items = shopId === null ? emptyCart : shops.get(shopId) ?? emptyCart;
 
-  function update(updateItems: (current: readonly MarketCartItem[]) => readonly MarketCartItem[]) {
-    if (shopId === null) return;
+  useEffect(() => {
+    try {
+      localStorage.setItem(cartStorageKey, JSON.stringify([...shops]));
+    } catch {
+      // Cart state remains usable when browser storage is unavailable.
+    }
+  }, [shops]);
+
+  function updateShop(id: string, updateItems: (current: readonly MarketCartItem[]) => readonly MarketCartItem[]) {
     setShops((current) => {
-      const previous = current.get(shopId) ?? emptyCart;
+      const previous = current.get(id) ?? emptyCart;
       const next = updateItems(previous);
       if (next === previous) return current;
       const updated = new Map(current);
-      if (next.length > 0) updated.set(shopId, next);
-      else updated.delete(shopId);
+      if (next.length > 0) updated.set(id, next);
+      else updated.delete(id);
       return updated;
     });
   }
 
   function add(item: MarketCartItem) {
-    if (!validQuantity(item.qty_kg, item)) return;
-    update((current) => {
-      const existing = current.find((line) => line.listing_id === item.listing_id);
-      if (!existing) return [...current, item];
-      const quantity = Math.min(existing.qty_kg + item.qty_kg, maxQuantity(item));
-      return current.map((line) =>
-        line.listing_id === item.listing_id ? { ...item, qty_kg: quantity } : line,
-      );
-    });
+    addAll([item]);
   }
 
-  function setQuantity(listingId: string, quantity: number) {
-    update((current) => {
-      const item = current.find((line) => line.listing_id === listingId);
-      if (!item || item.qty_kg === quantity || !validQuantity(quantity, item)) return current;
-      return current.map((line) =>
-        line.listing_id === listingId ? { ...line, qty_kg: quantity } : line,
-      );
-    });
+  function addAll(lines: readonly MarketCartItem[]) {
+    if (shopId === null) return;
+    updateShop(shopId, (current) => lines.reduce((cart, item) => {
+      if (!Number.isInteger(item.qty_kg) || item.qty_kg <= 0) return cart;
+      const key = marketLineKey(item.listing_id, item.trend_slug);
+      const isSameLine = (line: MarketCartItem) => marketLineKey(line.listing_id, line.trend_slug) === key;
+      const existing = cart.find(isSameLine);
+      const qty_kg = Math.min((existing?.qty_kg ?? 0) + item.qty_kg, maxQuantity(item, cart));
+      if (!qty_kg) return cart;
+      const next = { ...item, qty_kg };
+      const updateStock = (line: MarketCartItem) =>
+        line.listing_id === item.listing_id ? { ...line, stock_kg: item.stock_kg } : line;
+      return existing
+        ? cart.map((line) => isSameLine(line) ? next : updateStock(line))
+        : [...cart.map(updateStock), next];
+    }, current));
   }
 
-  function remove(listingId: string) {
-    update((current) => current.filter((line) => line.listing_id !== listingId));
+  function setQuantity(listingId: string, quantity: number, trendSlug?: string | null) {
+    if (shopId === null || !Number.isInteger(quantity) || quantity < 1) return;
+    const key = marketLineKey(listingId, trendSlug);
+    updateShop(shopId, (current) => current.map((item) =>
+      marketLineKey(item.listing_id, item.trend_slug) === key && quantity <= maxQuantity(item, current)
+        ? { ...item, qty_kg: quantity }
+        : item,
+    ));
+  }
+
+  function remove(listingId: string, trendSlug?: string | null) {
+    if (shopId === null) return;
+    const key = marketLineKey(listingId, trendSlug);
+    updateShop(shopId, (current) => current.filter((line) => marketLineKey(line.listing_id, line.trend_slug) !== key));
   }
 
   function clearShop(placedShopId: string) {
-    setShops((current) => {
-      if (!current.has(placedShopId)) return current;
-      const updated = new Map(current);
-      updated.delete(placedShopId);
-      return updated;
-    });
+    updateShop(placedShopId, () => emptyCart);
   }
 
-  return { items, add, setQuantity, remove, clearShop, checkoutItems: orderLines(items) };
+  return { items, add, addAll, setQuantity, remove, clearShop, checkoutItems: orderLines(items) };
 }
 
 type MarketCartProps = {
   items: readonly MarketCartItem[];
-  onQuantityChange: (listingId: string, quantity: number) => void;
-  onRemove: (listingId: string) => void;
+  onQuantityChange: (listingId: string, quantity: number, trendSlug?: string | null) => void;
+  onRemove: (listingId: string, trendSlug?: string | null) => void;
   onCheckout: (items: MarketCartLine[]) => void;
   onClose: () => void;
 };
@@ -137,35 +177,36 @@ export function MarketCart({ items, onQuantityChange, onRemove, onCheckout, onCl
         <>
           <ul className="market-cart__items">
             {items.map((item) => (
-              <li key={item.listing_id} className="market-cart__item">
+              <li key={marketLineKey(item.listing_id, item.trend_slug)} className="market-cart__item">
                 {item.image_url && <img src={item.image_url} alt="" width={64} height={64} />}
                 <div className="market-cart__description">
-                  <h3>{item.fruit_name}</h3>
+                  <h3>{marketItemName(item)}</h3>
                   <p>{item.seller_name}</p>
+                  {item.trend_label && <p>{item.trend_label}</p>}
                   <div className="market-cart__controls">
                     <div className="market-cart__quantity">
                       <button
                         type="button"
-                        aria-label={`Decrease ${item.fruit_name} from ${item.seller_name} quantity`}
+                        aria-label={`Decrease ${marketItemName(item)} from ${item.seller_name} quantity`}
                         disabled={item.qty_kg <= 1}
-                        onClick={() => onQuantityChange(item.listing_id, item.qty_kg - 1)}
+                        onClick={() => onQuantityChange(item.listing_id, item.qty_kg - 1, item.trend_slug)}
                       >
                         −
                       </button>
-                      <output aria-label={`${item.fruit_name} from ${item.seller_name} quantity`}>{item.qty_kg} kg</output>
+                      <output aria-label={`${marketItemName(item)} from ${item.seller_name} quantity`}>{item.qty_kg} kg</output>
                       <button
                         type="button"
-                        aria-label={`Increase ${item.fruit_name} from ${item.seller_name} quantity`}
-                        disabled={item.qty_kg >= maxQuantity(item)}
-                        onClick={() => onQuantityChange(item.listing_id, item.qty_kg + 1)}
+                        aria-label={`Increase ${marketItemName(item)} from ${item.seller_name} quantity`}
+                        disabled={item.qty_kg >= maxQuantity(item, items)}
+                        onClick={() => onQuantityChange(item.listing_id, item.qty_kg + 1, item.trend_slug)}
                       >
                         +
                       </button>
                     </div>
                     <button
                       type="button"
-                      aria-label={`Remove ${item.fruit_name} from ${item.seller_name}`}
-                      onClick={() => onRemove(item.listing_id)}
+                      aria-label={`Remove ${marketItemName(item)} from ${item.seller_name}`}
+                      onClick={() => onRemove(item.listing_id, item.trend_slug)}
                     >
                       Remove
                     </button>
@@ -178,13 +219,15 @@ export function MarketCart({ items, onQuantityChange, onRemove, onCheckout, onCl
               </li>
             ))}
           </ul>
-          <dl className="market-cart__total">
-            <dt>Estimated subtotal</dt>
-            <dd>{currency.format(subtotal / 100)}</dd>
-          </dl>
-          <button className="market-cart__checkout" type="button" onClick={() => onCheckout(orderLines(items))}>
-            Continue to checkout
-          </button>
+          <footer className="market-cart__actions">
+            <dl className="market-cart__total">
+              <dt>Estimated subtotal</dt>
+              <dd>{currency.format(subtotal / 100)}</dd>
+            </dl>
+            <button className="market-cart__checkout" type="button" onClick={() => onCheckout(orderLines(items))}>
+              Continue to checkout
+            </button>
+          </footer>
         </>
       )}
     </dialog>

@@ -55,3 +55,20 @@ test('isolates shop carts and opens a full-screen mobile view', async ({ page })
   await open.click();
   await expect(cart.getByText('Your cart is empty.')).toBeVisible();
 });
+
+test('reserves shared stock across trend lines and restores them after reload', async ({ page }) => {
+  await page.getByRole('button', { name: 'Add attributed mango' }).click();
+  await page.reload();
+  await page.getByRole('button', { name: 'Open cart' }).click();
+  const cart = page.getByRole('dialog', { name: 'Your cart (2)' });
+  await expect(cart.getByText('Mango pudding')).toBeVisible();
+  await expect(cart.getByText('Mango smoothie')).toBeVisible();
+  for (const increase of await cart.getByRole('button', { name: /Increase Mango/ }).all()) {
+    await expect(increase).toBeDisabled();
+  }
+  await cart.getByRole('button', { name: 'Continue to checkout' }).click();
+  await expect(page.getByLabel('Checkout payload')).toHaveText(JSON.stringify([
+    { listing_id: 'mango-1', qty_kg: 2, trend_slug: 'dessert' },
+    { listing_id: 'mango-1', qty_kg: 2, trend_slug: 'drink' },
+  ]));
+});

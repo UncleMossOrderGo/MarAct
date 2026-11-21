@@ -82,3 +82,42 @@ test('reports stock errors and renews the checkout after a quantity change', asy
   expect(requests[1].idempotency_key).not.toBe(requests[0].idempotency_key);
   expect(requests[1].items).toEqual([{ listing_id: 'mango-1', qty_kg: 4 }]);
 });
+
+test('preserves ingredient attribution on retry and displays the authoritative saved total', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const requests: MarketOrderRequest[] = [];
+  await page.route('**/component-fixtures/place-order', async (route) => {
+    requests.push(route.request().postDataJSON());
+    if (requests.length <= 2) {
+      await route.fulfill({ status: 422, json: { detail: { message: 'Check pistachio paste stock.' } } });
+      return;
+    }
+    await route.fulfill({ json: {
+      ...savedOrder, total_thb: '5495.00',
+      items: [
+        { listing_id: 'pistachio-sweeting', ingredient_id: 'pistachio-paste', ingredient_name: 'Pistachio paste', seller_name: 'Sweetingred Co.', qty_kg: 5, price_per_kg_thb: '820.00', line_total_thb: '4100.00' },
+        { listing_id: 'cream-dairypro', ingredient_id: 'whipping-cream', ingredient_name: 'Whipping cream', seller_name: 'DairyPro', qty_kg: 5, price_per_kg_thb: '195.00', line_total_thb: '975.00' },
+        { listing_id: 'milk-thaidairy', ingredient_id: 'milk', ingredient_name: 'Milk', seller_name: 'ThaiDairy', qty_kg: 10, price_per_kg_thb: '42.00', line_total_thb: '420.00' },
+      ].map((item) => ({ ...item, trend_slug: 'pistachio-gelato', trend_label: 'Pistachio Gelato' })),
+    } });
+  });
+  await page.goto('/tests/fixtures/market-checkout.html?ingredients');
+  await expect(page.getByText('฿3,035.00')).toBeVisible();
+  const placeOrder = page.getByRole('button', { name: 'Place order', exact: true });
+  await placeOrder.click();
+  await expect(page.getByRole('alert')).toHaveText('Check pistachio paste stock.');
+  await placeOrder.click();
+  await expect(page.getByRole('alert')).toHaveText('Check pistachio paste stock.');
+  expect(requests[1]).toEqual(requests[0]);
+
+  await page.getByRole('button', { name: 'Back to cart' }).click();
+  await page.getByRole('button', { name: 'Change pistachio to 5 kg' }).click();
+  await page.getByRole('button', { name: 'Review order' }).click();
+  await placeOrder.click();
+  expect(requests[2].idempotency_key).not.toBe(requests[0].idempotency_key);
+  expect(requests[2].items).toContainEqual({ listing_id: 'pistachio-sweeting', qty_kg: 5, trend_slug: 'pistachio-gelato' });
+  const receipt = page.getByRole('region', { name: 'Order confirmation' });
+  await expect(receipt.getByText('฿5,495.00')).toBeVisible();
+  await expect(receipt.getByText('Pistachio Gelato')).toHaveCount(3);
+  await expect(receipt.getByRole('button', { name: 'Back to Trends' })).toBeVisible();
+});

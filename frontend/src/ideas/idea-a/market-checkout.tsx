@@ -1,26 +1,22 @@
 import { useRef, useState } from 'react';
 
 import { HttpError } from '../../shared/http';
+import { marketItemName, marketLineKey, orderLines, type MarketCartLine, type MarketItemName } from './market-cart';
 import { marketplaceMascot } from './market-brand';
 import { marketplaceListingImage } from './marketplace-fruit-images';
 import './market-checkout.css';
 
-type OrderLine = {
-  listing_id: string;
-  qty_kg: number;
-};
-
-export type MarketCheckoutLine = OrderLine & {
-  fruit_name: string;
+export type MarketCheckoutLine = MarketCartLine & MarketItemName & {
   seller_name: string;
   price_per_kg_thb: string;
+  trend_label?: string | null;
   image_url?: string;
 };
 
 export type MarketOrderRequest = {
   shop_id: string;
   idempotency_key: string;
-  items: OrderLine[];
+  items: MarketCartLine[];
 };
 
 export type SavedMarketOrder = {
@@ -30,7 +26,8 @@ export type SavedMarketOrder = {
   total_thb: string;
   created_at: string;
   items: readonly (MarketCheckoutLine & {
-    fruit_id: string;
+    ingredient_id?: string;
+    fruit_id?: string;
     line_total_thb: string;
   })[];
 };
@@ -103,8 +100,9 @@ type MarketCheckoutProps = {
 };
 
 export function MarketCheckout(props: MarketCheckoutProps) {
-  const items = props.lines.map(({ listing_id, qty_kg }) => ({ listing_id, qty_kg }));
-  items.sort((a, b) => a.listing_id.localeCompare(b.listing_id));
+  const items = orderLines(props.lines).sort((a, b) =>
+    marketLineKey(a.listing_id, a.trend_slug).localeCompare(marketLineKey(b.listing_id, b.trend_slug)),
+  );
   const signature = JSON.stringify(items);
   return (
     <CheckoutSummary
@@ -118,7 +116,7 @@ export function MarketCheckout(props: MarketCheckoutProps) {
 
 function CheckoutSummary({
   shopId, lines, attempts, items, signature, onPlaceOrder, onPlaced, onBack,
-}: MarketCheckoutProps & { items: OrderLine[]; signature: string }) {
+}: MarketCheckoutProps & { items: MarketCartLine[]; signature: string }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
   const submitting = useRef(false);
@@ -161,11 +159,12 @@ function CheckoutSummary({
         {lines.length === 0 ? <p>Your cart is empty.</p> : (
           <ul className="market-order-items">
             {lines.map((line) => (
-              <li key={line.listing_id}>
+              <li key={marketLineKey(line.listing_id, line.trend_slug)}>
                 {line.image_url && <img src={line.image_url} alt="" width={56} height={56} />}
                 <div>
-                  <strong>{line.fruit_name}</strong>
+                  <strong>{marketItemName(line)}</strong>
                   <span>{line.seller_name}</span>
+                  {line.trend_label && <span>{line.trend_label}</span>}
                   <span>{line.qty_kg} kg × {amountLabel(line.price_per_kg_thb)} / kg</span>
                 </div>
                 <span>{amountLabel(Number(line.price_per_kg_thb) * line.qty_kg)}</span>
@@ -173,21 +172,23 @@ function CheckoutSummary({
             ))}
           </ul>
         )}
+      </div>
+      {error && <p className="market-checkout-error" role="alert">{error}</p>}
+      <div className="market-checkout-submit">
         <p className="market-order-total">
           <span>{saved ? 'Total' : 'Estimated total'}</span>
           <strong>{amountLabel(saved?.total_thb ?? totalCents / 100)}</strong>
         </p>
+        <button
+          className="market-checkout-action"
+          type="button"
+          onClick={placeOrder}
+          disabled={pending || items.length === 0 || Boolean(saved)}
+        >
+          {pending ? 'Placing order…' : 'Place order'}
+        </button>
+        {saved && <p role="status">Order placed.</p>}
       </div>
-      {error && <p className="market-checkout-error" role="alert">{error}</p>}
-      <button
-        className="market-checkout-action"
-        type="button"
-        onClick={placeOrder}
-        disabled={pending || items.length === 0 || Boolean(saved)}
-      >
-        {pending ? 'Placing order…' : 'Place order'}
-      </button>
-      {saved && <p role="status">Order placed.</p>}
     </section>
   );
 }
@@ -206,13 +207,16 @@ function OrderDetails({ order }: { order: SavedMarketOrder }) {
       </div>
       <ul className="market-order-items">
         {order.items.map((item) => {
-          const image = marketplaceListingImage({ id: item.fruit_id, name_en: item.fruit_name }, item.listing_id);
+          const image = item.image_url ?? marketplaceListingImage({
+            id: item.ingredient_id ?? item.fruit_id ?? '', name_en: marketItemName(item) ?? '',
+          }, item.listing_id);
           return (
-            <li key={item.listing_id}>
+            <li key={marketLineKey(item.listing_id, item.trend_slug)}>
               {image && <img src={image} alt="" width={56} height={56} />}
               <div>
-                <strong>{item.fruit_name}</strong>
+                <strong>{marketItemName(item)}</strong>
                 <span>{item.seller_name}</span>
+                {item.trend_label && <span>{item.trend_label}</span>}
                 <span>{item.qty_kg} kg × {amountLabel(item.price_per_kg_thb)} / kg</span>
               </div>
               <span>{amountLabel(item.line_total_thb)}</span>
@@ -229,18 +233,20 @@ function OrderDetails({ order }: { order: SavedMarketOrder }) {
 }
 
 export function MarketOrderConfirmation({
-  order, onViewOrders, onKeepShopping,
-}: { order: SavedMarketOrder; onViewOrders: () => void; onKeepShopping?: () => void }) {
+  order, onViewOrders, onKeepShopping, onBackToTrends,
+}: { order: SavedMarketOrder; onViewOrders: () => void; onKeepShopping?: () => void; onBackToTrends?: () => void }) {
   return (
     <section className="market-checkout" aria-label="Order confirmation">
       <div className="market-order-confirmation-title">
-        {onKeepShopping && <img src={marketplaceMascot} alt="" width={104} height={104} />}
+        {(onKeepShopping || onBackToTrends) && <img src={marketplaceMascot} alt="" width={104} height={104} />}
         <h1>Order saved</h1>
       </div>
       <article className="market-order-panel"><OrderDetails order={order} /></article>
       <button className="market-checkout-action" type="button" onClick={onViewOrders}>View orders</button>
-      {onKeepShopping && (
-        <button className="market-checkout-back" type="button" onClick={onKeepShopping}>Keep shopping</button>
+      {(onBackToTrends || onKeepShopping) && (
+        <button className="market-checkout-back" type="button" onClick={onBackToTrends ?? onKeepShopping}>
+          {onBackToTrends ? 'Back to Trends' : 'Keep shopping'}
+        </button>
       )}
     </section>
   );

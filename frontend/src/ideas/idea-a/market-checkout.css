@@ -134,3 +134,23 @@
 .market-checkout .market-checkout-error {
   color: #912b20;
 }
+
+@media (max-width: 660px) {
+  .market-checkout-submit {
+    position: sticky;
+    bottom: 72px;
+    z-index: 1;
+    padding-block: 8px env(safe-area-inset-bottom, 0);
+    background: var(--market-paper, #fff);
+  }
+}
+
+.market-checkout-submit {
+  display: grid;
+  gap: 8px;
+  padding: 8px 0;
+}
+
+.market-checkout-submit .market-order-total {
+  padding-top: 8px;
+}

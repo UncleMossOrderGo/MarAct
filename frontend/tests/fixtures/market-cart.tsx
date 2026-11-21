@@ -28,6 +28,10 @@ function CartFixture() {
         </select>
       </label>
       <button type="button" onClick={() => cart.add(mango)}>Add mango</button>
+      <button type="button" onClick={() => cart.addAll([
+        { ...mango, trend_slug: 'dessert', trend_label: 'Mango pudding' },
+        { ...mango, trend_slug: 'drink', trend_label: 'Mango smoothie', qty_kg: 3 },
+      ])}>Add attributed mango</button>
       <button type="button" onClick={() => setOpen(true)}>Open cart</button>
       <button type="button" onClick={() => cart.clearShop('smoothie')}>Clear Smoothie Café cart</button>
       <output aria-label="Checkout payload">{JSON.stringify(checkout)}</output>

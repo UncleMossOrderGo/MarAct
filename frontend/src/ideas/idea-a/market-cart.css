@@ -132,3 +132,12 @@
     border-inline-start: 0;
   }
 }
+
+@media (max-width: 600px) {
+  .market-cart__actions {
+    position: sticky;
+    bottom: 0;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+    background: var(--market-paper, #fff);
+  }
+}
