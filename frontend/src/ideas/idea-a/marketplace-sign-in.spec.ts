@@ -47,7 +47,7 @@ test('gates marketplace requests, clears a rejected password, restores the sessi
   await password.press('Enter');
   await expect(page.getByRole('button', { name: 'Signing in…' })).toBeDisabled();
   releaseLogin();
-  await expect(page.getByRole('alert')).toHaveText('Could not sign in. Check your email and password and try again.');
+  await expect(page.getByRole('alert')).toHaveText('Could not sign in. Check your email and password.');
   await expect(password).toHaveValue('');
   await expect(emailField).toHaveValue(email);
   expect(shopRequests).toBe(0);

@@ -41,7 +41,7 @@ function SignIn({ onSignedIn }: { onSignedIn: () => void }) {
           <input type="password" autoComplete="current-password" required value={password}
             onChange={(event) => setPassword(event.currentTarget.value)} />
         </label>
-        {failed && <p role="alert">Could not sign in. Check your email and password and try again.</p>}
+        {failed && <p role="alert">Could not sign in. Check your email and password.</p>}
         <button type="submit" disabled={pending}>{pending ? 'Signing in…' : 'Sign in'}</button>
       </form>
     </div>
@@ -112,7 +112,7 @@ export function MarketplaceSessionGate({ onClear, children }: {
     setState('signed-in');
   }} />;
   return <>
-    {logoutFailed && <p role="alert">Could not sign out. Please try again.</p>}
+    {logoutFailed && <p role="alert">Could not sign out. Try again.</p>}
     {children(() => void signOut(), signingOut)}
   </>;
 }
