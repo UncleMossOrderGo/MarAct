@@ -13,8 +13,8 @@ const fruitPhotos = import.meta.glob<string>("./assets/demo-fruit/*.webp", { eag
 export function LotPhoto({ id, name, compact = false }: { id: string; name: string; compact?: boolean }) {
   const [failed, setFailed] = useState(false);
   const [,fruit,offer] = /^demo-([a-z]+)-(retail|crate|basket|bulk)$/.exec(id) ?? [];
-  const source = demoPhotos.get(id) ?? fruitPhotos[`./assets/demo-fruit/${fruit}-${offer}.webp`]
-    ?? fruitPhotos[`./assets/demo-fruit/${fruit}.webp`];
+  const photoKey = offer === "retail" ? fruit : `${fruit}-${offer}`;
+  const source = demoPhotos.get(id) ?? fruitPhotos[`./assets/demo-fruit/${photoKey}.webp`];
   return (
     <figure className={compact ? "lot-photo compact-photo" : "lot-photo"}>
       {source && !failed ? <>
