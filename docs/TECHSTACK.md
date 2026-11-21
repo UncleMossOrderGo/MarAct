@@ -91,7 +91,7 @@ MarAct/
 **Recommended additions inside Idea B** (not yet present):
 
 ```text
-frontend/src/ideas/idea-b/
+frontend/src/legacy/workspace/
 ├── screen.tsx                 # Composition point; integration owner edits
 ├── marketplace/
 ├── personalization/
@@ -103,7 +103,7 @@ frontend/src/ideas/idea-b/
 │   └── api.ts
 └── types.ts                  # Agreed UI/API data shapes
 
-backend/src/modules/idea_b/
+backend/src/modules/copilot/
 ├── router.py                  # Integration owner edits
 ├── marketplace/
 │   ├── schemas.py
@@ -123,7 +123,7 @@ backend/db/migrations/      # Numbered SQL changes (coordinate ownership)
 backend/db/seeds/idea-b/    # Reproducible Idea B fixtures
 ```
 
-**Important:** `frontend/src/ideas/idea-b/` is for browser UI, not Python agents or secrets. Keep API/agent logic under `backend/src/modules/idea_b/`. Keep `idea-a` and other team's files untouched.
+**Important:** `frontend/src/legacy/workspace/` is for browser UI, not Python agents or secrets. Keep API/agent logic under `backend/src/modules/copilot/`. Keep `idea-a` and other team's files untouched.
 
 ## 4. System flow
 
@@ -264,7 +264,7 @@ All routes are **proposed**, under the existing prefix `/api/ideas/idea-b` (moun
 ## 7. Database ownership and collaboration rules
 
 - Prefix project tables with `idea_b_`; do not edit `idea_a_` tables.
-- Assign one person to coordinate `backend/src/modules/idea_b/router.py`, `frontend/src/ideas/idea-b/screen.tsx`, and shared dependency files.
+- Assign one person to coordinate `backend/src/modules/copilot/router.py`, `frontend/src/legacy/workspace/screen.tsx`, and shared dependency files.
 - All developers work in separate branches/worktrees and open small PRs. Own **feature folders**, not personal-name folders.
 - Give each new migration a unique next number; never rewrite applied migrations. Follow the existing seed runner and use stable fixture keys so seeding is repeatable.
 - Confirm the shared catalog schema before building recommendation queries. If unavailable, use a typed adapter and a temporary fixture explicitly labeled `demo`.
@@ -302,7 +302,7 @@ make dev
 **Verification:**
 
 ```bash
-make test-idea IDEA=idea-b
+make test-api
 make quality
 make build
 # Before release, integration owner runs:
@@ -327,7 +327,7 @@ If no public deployment is ready, prioritize a reproducible local demo with seed
 - [ ] Trend calculations have unit tests for zero baselines, missing periods, sparse/no data, and score bounds.
 - [ ] Trend UI shows time window, source, last updated, and a conspicuous demo-data label when applicable.
 - [ ] End-to-end demo works with stable seeds and without restricted third-party API dependencies.
-- [ ] `make test-idea IDEA=idea-b`, `make quality`, and `make build` pass.
+- [ ] `make test-api`, `make quality`, and `make build` pass.
 - [ ] No secrets in commits, frontend bundles, or browser network calls.
 
 ## 11. Priority order for a short hackathon

@@ -1,6 +1,6 @@
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { demoIdeas, ideaPath, ideas } from '../ideas/registry';
+import { demoIdeas, ideaPath, ideas } from '../legacy/registry';
 import { Marketplace } from '../features/marketplace/screen';
 import './styles.css';
 

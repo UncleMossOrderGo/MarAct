@@ -1,4 +1,4 @@
-.PHONY: init dev dev-api start migrate seed test-idea test-api check quality build doctor db .env
+.PHONY: init dev dev-api start migrate seed test-api check quality build doctor db .env
 
 export IDEA
 
@@ -28,15 +28,11 @@ migrate: .env
 	uv run --locked --no-dev python -m backend.db.manage migrate
 
 seed: .env
-	@test -n "$$IDEA" || { echo "Usage: make seed IDEA=idea-b"; exit 1; }
-	uv run --locked --no-dev python -m backend.db.manage seed --idea "$$IDEA"
-
-test-idea: .env
-	uv run --locked python -m scripts.test_idea "$$IDEA"
+	uv run --locked --no-dev python -m backend.db.manage seed $(if $(DOMAIN),--domain "$(DOMAIN)",$(if $(IDEA),--idea "$(IDEA)",--all))
 
 quality:
-	uv run --locked ruff check backend scripts
-	uv run --locked mypy backend scripts
+	uv run --locked ruff check backend
+	uv run --locked mypy backend
 	npm --prefix frontend run lint
 	npm --prefix frontend run typecheck
 

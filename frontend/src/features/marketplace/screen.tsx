@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { MarketCopilot } from "./copilot";
+import { MarketCopilot } from "../copilot/copilot";
+import type { Lot } from "./types";
 import "./style.css";
 
 const mangoPhoto = new URL(
@@ -8,27 +9,6 @@ const mangoPhoto = new URL(
   import.meta.url,
 ).href;
 
-export type Lot = {
-  id: string;
-  farm: string;
-  name: string;
-  grade: string | null;
-  uses: string;
-  kg: number | string | null;
-  unit: string;
-  price: number;
-  minimum: number;
-  stock: number;
-  freight: number;
-  earliest: string;
-  ends: string;
-  transit: number;
-  units: number;
-  requested_kg: number | null;
-  total: number;
-  misses: string[];
-  preferred: boolean;
-};
 type Line = Pick<Lot, "id" | "name" | "unit" | "price" | "requested_kg"> & {
   units: number;
 };

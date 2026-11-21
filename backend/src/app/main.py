@@ -8,9 +8,9 @@ from fastapi.staticfiles import StaticFiles
 from psycopg import Error
 from psycopg_pool import ConnectionPool, PoolTimeout
 
-from backend.src.modules.idea_a.router import router as idea_a
-from backend.src.modules.idea_b.router import router as idea_b
-from backend.src.modules.marketplace.copilot import router as copilot
+from backend.src.legacy.records.router import router as idea_a
+from backend.src.legacy.workspace.router import router as idea_b
+from backend.src.modules.copilot.router import router as copilot
 from backend.src.modules.marketplace.router import router as marketplace
 from backend.src.shared.db import database_url
 
