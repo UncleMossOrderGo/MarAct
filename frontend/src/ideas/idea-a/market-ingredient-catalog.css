@@ -1,0 +1,149 @@
+.market-ingredient-catalog {
+  container-type: inline-size;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+}
+
+.market-ingredient-catalog h1 {
+  margin: 0 0 16px;
+  font-size: clamp(24px, 4vw, 32px);
+}
+
+.market-catalog-search {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.market-catalog-search input {
+  box-sizing: border-box;
+  min-width: 0;
+  flex: 1 1 120px;
+  border: 1px solid var(--market-border, #e5e7eb);
+  border-radius: var(--market-button-radius, 10px);
+}
+
+.market-catalog-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.market-catalog-filters button {
+  padding: 5px 12px;
+  border: 1px solid var(--market-border, #e5e7eb);
+  border-radius: 999px;
+  background: var(--market-paper, white);
+  color: var(--market-ink, #171717);
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.market-catalog-filters button[aria-pressed="true"],
+.market-catalog-card-action button {
+  border-color: var(--market-green, #237a32);
+  background: var(--market-green, #237a32);
+  color: white;
+}
+
+.market-catalog-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  margin: 16px 0;
+  padding: 0;
+  list-style: none;
+}
+
+@container (min-width: 260px) {
+  .market-catalog-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@container (min-width: 540px) {
+  .market-catalog-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@container (min-width: 800px) {
+  .market-catalog-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.market-catalog-grid > li {
+  min-width: 0;
+  overflow: hidden;
+  padding: 0;
+  border: 1px solid var(--market-border, #e5e7eb);
+  border-radius: var(--market-radius, 12px);
+  background: var(--market-paper, white);
+}
+
+.market-catalog-photo {
+  aspect-ratio: 1;
+  background: var(--market-green-soft, #eaf5e5);
+}
+
+.market-catalog-photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.market-catalog-card {
+  display: grid;
+  gap: 4px;
+  padding: 8px;
+}
+
+.market-catalog-card :is(p, h2) {
+  margin: 0;
+}
+
+.market-catalog-card h2 {
+  font-size: 1rem;
+}
+
+.market-catalog-card h2 button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.market-catalog-card p {
+  color: var(--market-muted, #6b7280);
+  font-size: 13px;
+}
+
+.market-catalog-card-action {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  font-size: 14px;
+}
+
+.market-catalog-card-action button {
+  display: grid;
+  place-items: center;
+  min-width: 36px;
+  min-height: 36px;
+  padding: 4px;
+  border-radius: var(--market-button-radius, 10px);
+}
+
+.market-ingredient-catalog :focus-visible {
+  outline: 2px solid var(--market-green, #237a32);
+  outline-offset: 2px;
+}
