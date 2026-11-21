@@ -89,6 +89,8 @@ Interpret a MarAct buyer's Thai/English request. Call market_intent to search, p
 or acknowledge an unknown request. Use the actual requested fruit, farm or use in query, preserving unsupported
 fruit names so inventory can verify them. Quantities must be whole kilograms. Prefer cost only when explicitly asked.
 Only request cart when the buyer asks for a cart and supplies quantities. Never invent listing IDs or place orders.
+For a new smoothie shop, search for the named fruit, not a beverage name. For a quantity-only follow-up,
+retain the previously discussed fruit and use the new weight. Treat shop information as context only.
 Use the previous search for an explicit follow-up. Do not use vague queries to answer specific factual questions.
 """
 
@@ -132,10 +134,10 @@ def paid_turn(req: Request) -> bool:
         return False
 
 
-def model_intent(body: ChatInput) -> Intent | None:
+def model_intent(body: ChatInput, business: str = "") -> Intent | None:
     data = create_response({
         "instructions": POLICY,
-        "input": json.dumps(body.model_dump(mode="json"), ensure_ascii=False),
+        "input": json.dumps({**body.model_dump(mode="json"), "shop_business": business}, ensure_ascii=False),
         "tools": [{"type": "function", "name": "market_intent", "description": "Use verified stock and quote tools",
                    "strict": False, "parameters": Intent.model_json_schema()}],
         "tool_choice": "required", "parallel_tool_calls": False, "max_output_tokens": 1000,
@@ -156,15 +158,23 @@ def local_intent(body: ChatInput, names: list[str]) -> Intent:
     candidates = sorted(set(names + list(FRUIT_ALIASES) + list(FRUIT_ALIASES.values())), key=lambda name: (-len(name), name))
     pattern = "|".join(re.escape(name.casefold()) for name in candidates if name)
     matches = list(re.finditer(pattern, text)) if pattern else []
-    items = []
+    items: list[Requested] = []
     for index, match in enumerate(matches):
         end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
         amount = QUANTITY.search(text, match.end(), end)
-        items.append(Requested(query=FRUIT_ALIASES.get(match[0], match[0]), kg=int(amount[1]) if amount else None))
+        item = Requested(query=FRUIT_ALIASES.get(match[0], match[0]), kg=int(amount[1]) if amount else None)
+        previous = next((existing for existing in items if existing.query == item.query), None)
+        if previous is not None and (previous.kg is None or item.kg is None):
+            previous.kg = previous.kg or item.kg
+        else:
+            items.append(item)
     if TREND.search(text):
         if not items and not re.search(r"ผลไม้|\bfruits?\b|^(?:แนวโน้ม|กระแส|trends?)\s*$", text):
             return Intent(action="unknown")
         return Intent(action="trends", items=items)
+    followup = re.fullmatch(r"(?:งั้นขอ|งั้น|เอา|ขอ|เริ่มที่|เริ่มจาก|ต้องการ)?\s*(\d{1,7})\s*(?:กิโลกรัม|กิโล|กก\.?|โล|kg)(?:\s*(?:ครับ|ค่ะ|นะครับ|นะคะ|ราคาถูกที่สุด|ขอถูกที่สุด|ถูกที่สุด))*[ ?!]*", text)
+    if not items and body.previous and followup:
+        items = [Requested(query=body.previous.query, kg=int(followup[1]))]
     if not items and body.previous and re.search(r"^(?:แล้วมี(?:แบบ|ตัวเลือก)?ถูกกว่า|อันเดิม|ถูกกว่านี้|cheaper|same)\b", text):
         items = [body.previous]
     budget_thb = int(budget[1].replace(",", "")) if budget else None
@@ -181,7 +191,7 @@ def available(cur, item: Requested, body: ChatInput, sort: str) -> list[dict]:
     return [row for row in rows if not row["misses"]]
 
 
-def prepare(cur, intent: Intent, body: ChatInput, reply: ChatReply) -> None:
+def prepare(cur, intent: Intent, body: ChatInput, reply: ChatReply, business: str = "") -> None:
     if intent.action == "search" and intent.items:
         item = intent.items[0]
         candidates = available(cur, item, body, intent.sort)
@@ -190,6 +200,15 @@ def prepare(cur, intent: Intent, body: ChatInput, reply: ChatReply) -> None:
         if reply.lots:
             reply.previous = item
             reply.message = "พบล็อตที่ตรงกับคำขอครับ"
+            if any(word in business + body.message for word in ("ปั่น", "สมูท", "smoothie")):
+                suited = next((row for row in reply.lots if any(word in row["uses"].casefold()
+                              for word in ("ปั่น", "สมูท", "smoothie", "น้ำผลไม้"))), None)
+                if suited:
+                    reply.message = (f"สำหรับร้านน้ำปั่น ลองดู{suited['name']}จาก{suited['farm']}ครับ "
+                                     f"สวนระบุว่าใช้ทำ {suited['uses']} ราคา {suited['price']:,} บาทต่อ{suited['unit']} "
+                                     f"สั่งขั้นต่ำ {suited['minimum']} {suited['unit']}")
+                if item.kg is None:
+                    reply.message += " รอบแรกอยากลองกี่กิโลครับ? ผมจะเทียบยอดให้ตามจำนวนที่ใช้"
     elif intent.action == "cart" and intent.items:
         choices: dict[str, list[dict]] = defaultdict(list)
         seen = set()
@@ -256,7 +275,18 @@ def market_chat(body: ChatInput, req: Request) -> ChatReply:
         reply.message = "ตลาดรับเป้าหมายเป็นกิโลกรัมเต็มจำนวน กรุณาระบุปริมาณใหม่ครับ"
         return reply
     allowed = paid_turn(req)
-    intent = model_intent(body) if allowed else None
+    business = ""
+    if req.cookies.get("market_session"):
+        with market(req) as cur:
+            try:
+                owner = buyer(cur, req)
+            except HTTPException as exc:
+                if exc.status_code != 401:
+                    raise
+            else:
+                cur.execute("SELECT business FROM idea_c_buyers WHERE name=%s", (owner,))
+                business = cur.fetchone()["business"]
+    intent = model_intent(body, business) if allowed else None
     with market(req) as cur:
         if intent is None:
             cur.execute("SELECT DISTINCT name, farm FROM idea_c_lots")
@@ -268,7 +298,7 @@ def market_chat(body: ChatInput, req: Request) -> ChatReply:
         else:
             reply.source = "openai"
             reply.tool_calls.append(ToolCall(name="market_intent", status="completed"))
-        prepare(cur, intent, body, reply)
+        prepare(cur, intent, body, reply, business)
         if intent.action == "search":
             reply.tool_calls.append(ToolCall(name="search_listings", status="completed"))
         elif intent.action == "cart":

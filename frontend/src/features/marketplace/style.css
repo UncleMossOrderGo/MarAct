@@ -266,39 +266,64 @@ main:has(> .market) {
   margin: 0;
   white-space: nowrap;
 }
+.market-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(14px, 1.7vw, 24px);
+  margin-top: 20px;
+}
 .market article.market-product {
-  display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1fr);
-  gap: 24px;
-  padding: 24px 0;
-  border: 0;
-  border-bottom: 1px solid var(--rule);
-  border-radius: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid #d6dccf;
+  border-radius: 16px;
+  background: #fffefa;
+  box-shadow: 0 3px 10px rgb(31 55 31 / 4%);
 }
-.lot-identity h3 {
-  font:
-    500 clamp(21px, 2.2vw, 32px)/1.4 "Market Serif",
-    serif;
+.lot-photo {
+  position: relative;
+  aspect-ratio: 1.94;
+  margin: 0;
+  overflow: hidden;
+  background: #e9eadf;
 }
-.lot-identity strong {
-  font-size: 18px;
+.lot-photo img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.lot-photo figcaption {
+  position: absolute; bottom: 10px; right: 10px; padding: 2px 8px;
+  border-radius: 20px; background: rgb(20 35 22 / 86%); color: white;
+  font-size: 12px; line-height: 1.6;
 }
-.lot-identity p,
-.lot-comparison p,
-.market-product-foot small,
-.delivery-status {
-  color: var(--muted);
-  font-size: 14px;
-}
-.market-price {
-  font-size: 22px;
-  font-weight: 600;
-}
+.lot-no-photo { height: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; color: #4a5a49; font-size: 14px; }
+.lot-identity { padding: 18px 20px 0; }
+.market .lot-farm { display: flex; align-items: center; gap: 6px; color: #42604b; font-size: 14px; font-weight: 600; }
+.market .lot-identity h3 { margin: 5px 0; color: #1c3728; font: 650 clamp(21px, 1.65vw, 27px)/1.42 var(--shop-font); letter-spacing: -.012em; }
+.lot-description, .lot-comparison p, .market-product-foot small, .delivery-status { color: var(--muted); font-size: 14px; }
+.lot-comparison { padding: 12px 20px 17px; }
+.market-price { display: block; margin-bottom: 7px; font-size: 21px; font-weight: 700; color: #21442e; }
+.market .lot-fact { line-height: 1.65; }
+.lot-fact svg { vertical-align: -.17em; margin-inline-end: 3px; }
 .market-product-foot {
-  display: grid;
-  align-content: start;
-  gap: 4px;
-  justify-items: start;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start;
+  align-content: end; gap: 6px 8px; margin-top: auto; padding: 15px 20px 18px;
+  border-top: 1px solid #dce1d5; background: #f5f7ed;
+}
+.market-product-foot > small:first-of-type { align-self: end; text-align: right; }
+.market-product-foot > :is(p, button, [role=status]) { grid-column: 1 / -1; }
+.market .market-product-foot .lot-add { width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 8px; background: #254d35; }
+.market-product-foot .lot-add:hover:enabled { background: #163c27; }
+.market .market-product-foot button:disabled { background: #e3e6dc; color: #445043; }
+.market .market-product-foot > small[role=status] { text-align: center; }
+.market-grid :is(.market-price, strong, time) { font-variant-numeric: tabular-nums; }
+@media (max-width: 970px) {
+  .market-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 620px) {
+  .market-grid { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+  .lot-photo { aspect-ratio: 2.05; }
 }
 .market-product-foot .delivery-blocked {
   border-left: 3px solid var(--accent);
@@ -342,7 +367,7 @@ main:has(> .market) {
   font-weight: 500;
 }
 .market-product-foot strong {
-  font-size: 24px;
+  font-size: 23px;
   line-height: 1.35;
 }
 .market-product-foot button,
@@ -361,7 +386,7 @@ main:has(> .market) {
     label,
     h1,
     p,
-    button
+    button:not(.copilot-launch)
   ) {
   max-width: 800px;
   margin: 16px var(--gutter);
@@ -472,10 +497,6 @@ main:has(> .market) {
   }
   .market .market-heading {
     gap: 6px 12px;
-  }
-  .market article.market-product {
-    grid-template-columns: 1fr;
-    gap: 8px;
   }
 }
 @media (prefers-reduced-motion: no-preference) {

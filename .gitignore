@@ -10,3 +10,6 @@ __pycache__/
 .ruff_cache/
 .agents/
 /demo/
+
+/backend/.local/
+/backend/src/modules/idea_d/.local/

@@ -11,6 +11,8 @@ MarAct ใช้ React + Vite + TypeScript, FastAPI และ PostgreSQL ผู�
 - แก้การตีความคำถาม การเรียกเครื่องมือ และโควตาที่ `backend/src/modules/copilot/router.py` ส่วนบัญชีผู้ซื้อและการยืนยันคำสั่งซื้ออยู่ใน `backend/src/modules/marketplace/router.py`
 - งานเฉพาะเดโมเดิมให้เริ่มในโฟลเดอร์ legacy อ่าน AGENTS.md ที่ใกล้ไฟล์ก่อนแก้ ใช้ branch หรือ worktree แยกเมื่อทำงานขนานกัน
 
+- Farmer Studio, โปรไฟล์สวน และ LINE อยู่ใน `frontend/src/features/farmer/` และ `backend/src/modules/farmer/` เทสต์อยู่ใน `frontend/tests/e2e/` และ `backend/tests/farmer/`
+
 ## รักษาสัญญากับผู้ซื้อและทีม
 
 - ใช้ภาษาไทยเป็นหลัก ให้ OpenAI ตีความคำถาม ส่วนราคา จำนวนหน่วย ค่าขนส่ง และตัวเลขแนวโน้มให้คำนวณจากข้อมูลที่ตรวจสอบได้ ระบุข้อมูลเดโมและแสดงแหล่งข่าวเมื่อมีหลักฐาน ถ้าตอบจากข้อมูลที่มีไม่ได้ให้บอกผู้ซื้อ

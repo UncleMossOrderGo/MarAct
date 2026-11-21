@@ -28,6 +28,12 @@ Open [MarAct on port 5173](http://127.0.0.1:5173). The first visit opens `/marke
 
 Before the first browser test, run `cd frontend && npx playwright install chromium` from the repo root. The API and smoke tests use `DATABASE_URL`, so initialize the database first. Browser tests use port 5174 and API port 3001 by default. Keep these ports free, and set a distinct `DB_PORT` and `DATABASE_URL` when running database environments in parallel.
 
+## Buyer and grower journeys
+
+- `/market` searches orderable marketplace lots and public grower listings. Orderable lots use the existing PostgreSQL quote and checkout rules. Grower announcements display their published price, stock and service area. Prices and freight are never copied into checkout by matching a farm name.
+- `/trends` compares fruit signals, shows the observation period and sources, and carries the selected fruit into market search or an editable Copilot question.
+- `/login` signs a grower in with a password or a one-time code from LINE. `/farmer` opens the local Farmer Studio. Web and LINE share the same private draft. Confirmation publishes to `/farms` and the public grower section on `/market`. Farmer data uses the existing SQLite workspace and photo directory; keep that directory on persistent storage. See [Farmer and LINE setup](backend/src/modules/farmer/README.md).
+
 ## Marketplace handoff
 
 | Area | Where to work |

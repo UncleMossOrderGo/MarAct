@@ -1,28 +1,23 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { ArrowRight, CalendarDays, PackageOpen, Search, ShoppingBasket, SlidersHorizontal, Sprout } from "lucide-react";
+import { ProductHeader } from "../../app/ProductHeader";
+import { BuyerAccount } from "./BuyerAccount";
+import type { BuyerProfile } from "./BuyerAccount";
+import { ShopOrders } from "./ShopOrders";
+import type { Offer, Order } from "./types";
+import { FarmHarvest } from "./FarmHarvest";
+import { LotPhoto } from "./LotPhoto";
+import { TrendStrip } from "./TrendStrip";
 import { MarketCopilot } from "../copilot/copilot";
 import type { Lot } from "./types";
 import "./style.css";
 
 const mangoPhoto = new URL(
-  "./assets/product-mango-namdokmai-a.webp",
+  "../../legacy/workspace/procurement-produce.webp",
   import.meta.url,
 ).href;
 
-type Line = Pick<Lot, "id" | "name" | "unit" | "price" | "requested_kg"> & {
-  units: number;
-};
-type Offer = { farm: string; lines: Line[]; freight: number; total: number };
-type Order = Offer & {
-  id: string;
-  state: string;
-  issue: string;
-  refund: string;
-  payment: string;
-  arrival: string;
-  expires: string;
-  events: { action: string; note: string; at: string }[];
-};
 type CartLot = Pick<
   Lot,
   | "id"
@@ -87,33 +82,6 @@ function readCart(): SavedCart {
   }
   return { cart: [], later: [], postcode: "", arrival: "" };
 }
-const labels: Record<string, string> = {
-  pending: "รอสวนยืนยัน",
-  expired: "หมดเวลายืนยัน",
-  accepted: "สวนยืนยันแล้ว",
-  rejected: "สวนปฏิเสธ",
-  shipped: "จัดส่งแล้ว",
-  received: "ได้รับสินค้าแล้ว",
-  cancelled: "ยกเลิกแล้ว",
-  cancel_requested: "รอสวนอนุมัติยกเลิก",
-  open: "รอสวนตอบ",
-  replied: "สวนตอบแล้ว",
-  escalated: "ส่งต่อผู้ดูแลแล้ว",
-  resolved: "ปิดเรื่องแล้ว",
-  cancel: "ยกเลิก",
-  ask_cancel: "ขอยกเลิก",
-  receive: "ยืนยันรับสินค้า",
-  report: "แจ้งปัญหา",
-  escalate: "ส่งต่อผู้ดูแล",
-  accept: "สวนยืนยัน",
-  reject: "สวนปฏิเสธ",
-  ship: "จัดส่ง",
-  approve_cancel: "อนุมัติยกเลิก",
-  deny_cancel: "ปฏิเสธการยกเลิก",
-  reply: "คำตอบจากสวน",
-  resolve: "ผลจากผู้ดูแล",
-  refund: "การคืนเงิน",
-};
 const money = (n: number) => n.toLocaleString("th-TH") + " บาท";
 const deliveryDate = new Intl.DateTimeFormat("th-TH", {
   day: "numeric",
@@ -121,6 +89,9 @@ const deliveryDate = new Intl.DateTimeFormat("th-TH", {
   year: "numeric",
   timeZone: "UTC",
 });
+class MarketApiError extends Error {
+  constructor(readonly status: number, message: string) { super(message); }
+}
 async function api<T>(path: string, body?: unknown): Promise<T> {
   const res = await fetch(
     "/api/ideas/idea-c/" + path,
@@ -134,7 +105,7 @@ async function api<T>(path: string, body?: unknown): Promise<T> {
   );
   if (!res.ok) {
     const data = await res.json();
-    throw new Error(
+    throw new MarketApiError(res.status,
       typeof data.detail === "string" ? data.detail : "กรุณาตรวจสอบข้อมูลอีกครั้ง",
     );
   }
@@ -149,7 +120,7 @@ export function Marketplace() {
   function setCopilot(open: boolean, hash = route.hash) {
     const search = new URLSearchParams(route.search);
     if (open) search.set("copilot", "1");
-    else search.delete("copilot");
+    else { search.delete("copilot"); search.delete("brief"); }
     navigate({ pathname: route.pathname, search: search.toString(), hash }, { replace: !open });
   }
   const tab =
@@ -157,7 +128,7 @@ export function Marketplace() {
       ? "cart"
       : route.hash === "#orders"
         ? "orders"
-        : "market";
+        : route.hash === "#buyer" ? "buyer" : "market";
   function setTab(next: string) {
     navigate({
       pathname: route.pathname,
@@ -167,7 +138,13 @@ export function Marketplace() {
     window.scrollTo(0, 0);
   }
   const [params] = useState(() => new URLSearchParams(location.search));
-  const [q, setQ] = useState(params.get("q") ?? "");
+  const q = new URLSearchParams(route.search).get("q") ?? "";
+  function searchFor(value: string, closeChat = false) {
+    const search = new URLSearchParams(route.search);
+    if (value) search.set("q", value); else search.delete("q");
+    if (closeChat) { search.delete("copilot"); search.delete("brief"); }
+    navigate({pathname: route.pathname, search: search.toString(), hash: ""}, {replace: true});
+  }
   const [kg, setKg] = useState(params.get("kg") ?? "");
   const resumingCart = tab === "cart" && saved.cart.length > 0;
   const [postcode, setPostcode] = useState(
@@ -188,9 +165,12 @@ export function Marketplace() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [checkoutFarm, setCheckoutFarm] = useState("");
   const [buyer, setBuyer] = useState("");
+  const [profile, setProfile] = useState<BuyerProfile>({business: "", postcode: ""});
+  const loadedBuyer = useRef("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [address, setAddress] = useState("");
+  const [ordersStatus, setOrdersStatus] = useState<"loading" | "ready" | "error">("loading");
   const [orders, setOrders] = useState<Order[]>([]);
   const [review, setReview] = useState<{
     id: string;
@@ -203,7 +183,6 @@ export function Marketplace() {
   const [catalogError, setCatalogError] = useState("");
   const [busy, setBusy] = useState(false);
   const [revision, refresh] = useState(0);
-  const [notes, setNotes] = useState<Record<string, string>>({});
   useEffect(() => {
     try {
       if (cart.length)
@@ -244,20 +223,37 @@ export function Marketplace() {
     };
   }, [queryString, revision]);
   async function loadOrders() {
-    const data = await api<{ buyer: string; orders: Order[] }>("orders");
-    setBuyer(data.buyer);
-    setOrders(data.orders);
+    try {
+      const data = await api<{ buyer: string; orders: Order[]; profile: BuyerProfile }>("orders");
+      setProfile(data.profile);
+      if (loadedBuyer.current !== data.buyer) {
+        loadedBuyer.current = data.buyer;
+        setPostcode(current => current || data.profile.postcode);
+      }
+      setBuyer(data.buyer);
+      setOrders(data.orders);
+    } catch (failure) {
+      if (!(failure instanceof MarketApiError && failure.status === 401)) {
+        setOrdersStatus("error");
+        return;
+      }
+      setBuyer("");
+      setOrders([]);
+    }
+    setOrdersStatus("ready");
   }
   useEffect(() => {
-    void loadOrders().catch(() => {});
+    void loadOrders();
   }, []);
   async function run(fn: () => Promise<void>) {
     setBusy(true);
     setError("");
     try {
       await fn();
+      return true;
     } catch (e) {
       setError(e instanceof Error ? e.message : "โหลดข้อมูลไม่สำเร็จ");
+      return false;
     } finally {
       setBusy(false);
     }
@@ -330,16 +326,19 @@ export function Marketplace() {
     }
     const lines = [...next.values()];
     const added = new Set(lots.map(({ id }) => id));
-    await Promise.all([...new Set(lots.map(({ farm }) => farm))].map((farm) =>
-      api<Offer>("quote", {
-        postcode, arrival,
-        lines: lines.filter((line) => line.lot.farm === farm && (added.has(line.lot.id) || !later.includes(line.lot.id)))
-          .map(({ lot, units, requested_kg }) => ({ id: lot.id, units, requested_kg })),
-      }),
-    ));
-    edit(lines);
-    setLater((ids) => ids.filter((id) => !added.has(id)));
-    setCopilot(false, "#cart");
+    setBusy(true);
+    try {
+      await Promise.all([...new Set(lots.map(({ farm }) => farm))].map((farm) =>
+        api<Offer>("quote", {
+          postcode, arrival,
+          lines: lines.filter((line) => line.lot.farm === farm && (added.has(line.lot.id) || !later.includes(line.lot.id)))
+            .map(({ lot, units, requested_kg }) => ({ id: lot.id, units, requested_kg })),
+        }),
+      ));
+      edit(lines);
+      setLater((ids) => ids.filter((id) => !added.has(id)));
+      setCopilot(false, "#cart");
+    } finally { setBusy(false); }
   }
   const displayCart = [
     ...cart.filter((i) => !later.includes(i.lot.id)),
@@ -357,18 +356,26 @@ export function Marketplace() {
       return { farm, group, selected, total };
     },
   );
+  function logout() {
+    return run(async () => {
+      await api("logout", {});
+      loadedBuyer.current = "";
+      setProfile({business: "", postcode: ""}); setPostcode(""); setArrival(""); setBuyer(""); setName("");
+      setAddress(""); setCart([]); setLater([]); setCheckoutFarm(""); setReview(null); setOrders([]);
+    });
+  }
   const accountForm = (
     <section className="shop-account">
       <h2>บัญชีผู้ประกอบการ</h2>
       <p className="market-hint">ใช้ครั้งแรก เลือก “สร้างบัญชีร้าน”</p>
       <label>
         ชื่อร้าน
-        <input value={name} onChange={(e) => setName(e.target.value)} />
+        <input autoComplete="username" value={name} onChange={(e) => setName(e.target.value)} />
       </label>
       <label>
         รหัสผ่าน (อย่างน้อย 8 ตัว)
         <input
-          type="password"
+          type="password" autoComplete="current-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
@@ -391,30 +398,16 @@ export function Marketplace() {
     </section>
   );
   return (
+    <>
+    <ProductHeader market={{ tab, count: cart.length, select: (next) => {
+      setTab(next); setError("");
+      if (next === "orders" && buyer) void run(loadOrders);
+    } }}/>
+    <main className="product-wide">
     <fieldset className="market" lang="th" disabled={busy}>
-      <nav aria-label="Marketplace">
-        {[
-          ["market", "เลือกผลผลิต"],
-          ["cart", "ตะกร้า (" + cart.length + ")"],
-          ["orders", "คำสั่งซื้อ"],
-        ].map(([key, text]) => (
-          <button
-            key={key}
-            aria-pressed={key === tab}
-            onClick={() => {
-              setTab(key);
-              setError("");
-              if (key === "orders" && buyer) void run(loadOrders);
-            }}
-          >
-            {text}
-          </button>
-        ))}
-        <button type="button" onClick={() => setCopilot(true)}>ผู้ช่วยจัดซื้อ</button>
-      </nav>
-      {copilotOpen && <MarketCopilot postcode={postcode} arrival={arrival} preference={preference}
+      <MarketCopilot key={buyer} open={copilotOpen} onOpen={() => setCopilot(true)} business={profile.business} initialText={new URLSearchParams(route.search).get("brief") ?? ""} postcode={postcode} arrival={arrival} preference={preference}
         deliveryFields={fields} onClose={() => setCopilot(false)} onApply={applyCopilot}
-        onBrowse={(query) => { setQ(query); setCopilot(false, ""); }} />}
+        onBrowse={(query) => searchFor(query, true)} />
       {error && <p role="alert">{error}</p>}
       {tab === "market" && (
         <>
@@ -423,7 +416,7 @@ export function Marketplace() {
               <h1>
                 ตลาดผลไม้
                 <br />
-                <em>ยกล็อต</em>
+                <em>ตรงจากสวน</em>
               </h1>
               <form
                 className="fruit-search"
@@ -435,30 +428,31 @@ export function Marketplace() {
                   results?.scrollIntoView({ block: "start" });
                 }}
               >
-                <label htmlFor="fruit-query">ค้นหาผลไม้ สวน หรือเมนู</label>
+                <label htmlFor="fruit-query">ค้นหาผลไม้ สวน หรือเมนูที่ต้องการเข้าร้าน</label>
                 <div>
-                  <input
+                  <Search aria-hidden="true" size={20}/><input
                     id="fruit-query"
                     type="search"
                     value={q}
-                    onChange={(e) => setQ(e.target.value)}
+                    onChange={(e) => searchFor(e.target.value)}
                     placeholder="เช่น มะม่วงน้ำดอกไม้"
                   />
-                  <button type="submit">ดูล็อตผลผลิต</button>
+                  <button type="submit">ค้นหา</button>
                 </div>
               </form>
             </div>
             <img
               className="market-orchard"
               src={mangoPhoto}
-              alt="มะม่วงน้ำดอกไม้เรียงในลังที่สวน"
+              alt="ลังมะม่วงและสับปะรดพร้อมส่งจากสวน" fetchPriority="high"
             />
           </section>
+          <TrendStrip/>
           <div className="catalog-layout" id="market-catalog">
             <div className="catalog-results">
               <div className="market-heading">
                 <h2 id="market-results" tabIndex={-1}>
-                  ล็อตผลผลิต <span className="market-count">{lots.length}</span>
+                  ล็อตที่สั่งซื้อได้ <span className="market-count">{lots.length} ล็อต</span>
                 </h2>
                 <button
                   className="filter-toggle"
@@ -467,9 +461,9 @@ export function Marketplace() {
                   aria-controls="market-conditions"
                   onClick={() => setFiltersOpen(!filtersOpen)}
                 >
-                  เงื่อนไขการซื้อ
+                  <SlidersHorizontal size={16} aria-hidden="true"/>เงื่อนไขการซื้อ
                 </button>
-                <span className="condition-summary">
+                {(kg || postcode || arrival || preference) && <span className="condition-summary">
                   {[
                     kg && kg + " กก.",
                     postcode,
@@ -479,11 +473,11 @@ export function Marketplace() {
                     preference,
                   ]
                     .filter(Boolean)
-                    .join(" · ") || "ยังไม่ระบุจำนวนและปลายทาง"}
-                </span>
+                    .join(" · ")}
+                </span>}
                 <label>
-                  เรียงตาม{" "}
-                  <select
+                  <span className="sort-prefix">เรียงตาม</span>
+                  <select aria-label="เรียงตาม"
                     value={sort}
                     onChange={(e) => setSort(e.target.value)}
                   >
@@ -520,12 +514,17 @@ export function Marketplace() {
                 </div>
                 {fields}
               </section>
-              {catalogError && <p role="alert">{catalogError}</p>}
+              {catalogError && <p role="alert">โหลดล็อตที่สั่งซื้อไม่ได้ <button onClick={() => refresh(n => n + 1)}>ลองอีกครั้ง</button></p>}
               {!lots.length && !catalogError && loadedQuery !== queryString && (
                 <p role="status">กำลังค้นหาล็อตผลผลิต</p>
               )}
               {!lots.length && !catalogError && loadedQuery === queryString && (
-                <p>ไม่มีล็อตตรงกับคำค้น ลองเปลี่ยนชนิดผลไม้หรือเมนู</p>
+                <div className="catalog-empty" role="status">
+                  <Search aria-hidden="true" size={25}/>
+                  <div><h3>{q ? "ไม่มีล็อตตรงกับคำค้นนี้" : "ยังไม่มีล็อตที่สั่งซื้อได้"}</h3>
+                    <p>{q ? "ลองค้นด้วยชื่อผลไม้ สวน หรือเมนูอื่น" : "ดูประกาศที่เกษตรกรลงไว้ในส่วนประกาศจากสวนด้านล่าง"}</p></div>
+                  {q && <button type="button" onClick={() => searchFor("")}>ล้างคำค้น</button>}
+                </div>
               )}
               <div className="market-grid">
                 {lots.map((l) => {
@@ -543,11 +542,11 @@ export function Marketplace() {
                           : "");
                   return (
                     <article key={l.id} className="market-product">
+                      <LotPhoto id={l.id} name={l.name}/>
                       <div className="lot-identity">
+                        <p className="lot-farm"><Sprout size={15} aria-hidden="true"/>{l.farm}</p>
                         <h3>{l.name}</h3>
-                        <strong>{l.farm}</strong>
-                        <p>{l.grade ?? "สวนยังไม่ระบุเกรด"}</p>
-                        <p>{l.uses}</p>
+                        <p className="lot-description"><span>{l.grade ?? "สวนยังไม่ระบุเกรด"}</span>{l.uses && <> · {l.uses}</>}</p>
                       </div>
                       <div className="lot-comparison">
                         <strong className="market-price">
@@ -563,10 +562,10 @@ export function Marketplace() {
                         {!l.kg && !l.requested_kg && (
                           <p>สวนยังไม่ระบุน้ำหนักต่อหน่วย</p>
                         )}
-                        <p>
+                        <p className="lot-fact"><PackageOpen size={16} aria-hidden="true"/>
                           ขั้นต่ำ {l.minimum} {l.unit} · เหลือ {l.stock} {l.unit}
                         </p>
-                        <p>
+                        <p className="lot-fact"><CalendarDays size={16} aria-hidden="true"/>
                           รับได้ตั้งแต่{" "}
                           <time dateTime={l.earliest}>
                             {deliveryDate.format(new Date(l.earliest))}
@@ -633,8 +632,8 @@ export function Marketplace() {
                             แก้เงื่อนไขการซื้อ
                           </button>
                         )}
-                        <button disabled={!!reason} onClick={() => add(l)}>
-                          เพิ่มลงตะกร้า
+                        <button className="lot-add" disabled={!!reason} onClick={() => add(l)}>
+                          <ShoppingBasket size={18} aria-hidden="true"/>เพิ่มลงตะกร้า
                         </button>
                         {inCart > 0 && (
                           <small role="status">
@@ -647,15 +646,34 @@ export function Marketplace() {
                 })}
               </div>
             </div>
+            <FarmHarvest query={q}/>
           </div>
         </>
       )}
-      {tab === "orders" && !buyer && accountForm}
+      {tab === "buyer" && (ordersStatus === "ready" ? <BuyerAccount key={buyer} buyer={buyer} profile={profile}
+        accountForm={accountForm} onSave={value => run(async () => {
+          const updated = await api<BuyerProfile>("buyer/profile", value);
+          setProfile(updated); setPostcode(updated.postcode); setReview(null);
+        })} onChat={() => setCopilot(true)} onOrders={() => setTab("orders")} onLogout={() => void logout()}/>
+        : <p role="status">{ordersStatus === "loading" ? "กำลังเปิดบัญชี…" : "โหลดบัญชีไม่ได้"}
+          {ordersStatus === "error" && <button onClick={() => void run(loadOrders)}>ลองอีกครั้ง</button>}</p>)}
+      {tab === "orders" && <ShopOrders buyer={buyer} orders={orders} status={ordersStatus} accountForm={accountForm}
+        onBrowse={() => setTab("market")} onRefresh={() => void run(loadOrders)}
+        onLogout={() => void logout()}
+        onAction={(id, action, note) => run(async () => {
+          await api("orders/" + id + "/events", { action, note });
+          await loadOrders();
+          refresh(n => n + 1);
+        })} />}
       {tab === "cart" && (
         <>
           <h1>ตะกร้าของร้าน</h1>
           {!cart.length ? (
-            <p>ตะกร้ายังว่างอยู่</p>
+            <section className="basket-empty" aria-label="ตะกร้าว่าง">
+              <ShoppingBasket size={32} aria-hidden="true"/><h2>ตะกร้ายังว่างอยู่</h2>
+              <p>เลือกล็อตจากสวนเพื่อดูยอดสินค้าและค่าจัดส่งของแต่ละสวน</p>
+              <button type="button" onClick={() => setTab("market")}>ไปเลือกผลผลิต <ArrowRight size={16} aria-hidden="true"/></button>
+            </section>
           ) : (
             <>
               {farmGroups.length > 1 && (
@@ -848,105 +866,7 @@ export function Marketplace() {
           )}
         </>
       )}
-      {tab === "orders" && buyer && (
-        <>
-          <h1>คำสั่งซื้อของ {buyer}</h1>
-          <button
-            onClick={() =>
-              void run(async () => {
-                await api("logout", {});
-                setOrders([]);
-                setBuyer("");
-                setAddress("");
-                setCart([]);
-                setLater([]);
-                setCheckoutFarm("");
-                setNotes({});
-                setReview(null);
-              })
-            }
-          >
-            ออกจากระบบ
-          </button>
-          <button disabled={busy} onClick={() => void run(loadOrders)}>
-            อัปเดตสถานะ
-          </button>
-          {!orders.length && <p>ยังไม่มีคำสั่งซื้อ</p>}
-          {orders.map((o) => {
-            const actions: string[] = [];
-            if (o.state === "pending") actions.push("cancel");
-            if (o.state === "accepted") actions.push("ask_cancel");
-            if (o.state === "shipped") actions.push("receive");
-            if (
-              !["pending", "expired", "rejected"].includes(o.state) &&
-              (!o.issue || o.issue === "resolved")
-            )
-              actions.push("report");
-            if (["open", "replied"].includes(o.issue)) actions.push("escalate");
-            return (
-              <article key={o.id}>
-                <small>{o.id}</small>
-                <h3>
-                  {o.farm} · {labels[o.state]}
-                </h3>
-                {o.lines.map((l) => (
-                  <p key={l.id}>
-                    {l.name} {l.units} {l.unit} × {money(l.price)}
-                  </p>
-                ))}
-                <p>
-                  รวม {money(o.total)} (ค่าส่ง {money(o.freight)}) · รับวันที่{" "}
-                  {o.arrival}
-                </p>
-                {o.state === "pending" && (
-                  <p>รอยืนยันถึง {new Date(o.expires).toLocaleString("th-TH")}</p>
-                )}
-                {o.payment && <p>วิธีชำระตรงกับสวน · {o.payment}</p>}
-                {o.issue && <p>เรื่องที่แจ้ง · {labels[o.issue]}</p>}
-                {o.refund && <p>สถานะคืนเงิน · {o.refund}</p>}
-                {o.events.map((e, i) => (
-                  <p key={i}>
-                    {labels[e.action]} {e.note}
-                  </p>
-                ))}
-                {actions.length > 0 && (
-                  <label>
-                    รายละเอียดเพิ่มเติม
-                    <input
-                      maxLength={500}
-                      value={notes[o.id] ?? ""}
-                      onChange={(e) =>
-                        setNotes({ ...notes, [o.id]: e.target.value })
-                      }
-                    />
-                  </label>
-                )}
-                {actions.map((action) => (
-                  <button
-                    key={action}
-                    disabled={
-                      busy || (action === "report" && !notes[o.id]?.trim())
-                    }
-                    onClick={() =>
-                      void run(async () => {
-                        await api("orders/" + o.id + "/events", {
-                          action,
-                          note: notes[o.id] ?? "",
-                        });
-                        setNotes({ ...notes, [o.id]: "" });
-                        await loadOrders();
-                        refresh((n) => n + 1);
-                      })
-                    }
-                  >
-                    {labels[action]}
-                  </button>
-                ))}
-              </article>
-            );
-          })}
-        </>
-      )}
     </fieldset>
+    </main></>
   );
 }

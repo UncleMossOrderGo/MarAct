@@ -8,6 +8,7 @@ MarAct มีหนึ่ง storefront และหนึ่ง checkout ผู
 frontend/
   src/app/                    routing และ entry point
   src/features/marketplace/   ค้นหา เปรียบเทียบ ตะกร้า และ checkout
+  src/features/farmer/         Farmer Studio, โปรไฟล์สวน และประกาศผลผลิต
   src/features/copilot/       แชต tool trace และ trend citations
   src/shared/                 HTTP client และ UI ที่หลาย feature ใช้
   src/legacy/                 หน้าสาธิต records และ workspace เดิม
@@ -15,6 +16,7 @@ frontend/
 backend/
   src/app/                    FastAPI app, router mounts และ health checks
   src/modules/marketplace/    catalog, buyer sessions, quotes และ orders
+  src/modules/farmer/         โปรไฟล์ ร่าง ประกาศ และ LINE webhook
   src/modules/copilot/        intent, orchestration, trends, MCP และ agent skills
   src/shared/                 DB pool และโค้ดกลาง
   src/legacy/                 handlers และ fixtures สำหรับสัญญาเดิม
